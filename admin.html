@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kindred Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;color:#e8e6e0;min-height:100vh;}
+.auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.auth-box{background:#1a1c23;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:36px;width:100%;max-width:380px;}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.auth-logo span{font-size:18px;font-weight:700;color:#fff;}
+.auth-box h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+.auth-box p{font-size:13px;color:#666;margin-bottom:24px;}
+.auth-field{margin-bottom:14px;}
+.auth-field label{display:block;font-size:12px;color:#888;margin-bottom:5px;}
+.auth-field input{width:100%;background:#0f1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-size:14px;color:#e8e6e0;font-family:inherit;outline:none;}
+.auth-field input:focus{border-color:#5dcaa5;}
+.auth-btn{width:100%;padding:11px;background:#1d9e75;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.auth-btn:hover{background:#159862;}
+.auth-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:9px 12px;font-size:13px;color:#f87171;margin-bottom:12px;display:none;}
+#admin-app{display:none;}
+.topbar{background:#1a1c23;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:50;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-brand{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px;}
+.topbar-badge{background:#1d9e75;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:0.05em;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.signout-btn{background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#888;font-size:12px;padding:5px 12px;cursor:pointer;font-family:inherit;}
+.signout-btn:hover{border-color:rgba(255,255,255,0.25);color:#ccc;}
+
+/* NAV TABS */
+.nav{background:#1a1c23;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 24px;display:flex;gap:2px;}
+.nav-tab{padding:12px 16px;font-size:13px;font-weight:500;color:#555;border:none;background:transparent;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.nav-tab:hover{color:#888;}
+.nav-tab.active{color:#e8e6e0;border-bottom-color:#5dcaa5;}
+
+.main{max-width:1200px;margin:0 auto;padding:24px;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
+.stat{background:#1a1c23;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 18px;}
+.stat-value{font-size:26px;font-weight:700;color:#fff;margin-bottom:2px;}
+.stat-label{font-size:12px;color:#666;}
+.stat.green .stat-value{color:#5dcaa5;}
+.stat.amber .stat-value{color:#f59e0b;}
+
+/* SECTION */
+.section{margin-bottom:28px;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#555;}
+.section-btn{background:#1d9e75;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;font-family:inherit;}
+.section-btn:hover{background:#159862;}
+
+/* TABLE */
+.table{background:#1a1c23;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.table-head{display:grid;padding:10px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.07);}
+.table-head span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#555;}
+.table-row{display:grid;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);align-items:center;}
+.table-row:last-child{border-bottom:none;}
+.table-row:hover{background:rgba(255,255,255,0.02);}
+.homes-grid{grid-template-columns:2fr 1.5fr 0.7fr 0.7fr 1fr 150px;}
+.invites-grid{grid-template-columns:2fr 1.5fr 1fr 1fr 150px;}
+.residents-grid{grid-template-columns:2fr 1.5fr 1fr 1fr 1fr 100px;}
+.nurses-grid{grid-template-columns:2fr 1.5fr 1.5fr 1fr 100px;}
+.cell-main{font-size:13px;font-weight:500;color:#e8e6e0;}
+.cell-sub{font-size:11px;color:#555;margin-top:2px;}
+.cell-text{font-size:13px;color:#888;}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;display:inline-block;}
+.tag-green{background:rgba(93,202,165,0.15);color:#5dcaa5;}
+.tag-amber{background:rgba(245,158,11,0.15);color:#f59e0b;}
+.tag-gray{background:rgba(255,255,255,0.07);color:#666;}
+.tag-red{background:rgba(239,68,68,0.15);color:#f87171;}
+.tag-blue{background:rgba(59,130,246,0.15);color:#60a5fa;}
+.action-btn{background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#888;font-size:11px;padding:4px 9px;cursor:pointer;font-family:inherit;margin-right:4px;}
+.action-btn:hover{border-color:rgba(255,255,255,0.25);color:#ccc;}
+.action-btn.danger{border-color:rgba(239,68,68,0.3);color:#f87171;}
+.action-btn.danger:hover{background:rgba(239,68,68,0.1);}
+.action-btn.primary{border-color:rgba(93,202,165,0.4);color:#5dcaa5;}
+.action-btn.primary:hover{background:rgba(93,202,165,0.1);}
+.empty-row{padding:32px;text-align:center;color:#444;font-size:13px;}
+.loading{padding:24px;text-align:center;color:#555;font-size:13px;}
+
+/* ACTIVITY FEED */
+.activity-feed{background:#1a1c23;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.activity-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.activity-item:last-child{border-bottom:none;}
+.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.activity-body{flex:1;}
+.activity-text{font-size:13px;color:#ccc;line-height:1.4;}
+.activity-time{font-size:11px;color:#555;margin-top:2px;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#1a1c23;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px;}
+.modal p{font-size:13px;color:#666;margin-bottom:20px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;color:#888;margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;background:#0f1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:13px;color:#e8e6e0;font-family:inherit;outline:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#5dcaa5;}
+.field select option{background:#1a1c23;}
+.field textarea{resize:vertical;min-height:70px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-btns{display:flex;gap:8px;margin-top:20px;}
+.modal-btns button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:none;}
+.btn-confirm{background:#1d9e75;color:#fff;}
+.btn-confirm:hover{background:#159862;}
+.btn-cancel{background:rgba(255,255,255,0.07);color:#888;}
+.btn-cancel:hover{background:rgba(255,255,255,0.1);}
+.invite-box{background:#0f1117;border:1px solid rgba(93,202,165,0.3);border-radius:8px;padding:12px;margin:12px 0;}
+.invite-box p{font-size:12px;color:#5dcaa5;margin-bottom:6px;font-weight:500;}
+.invite-link{font-size:11px;color:#888;font-family:monospace;word-break:break-all;line-height:1.5;}
+.copy-btn{background:#1d9e75;border:none;border-radius:6px;color:#fff;font-size:11px;padding:5px 10px;cursor:pointer;margin-top:8px;font-family:inherit;}
+.section-note{font-size:12px;color:#555;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);}
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE -->
+<div class="auth-gate" id="auth-gate">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+        <circle cx="14" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+        <circle cx="22" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+        <circle cx="18" cy="14" r="9" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
+        <circle cx="18" cy="8" r="3" fill="#1D9E75"/>
+      </svg>
+      <span>Kindred Admin</span>
+    </div>
+    <h2>Admin access</h2>
+    <p>Sign in with your Kindred admin credentials.</p>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-field"><label>Admin password</label><input type="password" id="admin-pass" placeholder="Enter admin password"/></div>
+    <button class="auth-btn" onclick="checkAuth()">Sign in</button>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
+        <circle cx="14" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+        <circle cx="22" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+        <circle cx="18" cy="14" r="9" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
+      </svg>
+      <span class="topbar-brand">Kindred</span>
+      <span class="topbar-badge">ADMIN</span>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:12px;color:#555;" id="topbar-date"></span>
+      <button class="signout-btn" onclick="signOutAdmin()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="nav-tab active" onclick="showPage('overview')">Overview</button>
+    <button class="nav-tab" onclick="showPage('care-homes')">Care homes</button>
+    <button class="nav-tab" onclick="showPage('residents')">Residents</button>
+    <button class="nav-tab" onclick="showPage('nurses')">Nurses</button>
+    <button class="nav-tab" onclick="showPage('activity')">Activity</button>
+  </div>
+
+  <div class="main">
+
+    <!-- OVERVIEW PAGE -->
+    <div class="page active" id="page-overview">
+      <div class="stats">
+        <div class="stat green">
+          <div class="stat-value" id="stat-homes">—</div>
+          <div class="stat-label">Care homes</div>
+        </div>
+        <div class="stat green">
+          <div class="stat-value" id="stat-active-subs">—</div>
+          <div class="stat-label">Active subscriptions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-managers">—</div>
+          <div class="stat-label">Managers</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-nurses">—</div>
+          <div class="stat-label">Nurses</div>
+        </div>
+        <div class="stat amber">
+          <div class="stat-value" id="stat-families">—</div>
+          <div class="stat-label">Families</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="section">
+          <div class="section-head">
+            <span class="section-title">Care homes</span>
+            <button class="section-btn" onclick="showPage('care-homes')">View all</button>
+          </div>
+          <div class="table">
+            <div id="overview-homes-list"><div class="loading">Loading...</div></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head">
+            <span class="section-title">Recent activity</span>
+            <button class="section-btn" onclick="showPage('activity')">View all</button>
+          </div>
+          <div class="activity-feed" id="overview-activity">
+            <div class="loading">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARE HOMES PAGE -->
+    <div class="page" id="page-care-homes">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Care homes</span>
+          <button class="section-btn" onclick="openAddCareHome()">+ Add care home</button>
+        </div>
+        <div class="table">
+          <div class="table-head homes-grid">
+            <span>Care home</span>
+            <span>Manager</span>
+            <span>Residents</span>
+            <span>Nurses</span>
+            <span>Subscription</span>
+            <span>Actions</span>
+          </div>
+          <div id="care-homes-list"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Manager invites</span>
+        </div>
+        <div class="table">
+          <div class="table-head invites-grid">
+            <span>Name / Email</span>
+            <span>Care home</span>
+            <span>Status</span>
+            <span>Created</span>
+            <span>Actions</span>
+          </div>
+          <div id="manager-invites-list"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESIDENTS PAGE -->
+    <div class="page" id="page-residents">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">All residents</span>
+          <button class="section-btn" onclick="openAddResident()">+ Add resident</button>
+        </div>
+        <div class="table">
+          <div class="table-head residents-grid">
+            <span>Resident</span>
+            <span>Care home</span>
+            <span>Care type</span>
+            <span>Funding</span>
+            <span>Family linked</span>
+            <span>Actions</span>
+          </div>
+          <div id="residents-list"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NURSES PAGE -->
+    <div class="page" id="page-nurses">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">All nurses &amp; staff</span>
+          <button class="section-btn" onclick="openAddNurse()">+ Add nurse</button>
+        </div>
+        <div class="table">
+          <div class="table-head nurses-grid">
+            <span>Name / Email</span>
+            <span>Care home</span>
+            <span>Invited by</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </div>
+          <div id="nurses-list"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY PAGE -->
+    <div class="page" id="page-activity">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Platform activity</span>
+        </div>
+        <div class="activity-feed" id="full-activity">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end admin-app -->
+
+<!-- ADD CARE HOME MODAL -->
+<div class="modal-overlay" id="modal-add-home">
+  <div class="modal">
+    <h3>Add care home</h3>
+    <p>Add a new care home to Kindred. You can invite the manager straight after.</p>
+    <div class="grid-2">
+      <div class="field"><label>Care home name</label><input type="text" id="new-home-name" placeholder="e.g. Meadowfield Care Home"/></div>
+      <div class="field"><label>Phone number</label><input type="text" id="new-home-phone" placeholder="e.g. 01706 123456"/></div>
+    </div>
+    <div class="field"><label>Address</label><input type="text" id="new-home-address" placeholder="e.g. 123 High Street, Manchester"/></div>
+    <div class="field"><label>Contact email</label><input type="email" id="new-home-email" placeholder="e.g. manager@carehome.co.uk"/></div>
+    <div class="grid-2">
+      <div class="field"><label>Subscription</label>
+        <select id="new-home-sub"><option value="trial">Free trial</option><option value="active">Active</option><option value="overdue">Overdue</option></select>
+      </div>
+      <div class="field"><label>Contract start <span style="color:#555;font-size:10px;">optional</span></label><input type="date" id="new-home-contract"/></div>
+    </div>
+    <div class="field"><label>Notes <span style="color:#555;font-size:10px;">optional</span></label><textarea id="new-home-notes" placeholder="e.g. 40 beds, contacted via LinkedIn"></textarea></div>
+    <div id="add-home-result"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-add-home')">Cancel</button>
+      <button class="btn-confirm" id="btn-add-home" onclick="addCareHome()">Add care home</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CARE HOME MODAL -->
+<div class="modal-overlay" id="modal-edit-home">
+  <div class="modal">
+    <h3>Edit care home</h3>
+    <p>Update care home details. Changes save immediately.</p>
+    <input type="hidden" id="edit-home-id"/>
+    <div class="grid-2">
+      <div class="field"><label>Care home name</label><input type="text" id="edit-home-name"/></div>
+      <div class="field"><label>Phone number</label><input type="text" id="edit-home-phone"/></div>
+    </div>
+    <div class="field"><label>Address</label><input type="text" id="edit-home-address"/></div>
+    <div class="field"><label>Contact email</label><input type="email" id="edit-home-email"/></div>
+    <div class="grid-2">
+      <div class="field"><label>Subscription</label>
+        <select id="edit-home-sub"><option value="trial">Free trial</option><option value="active">Active</option><option value="overdue">Overdue</option></select>
+      </div>
+      <div class="field"><label>Contract start</label><input type="date" id="edit-home-contract"/></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="edit-home-notes"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-edit-home')">Cancel</button>
+      <button class="btn-confirm" onclick="saveCareHomeEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD NURSE MODAL -->
+<div class="modal-overlay" id="modal-add-nurse">
+  <div class="modal">
+    <h3>Add nurse / staff member</h3>
+    <p>Invite a nurse to a care home. They will receive a unique invite link to create their account.</p>
+    <div class="grid-2">
+      <div class="field"><label>First name</label><input type="text" id="add-nurse-first" placeholder="e.g. Sarah"/></div>
+      <div class="field"><label>Last name</label><input type="text" id="add-nurse-last" placeholder="e.g. Nguyen"/></div>
+    </div>
+    <div class="field"><label>Email address</label><input type="email" id="add-nurse-email" placeholder="e.g. nurse@carehome.co.uk"/></div>
+    <div class="field"><label>Care home</label>
+      <select id="add-nurse-home"><option value="">Select care home...</option></select>
+    </div>
+    <div id="add-nurse-result"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-add-nurse')">Cancel</button>
+      <button class="btn-confirm" id="btn-add-nurse" onclick="addNurse()">Generate invite link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD RESIDENT MODAL -->
+<div class="modal-overlay" id="modal-add-resident">
+  <div class="modal">
+    <h3>Add resident</h3>
+    <p>Add a resident and generate a family invite link to send to their primary contact.</p>
+    <div class="field"><label>Resident full name</label><input type="text" id="add-res-name" placeholder="e.g. Margaret Clarke"/></div>
+    <div class="grid-2">
+      <div class="field"><label>Room number <span style="color:#555;font-size:10px;">optional</span></label><input type="text" id="add-res-room" placeholder="e.g. 14B"/></div>
+      <div class="field"><label>Date of birth <span style="color:#555;font-size:10px;">optional</span></label><input type="text" id="add-res-dob" placeholder="e.g. 12/03/1946"/></div>
+    </div>
+    <div class="field"><label>Care home</label>
+      <select id="add-res-home"><option value="">Select care home...</option></select>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Care type</label>
+        <select id="add-res-care"><option value="residential">Residential</option><option value="nursing">Nursing</option></select>
+      </div>
+      <div class="field"><label>Funding</label>
+        <select id="add-res-funding"><option value="private">Private</option><option value="fully_funded">Fully funded</option></select>
+      </div>
+    </div>
+    <div id="add-res-result"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-add-resident')">Cancel</button>
+      <button class="btn-confirm" id="btn-add-res" onclick="addResidentAdmin()">Add resident</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE MANAGER MODAL -->
+<div class="modal-overlay" id="modal-invite-manager">
+  <div class="modal">
+    <h3>Invite care home manager</h3>
+    <p>Generate a secure personal invite link for the manager.</p>
+    <div class="grid-2">
+      <div class="field"><label>First name</label><input type="text" id="inv-first" placeholder="e.g. Sarah"/></div>
+      <div class="field"><label>Last name</label><input type="text" id="inv-last" placeholder="e.g. Johnson"/></div>
+    </div>
+    <div class="field"><label>Email address</label><input type="email" id="inv-email" placeholder="e.g. manager@carehome.co.uk"/></div>
+    <div class="field"><label>Phone <span style="color:#555;font-size:10px;">optional</span></label><input type="text" id="inv-phone" placeholder="e.g. 07700 900123"/></div>
+    <input type="hidden" id="inv-home-id"/>
+    <div id="manager-invite-result"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-invite-manager')">Cancel</button>
+      <button class="btn-confirm" id="btn-invite-mgr" onclick="inviteManager()">Generate invite link</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT RESIDENT MODAL -->
+<div class="modal-overlay" id="modal-edit-resident">
+  <div class="modal">
+    <h3>Edit resident</h3>
+    <p>Update resident details.</p>
+    <input type="hidden" id="edit-res-id"/>
+    <div class="field"><label>Resident name</label><input type="text" id="edit-res-name"/></div>
+    <div class="grid-2">
+      <div class="field"><label>Room number</label><input type="text" id="edit-res-room"/></div>
+      <div class="field"><label>Date of birth</label><input type="text" id="edit-res-dob"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Care type</label>
+        <select id="edit-res-care"><option value="residential">Residential</option><option value="nursing">Nursing</option></select>
+      </div>
+      <div class="field"><label>Funding</label>
+        <select id="edit-res-funding"><option value="private">Private</option><option value="fully_funded">Fully funded</option></select>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-edit-resident')">Cancel</button>
+      <button class="btn-confirm" onclick="saveResidentEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var SUPA_URL = 'https://xmeeyeeddayyoaxoiypd.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+var ADMIN_PASSWORD = 'Kindred@Admin2024';
+var currentPage = 'overview';
+
+if (sessionStorage.getItem('kindred_admin') === 'true') showAdminApp();
+
+function checkAuth() {
+  if (document.getElementById('admin-pass').value === ADMIN_PASSWORD) {
+    sessionStorage.setItem('kindred_admin', 'true');
+    showAdminApp();
+  } else {
+    var e = document.getElementById('auth-error');
+    e.textContent = 'Incorrect password.';
+    e.style.display = 'block';
+  }
+}
+
+function signOutAdmin() { sessionStorage.removeItem('kindred_admin'); location.reload(); }
+
+function showAdminApp() {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('admin-app').style.display = 'block';
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadAll();
+}
+
+document.getElementById('admin-pass').addEventListener('keydown', function(e) { if (e.key === 'Enter') checkAuth(); });
+
+// ── NAVIGATION ──
+function showPage(name) {
+  currentPage = name;
+  document.querySelectorAll('.nav-tab').forEach(function(t, i) {
+    var pages = ['overview','care-homes','residents','nurses','activity'];
+    t.classList.toggle('active', pages[i] === name);
+  });
+  document.querySelectorAll('.page').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'page-' + name);
+  });
+  if (name === 'care-homes') { loadCareHomes(); loadManagerInvites(); }
+  if (name === 'residents') loadResidents();
+  if (name === 'nurses') loadNurses();
+  if (name === 'activity') loadActivity('full-activity', 50);
+}
+
+// ── DATA ──
+function supaFetch(endpoint) {
+  return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  }).then(function(r) { return r.json(); }).catch(function() { return []; });
+}
+
+function supaPost(endpoint, data, method) {
+  method = method || 'POST';
+  return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
+    method: method,
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  }).then(function(r) { return r.json(); }).catch(function() { return null; });
+}
+
+function loadAll() {
+  loadStats();
+  loadOverviewHomes();
+  loadActivity('overview-activity', 8);
+}
+
+function loadStats() {
+  supaFetch('care_homes?select=id').then(function(d) { safeSetText('stat-homes', d ? d.length : 0); });
+  supaFetch('care_homes?select=id&subscription=eq.active').then(function(d) { safeSetText('stat-active-subs', d ? d.length : 0); });
+  supaFetch('manager_invites?select=id&status=eq.active').then(function(d) { safeSetText('stat-managers', d ? d.length : 0); });
+  supaFetch('nurse_invites?select=id&status=eq.active').then(function(d) { safeSetText('stat-nurses', d ? d.length : 0); });
+  supaFetch('families?select=id').then(function(d) { safeSetText('stat-families', d ? d.length : 0); });
+}
+
+function loadOverviewHomes() {
+  var list = document.getElementById('overview-homes-list');
+  supaFetch('care_homes?select=*&order=created_at.desc&limit=5').then(function(homes) {
+    if (!homes || homes.length === 0) { list.innerHTML = '<div class="empty-row">No care homes yet.</div>'; return; }
+    list.innerHTML = '';
+    homes.forEach(function(h) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);';
+      var sub = h.subscription || 'trial';
+      var subClass = sub === 'active' ? 'tag-green' : sub === 'overdue' ? 'tag-red' : 'tag-amber';
+      row.innerHTML = '<div><div class="cell-main">' + esc(h.name) + '</div><div class="cell-sub">' + esc(h.address || '') + '</div></div><span class="tag ' + subClass + '">' + cap(sub) + '</span>';
+      list.appendChild(row);
+    });
+  });
+}
+
+function loadActivity(containerId, limit) {
+  var container = document.getElementById(containerId);
+  limit = limit || 20;
+
+  // Build activity from multiple sources
+  var activities = [];
+  var done = 0;
+  var total = 4;
+
+  function tryRender() {
+    done++;
+    if (done < total) return;
+    // Sort by timestamp desc
+    activities.sort(function(a, b) { return b.ts - a.ts; });
+    if (activities.length === 0) {
+      container.innerHTML = '<div class="empty-row">No activity yet.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    activities.slice(0, limit).forEach(function(a) {
+      var div = document.createElement('div');
+      div.className = 'activity-item';
+      div.innerHTML = '<div class="activity-dot" style="background:' + a.color + '"></div><div class="activity-body"><div class="activity-text">' + esc(a.text) + '</div><div class="activity-time">' + a.time + '</div></div>';
+      container.appendChild(div);
+    });
+  }
+
+  supaFetch('care_homes?select=name,created_at&order=created_at.desc&limit=10').then(function(d) {
+    (d || []).forEach(function(r) { activities.push({ text: 'Care home added: ' + r.name, ts: new Date(r.created_at).getTime(), time: fmtDate(r.created_at), color: '#5dcaa5' }); });
+    tryRender();
+  });
+
+  supaFetch('manager_invites?select=name,email,status,created_at,accepted_at,care_homes(name)&order=created_at.desc&limit=10').then(function(d) {
+    (d || []).forEach(function(r) {
+      var homeName = r.care_homes ? r.care_homes.name : '';
+      if (r.status === 'active' && r.accepted_at) activities.push({ text: (r.name || r.email) + ' accepted manager invite — ' + homeName, ts: new Date(r.accepted_at).getTime(), time: fmtDate(r.accepted_at), color: '#60a5fa' });
+      else activities.push({ text: 'Manager invited: ' + (r.name || r.email) + ' — ' + homeName, ts: new Date(r.created_at).getTime(), time: fmtDate(r.created_at), color: '#f59e0b' });
+    });
+    tryRender();
+  });
+
+  supaFetch('nurse_invites?select=name,email,status,created_at,accepted_at,care_homes(name)&order=created_at.desc&limit=10').then(function(d) {
+    (d || []).forEach(function(r) {
+      var homeName = r.care_homes ? r.care_homes.name : '';
+      if (r.status === 'active' && r.accepted_at) activities.push({ text: (r.name || r.email) + ' joined as nurse — ' + homeName, ts: new Date(r.accepted_at).getTime(), time: fmtDate(r.accepted_at), color: '#5dcaa5' });
+      else activities.push({ text: 'Nurse invited: ' + (r.name || r.email) + ' — ' + homeName, ts: new Date(r.created_at).getTime(), time: fmtDate(r.created_at), color: '#f59e0b' });
+    });
+    tryRender();
+  });
+
+  supaFetch('families?select=name,resident_name,care_home,created_at&order=created_at.desc&limit=10').then(function(d) {
+    (d || []).forEach(function(r) { activities.push({ text: 'Family joined: ' + (r.name || '') + (r.resident_name ? ' — resident: ' + r.resident_name : '') + (r.care_home ? ' (' + r.care_home + ')' : ''), ts: new Date(r.created_at).getTime(), time: fmtDate(r.created_at), color: '#f59e0b' }); });
+    tryRender();
+  });
+}
+
+function loadCareHomes() {
+  var list = document.getElementById('care-homes-list');
+  list.innerHTML = '<div class="loading">Loading...</div>';
+  supaFetch('care_homes?select=*&order=created_at.desc').then(function(homes) {
+    if (!homes || homes.length === 0) { list.innerHTML = '<div class="empty-row">No care homes yet. Click "+ Add care home" to get started.</div>'; return; }
+    supaFetch('families?select=id,care_home_id').then(function(families) {
+      supaFetch('nurse_invites?select=id,care_home_id,status').then(function(nurses) {
+        supaFetch('manager_invites?select=id,care_home_id,status,name,email').then(function(managers) {
+          list.innerHTML = '';
+          homes.forEach(function(home) {
+            var resCount = families ? families.filter(function(f) { return f.care_home_id === home.id; }).length : 0;
+            var nurseCount = nurses ? nurses.filter(function(n) { return n.care_home_id === home.id && n.status === 'active'; }).length : 0;
+            var mgr = managers ? managers.find(function(m) { return m.care_home_id === home.id && m.status === 'active'; }) : null;
+            var mgrPending = managers ? managers.find(function(m) { return m.care_home_id === home.id && m.status === 'pending'; }) : null;
+            var sub = home.subscription || 'trial';
+            var subClass = sub === 'active' ? 'tag-green' : sub === 'overdue' ? 'tag-red' : 'tag-amber';
+
+            var row = document.createElement('div');
+            row.className = 'table-row homes-grid';
+
+            var mgrHtml = mgr
+              ? '<div class="cell-main">' + esc(mgr.name || 'Manager') + '</div><div class="cell-sub">' + esc(mgr.email) + '</div>'
+              : mgrPending
+              ? '<span class="tag tag-amber">Invite pending</span>'
+              : '<span class="tag tag-gray">No manager</span>';
+
+            row.innerHTML =
+              '<div><div class="cell-main">' + esc(home.name) + '</div><div class="cell-sub">' + esc(home.address || home.email || '') + '</div></div>' +
+              '<div>' + mgrHtml + '</div>' +
+              '<div class="cell-text">' + resCount + '</div>' +
+              '<div class="cell-text">' + nurseCount + '</div>' +
+              '<div><span class="tag ' + subClass + '">' + cap(sub) + '</span></div>' +
+              '<div id="ha-' + home.id + '"></div>';
+
+            list.appendChild(row);
+
+            var ac = document.getElementById('ha-' + home.id);
+
+            var editBtn = document.createElement('button');
+            editBtn.className = 'action-btn primary';
+            editBtn.textContent = 'Edit';
+            editBtn.addEventListener('click', (function(h) { return function() { openEditHome(h); }; })(home));
+            ac.appendChild(editBtn);
+
+            if (!mgr && !mgrPending) {
+              var invBtn = document.createElement('button');
+              invBtn.className = 'action-btn';
+              invBtn.textContent = 'Invite manager';
+              invBtn.addEventListener('click', (function(id) { return function() { openInviteManager(id); }; })(home.id));
+              ac.appendChild(invBtn);
+            }
+
+            var suspBtn = document.createElement('button');
+            suspBtn.className = 'action-btn danger';
+            suspBtn.textContent = home.status !== 'active' ? 'Reactivate' : 'Suspend';
+            suspBtn.addEventListener('click', (function(id, status) { return function() { toggleHomeStatus(id, status); }; })(home.id, home.status));
+            ac.appendChild(suspBtn);
+
+            var homeDelBtn = document.createElement('button');
+            homeDelBtn.className = 'action-btn danger';
+            homeDelBtn.textContent = 'Delete';
+            homeDelBtn.addEventListener('click', (function(id, name) {
+              return function() {
+                if (confirm('Permanently delete ' + name + ' and ALL associated data (residents, nurse invites, manager invites, families)? This CANNOT be undone.')) {
+                  deleteCareHome(id, name);
+                }
+              };
+            })(home.id, home.name));
+            ac.appendChild(homeDelBtn);
+          });
+        });
+      });
+    });
+  });
+}
+
+function loadManagerInvites() {
+  var list = document.getElementById('manager-invites-list');
+  list.innerHTML = '<div class="loading">Loading...</div>';
+  supaFetch('manager_invites?select=*,care_homes(name)&order=created_at.desc').then(function(invites) {
+    if (!invites || invites.length === 0) { list.innerHTML = '<div class="empty-row">No manager invites yet.</div>'; return; }
+    list.innerHTML = '';
+    invites.forEach(function(inv) {
+      var row = document.createElement('div');
+      row.className = 'table-row invites-grid';
+      var statusClass = inv.status === 'active' ? 'tag-green' : inv.status === 'deactivated' ? 'tag-red' : 'tag-amber';
+      var homeName = inv.care_homes ? inv.care_homes.name : '—';
+
+      row.innerHTML =
+        '<div><div class="cell-main">' + esc(inv.name || 'Manager') + '</div><div class="cell-sub">' + esc(inv.email) + '</div></div>' +
+        '<div class="cell-text">' + esc(homeName) + '</div>' +
+        '<div><span class="tag ' + statusClass + '">' + cap(inv.status) + '</span></div>' +
+        '<div class="cell-text">' + fmtDate(inv.created_at) + '</div>' +
+        '<div id="ia-' + inv.id + '"></div>';
+
+      list.appendChild(row);
+
+      var ac = document.getElementById('ia-' + inv.id);
+      if (inv.status === 'pending') {
+        var copyBtn = document.createElement('button');
+        copyBtn.className = 'action-btn primary';
+        copyBtn.textContent = 'Copy link';
+        copyBtn.addEventListener('click', (function(token, btn) {
+          return function() {
+            var link = window.location.origin + '/index.html?manager_invite=' + token;
+            navigator.clipboard.writeText(link).then(function() { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy link'; }, 2000); });
+          };
+        })(inv.token, copyBtn));
+        ac.appendChild(copyBtn);
+      }
+      if (inv.status !== 'deactivated') {
+        var deactBtn = document.createElement('button');
+        deactBtn.className = 'action-btn danger';
+        deactBtn.textContent = 'Deactivate';
+        deactBtn.addEventListener('click', (function(id) {
+          return function() {
+            if (confirm('Deactivate this manager? They will lose access.')) {
+              supaPost('manager_invites?id=eq.' + id, { status: 'deactivated' }, 'PATCH').then(function() { loadManagerInvites(); loadStats(); });
+            }
+          };
+        })(inv.id));
+        ac.appendChild(deactBtn);
+      }
+      var mDelBtn = document.createElement('button');
+      mDelBtn.className = 'action-btn danger';
+      mDelBtn.textContent = 'Delete';
+      mDelBtn.addEventListener('click', (function(id, name) {
+        return function() {
+          if (confirm('Permanently delete invite for ' + name + '? This cannot be undone.')) {
+            fetch(SUPA_URL + '/rest/v1/manager_invites?id=eq.' + id, {
+              method: 'DELETE',
+              headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+            }).then(function() { loadManagerInvites(); loadCareHomes(); loadStats(); });
+          }
+        };
+      })(inv.id, inv.name || inv.email));
+      ac.appendChild(mDelBtn);
+    });
+  });
+}
+
+function loadResidents() {
+  var list = document.getElementById('residents-list');
+  list.innerHTML = '<div class="loading">Loading...</div>';
+  supaFetch('residents?select=*,care_homes(name),families(name,resident_invite_used)&order=created_at.desc').then(function(residents) {
+    if (!residents || residents.length === 0) {
+      // fallback to families table
+      supaFetch('families?select=*,care_homes(name)&order=created_at.desc').then(function(families) {
+        if (!families || families.length === 0) { list.innerHTML = '<div class="empty-row">No residents added yet.</div>'; return; }
+        list.innerHTML = '';
+        families.forEach(function(fam) {
+          var row = document.createElement('div');
+          row.className = 'table-row residents-grid';
+          var homeName = fam.care_homes ? fam.care_homes.name : (fam.care_home || '—');
+          var careType = fam.care_type || 'residential';
+          var funding = fam.funding_type || 'private';
+          var familyLinked = fam.resident_invite_used
+            ? '<span class="tag tag-green">Linked</span>'
+            : '<span class="tag tag-amber">Awaiting</span>';
+
+          row.innerHTML =
+            '<div><div class="cell-main">' + esc(fam.resident_name || 'Unknown') + '</div><div class="cell-sub">' + esc(fam.name || '') + '</div></div>' +
+            '<div class="cell-text">' + esc(homeName) + '</div>' +
+            '<div><span class="tag tag-gray">' + cap(careType) + '</span></div>' +
+            '<div class="cell-text">' + cap(funding.replace('_', ' ')) + '</div>' +
+            '<div>' + familyLinked + '</div>' +
+            '<div id="ra-' + fam.id + '"></div>';
+
+          list.appendChild(row);
+
+          var ac = document.getElementById('ra-' + fam.id);
+
+          // Edit button
+          var editBtn = document.createElement('button');
+          editBtn.className = 'action-btn primary';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', (function(f) { return function() { openEditResident(f); }; })(fam));
+          ac.appendChild(editBtn);
+
+          // Copy invite link button (always show if token exists)
+          if (fam.resident_invite_token && !fam.resident_invite_used) {
+            var linkBtn = document.createElement('button');
+            linkBtn.className = 'action-btn';
+            linkBtn.textContent = 'Copy invite';
+            linkBtn.addEventListener('click', (function(token, btn) {
+              return function() {
+                var link = window.location.origin + '/index.html?family_invite=' + token;
+                navigator.clipboard.writeText(link).then(function() {
+                  btn.textContent = 'Copied!';
+                  setTimeout(function() { btn.textContent = 'Copy invite'; }, 2000);
+                });
+              };
+            })(fam.resident_invite_token, linkBtn));
+            ac.appendChild(linkBtn);
+          }
+
+          // Delete button — always visible
+          var rDelBtn = document.createElement('button');
+          rDelBtn.className = 'action-btn danger';
+          rDelBtn.textContent = 'Delete';
+          rDelBtn.addEventListener('click', (function(id, name) {
+            return function() {
+              if (confirm('Permanently delete ' + name + ' and all their data? This cannot be undone.')) {
+                fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, {
+                  method: 'DELETE',
+                  headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+                }).then(function() { loadResidents(); loadStats(); });
+              }
+            };
+          })(fam.id, fam.resident_name || 'this resident'));
+          ac.appendChild(rDelBtn);
+        });
+      });
+      return;
+    }
+    // render residents table
+    list.innerHTML = '';
+    residents.forEach(function(res) {
+      var row = document.createElement('div');
+      row.className = 'table-row residents-grid';
+      var homeName = res.care_homes ? res.care_homes.name : '—';
+      var familyLinked = (res.families && res.families.resident_invite_used) ? '<span class="tag tag-green">Family linked</span>' : '<span class="tag tag-amber">Awaiting</span>';
+      row.innerHTML =
+        '<div><div class="cell-main">' + esc(res.name) + '</div><div class="cell-sub">Room ' + esc(res.room_number || '—') + '</div></div>' +
+        '<div class="cell-text">' + esc(homeName) + '</div>' +
+        '<div><span class="tag tag-gray">' + cap(res.care_type || 'residential') + '</span></div>' +
+        '<div class="cell-text">' + cap((res.funding_type || 'private').replace('_', ' ')) + '</div>' +
+        '<div>' + familyLinked + '</div>' +
+        '<div id="rra-' + res.id + '"></div>';
+      list.appendChild(row);
+      var editBtn = document.createElement('button');
+      editBtn.className = 'action-btn primary';
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', (function(r) { return function() { openEditResident(r); }; })(res));
+      var ac2 = document.getElementById('rra-' + res.id);
+      ac2.appendChild(editBtn);
+
+      var resDelBtn = document.createElement('button');
+      resDelBtn.className = 'action-btn danger';
+      resDelBtn.textContent = 'Delete';
+      resDelBtn.addEventListener('click', (function(id, name) {
+        return function() {
+          if (confirm('Permanently delete ' + name + '? This cannot be undone.')) {
+            var h = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
+            fetch(SUPA_URL + '/rest/v1/residents?id=eq.' + id, { method: 'DELETE', headers: h })
+              .then(function() { return fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, { method: 'DELETE', headers: h }); })
+              .then(function() { loadResidents(); loadStats(); });
+          }
+        };
+      })(res.id, res.name));
+      ac2.appendChild(resDelBtn);
+    });
+  });
+}
+
+function loadNurses() {
+  var list = document.getElementById('nurses-list');
+  list.innerHTML = '<div class="loading">Loading...</div>';
+  supaFetch('nurse_invites?select=*,care_homes(name)&order=created_at.desc').then(function(nurses) {
+    if (!nurses || nurses.length === 0) { list.innerHTML = '<div class="empty-row">No nurses invited yet.</div>'; return; }
+    list.innerHTML = '';
+    nurses.forEach(function(n) {
+      var row = document.createElement('div');
+      row.className = 'table-row nurses-grid';
+      var homeName = n.care_homes ? n.care_homes.name : '—';
+      var statusClass = n.status === 'active' ? 'tag-green' : n.status === 'deactivated' ? 'tag-red' : 'tag-amber';
+      row.innerHTML =
+        '<div><div class="cell-main">' + esc(n.name || 'Nurse') + '</div><div class="cell-sub">' + esc(n.email) + '</div></div>' +
+        '<div class="cell-text">' + esc(homeName) + '</div>' +
+        '<div class="cell-text">' + fmtDate(n.created_at) + '</div>' +
+        '<div><span class="tag ' + statusClass + '">' + cap(n.status) + '</span></div>' +
+        '<div id="na-' + n.id + '"></div>';
+      list.appendChild(row);
+
+      var ac = document.getElementById('na-' + n.id);
+      if (n.status === 'pending') {
+        var copyBtn = document.createElement('button');
+        copyBtn.className = 'action-btn primary';
+        copyBtn.textContent = 'Copy link';
+        copyBtn.addEventListener('click', (function(token, btn) {
+          return function() {
+            var link = window.location.origin + '/index.html?nurse_invite=' + token;
+            navigator.clipboard.writeText(link).then(function() { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy link'; }, 2000); });
+          };
+        })(n.token, copyBtn));
+        ac.appendChild(copyBtn);
+      }
+      if (n.status !== 'deactivated') {
+        var deactBtn = document.createElement('button');
+        deactBtn.className = 'action-btn danger';
+        deactBtn.textContent = 'Deactivate';
+        deactBtn.addEventListener('click', (function(id) {
+          return function() {
+            if (confirm('Deactivate this nurse? They will immediately lose access.')) {
+              supaPost('nurse_invites?id=eq.' + id, { status: 'deactivated' }, 'PATCH').then(function() { loadNurses(); loadStats(); });
+            }
+          };
+        })(n.id));
+        ac.appendChild(deactBtn);
+      }
+      var delBtn = document.createElement('button');
+      delBtn.className = 'action-btn danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', (function(id, name) {
+        return function() {
+          if (confirm('Permanently delete ' + name + '? This cannot be undone.')) {
+            fetch(SUPA_URL + '/rest/v1/nurse_invites?id=eq.' + id, {
+              method: 'DELETE',
+              headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+            }).then(function() { loadNurses(); loadStats(); });
+          }
+        };
+      })(n.id, n.name || n.email));
+      ac.appendChild(delBtn);
+    });
+  });
+}
+
+// ── CARE HOME ACTIONS ──
+function openAddCareHome() {
+  ['new-home-name','new-home-phone','new-home-address','new-home-email','new-home-notes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('new-home-sub').value = 'trial';
+  document.getElementById('new-home-contract').value = '';
+  document.getElementById('add-home-result').innerHTML = '';
+  document.getElementById('btn-add-home').textContent = 'Add care home';
+  document.getElementById('btn-add-home').disabled = false;
+  document.getElementById('modal-add-home').classList.add('open');
+}
+
+function addCareHome() {
+  var name = document.getElementById('new-home-name').value.trim();
+  if (!name) { alert('Please enter a care home name.'); return; }
+  var btn = document.getElementById('btn-add-home');
+  btn.textContent = 'Adding...'; btn.disabled = true;
+
+  supaPost('care_homes', {
+    name: name,
+    phone: document.getElementById('new-home-phone').value.trim() || null,
+    address: document.getElementById('new-home-address').value.trim() || null,
+    email: document.getElementById('new-home-email').value.trim() || null,
+    subscription: document.getElementById('new-home-sub').value,
+    contract_start: document.getElementById('new-home-contract').value || null,
+    notes: document.getElementById('new-home-notes').value.trim() || null,
+    status: 'active'
+  }).then(function(data) {
+    if (!data || !data[0]) { alert('Failed to add care home. Please try again.'); btn.textContent = 'Add care home'; btn.disabled = false; return; }
+    var home = data[0];
+    var result = document.getElementById('add-home-result');
+    result.innerHTML = '<div style="background:rgba(93,202,165,0.1);border:1px solid rgba(93,202,165,0.3);border-radius:8px;padding:12px;margin-top:12px;" id="add-home-success"><div style="font-size:13px;font-weight:500;color:#5dcaa5;margin-bottom:8px;">✓ ' + esc(name) + ' added successfully</div></div>';
+    var invMgrBtn = document.createElement('button');
+    invMgrBtn.style.cssText = 'background:#1d9e75;border:none;border-radius:6px;color:#fff;font-size:12px;padding:6px 12px;cursor:pointer;font-family:inherit;';
+    invMgrBtn.textContent = 'Invite manager now →';
+    invMgrBtn.addEventListener('click', (function(id) {
+      return function() { closeModal('modal-add-home'); openInviteManager(id); };
+    })(home.id));
+    document.getElementById('add-home-success').appendChild(invMgrBtn);
+    btn.textContent = 'Added ✓';
+    loadCareHomes(); loadOverviewHomes(); loadStats();
+    logActivity('Care home added: ' + name);
+  });
+}
+
+function openEditHome(home) {
+  document.getElementById('edit-home-id').value = home.id;
+  document.getElementById('edit-home-name').value = home.name || '';
+  document.getElementById('edit-home-phone').value = home.phone || '';
+  document.getElementById('edit-home-address').value = home.address || '';
+  document.getElementById('edit-home-email').value = home.email || '';
+  document.getElementById('edit-home-sub').value = home.subscription || 'trial';
+  document.getElementById('edit-home-contract').value = home.contract_start || '';
+  document.getElementById('edit-home-notes').value = home.notes || '';
+  document.getElementById('modal-edit-home').classList.add('open');
+}
+
+function saveCareHomeEdit() {
+  var id = document.getElementById('edit-home-id').value;
+  supaPost('care_homes?id=eq.' + id, {
+    name: document.getElementById('edit-home-name').value.trim(),
+    phone: document.getElementById('edit-home-phone').value.trim() || null,
+    address: document.getElementById('edit-home-address').value.trim() || null,
+    email: document.getElementById('edit-home-email').value.trim() || null,
+    subscription: document.getElementById('edit-home-sub').value,
+    contract_start: document.getElementById('edit-home-contract').value || null,
+    notes: document.getElementById('edit-home-notes').value.trim() || null
+  }, 'PATCH').then(function() {
+    closeModal('modal-edit-home');
+    loadCareHomes(); loadOverviewHomes(); loadStats();
+  });
+}
+
+function openAddNurse() {
+  ['add-nurse-first','add-nurse-last','add-nurse-email'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('add-nurse-result').innerHTML = '';
+  document.getElementById('btn-add-nurse').textContent = 'Generate invite link';
+  document.getElementById('btn-add-nurse').disabled = false;
+  // Populate care homes dropdown
+  var sel = document.getElementById('add-nurse-home');
+  sel.innerHTML = '<option value="">Select care home...</option>';
+  supaFetch('care_homes?select=id,name&order=name').then(function(homes) {
+    (homes || []).forEach(function(h) {
+      var opt = document.createElement('option');
+      opt.value = h.id;
+      opt.textContent = h.name;
+      sel.appendChild(opt);
+    });
+  });
+  document.getElementById('modal-add-nurse').classList.add('open');
+}
+
+function addNurse() {
+  var first = document.getElementById('add-nurse-first').value.trim();
+  var last = document.getElementById('add-nurse-last').value.trim();
+  var name = (first + ' ' + last).trim();
+  var email = document.getElementById('add-nurse-email').value.trim();
+  var homeId = document.getElementById('add-nurse-home').value;
+  if (!first || !email || !homeId) { alert('Please fill in name, email and select a care home.'); return; }
+  var btn = document.getElementById('btn-add-nurse');
+  btn.textContent = 'Generating...'; btn.disabled = true;
+  supaPost('nurse_invites', { care_home_id: homeId, email: email, name: name, status: 'pending' }).then(function(data) {
+    if (!data || !data[0]) { alert('Failed. Please try again.'); btn.textContent = 'Generate invite link'; btn.disabled = false; return; }
+    var link = window.location.origin + '/index.html?nurse_invite=' + data[0].token;
+    var result = document.getElementById('add-nurse-result');
+    result.innerHTML = '<div class="invite-box"><p>✓ Invite created for ' + esc(name) + '</p><div class="invite-link">' + link + '</div></div>';
+    var copyBtn = result.querySelector('.invite-box');
+    var cb = document.createElement('button');
+    cb.className = 'copy-btn';
+    cb.textContent = 'Copy invite link';
+    cb.addEventListener('click', (function(l) { return function() { copyLink(l, cb); }; })(link));
+    result.querySelector('.invite-box').appendChild(cb);
+    btn.textContent = 'Done ✓';
+    loadNurses(); loadStats();
+  });
+}
+
+function openAddResident() {
+  ['add-res-name','add-res-room','add-res-dob'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('add-res-result').innerHTML = '';
+  document.getElementById('btn-add-res').textContent = 'Add resident';
+  document.getElementById('btn-add-res').disabled = false;
+  // Populate care homes dropdown
+  var sel = document.getElementById('add-res-home');
+  sel.innerHTML = '<option value="">Select care home...</option>';
+  supaFetch('care_homes?select=id,name&order=name').then(function(homes) {
+    (homes || []).forEach(function(h) {
+      var opt = document.createElement('option');
+      opt.value = h.id + '|' + h.name;
+      opt.textContent = h.name;
+      sel.appendChild(opt);
+    });
+  });
+  document.getElementById('modal-add-resident').classList.add('open');
+}
+
+function addResidentAdmin() {
+  var resName = document.getElementById('add-res-name').value.trim();
+  var room = document.getElementById('add-res-room').value.trim();
+  var homeVal = document.getElementById('add-res-home').value;
+  var careType = document.getElementById('add-res-care').value;
+  var funding = document.getElementById('add-res-funding').value;
+  if (!resName || !homeVal) { alert('Please enter resident name and select a care home.'); return; }
+  var homeId = homeVal.split('|')[0];
+  var homeName = homeVal.split('|')[1];
+  var btn = document.getElementById('btn-add-res');
+  btn.textContent = 'Adding...'; btn.disabled = true;
+
+  // Generate invite token
+  var token = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+
+  supaPost('families', {
+    name: resName + ' family',
+    resident_name: resName,
+    care_home: homeName,
+    care_home_id: homeId,
+    care_type: careType,
+    funding_type: funding,
+    resident_invite_token: token,
+    resident_invite_used: false,
+    status: 'pending'
+  }).then(function(data) {
+    if (!data || !data[0]) { alert('Failed. Please try again.'); btn.textContent = 'Add resident'; btn.disabled = false; return; }
+    var link = window.location.origin + '/index.html?family_invite=' + token;
+    var result = document.getElementById('add-res-result');
+    result.innerHTML = '<div class="invite-box"><p>✓ ' + esc(resName) + ' added to ' + esc(homeName) + '</p><p style="margin-top:4px;">Send this link to the primary family contact:</p><div class="invite-link">' + link + '</div></div>';
+    var rCopyBtn = document.createElement('button');
+    rCopyBtn.className = 'copy-btn';
+    rCopyBtn.textContent = 'Copy family invite link';
+    rCopyBtn.addEventListener('click', (function(l) { return function() { copyLink(l, rCopyBtn); }; })(link));
+    result.querySelector('.invite-box').appendChild(rCopyBtn);
+    btn.textContent = 'Added ✓';
+    loadResidents(); loadStats();
+  });
+}
+
+function deleteCareHome(homeId, name) {
+  var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
+  var del = function(endpoint) {
+    return fetch(SUPA_URL + '/rest/v1/' + endpoint, { method: 'DELETE', headers: headers });
+  };
+  del('nurse_invites?care_home_id=eq.' + homeId)
+    .then(function() { return del('manager_invites?care_home_id=eq.' + homeId); })
+    .then(function() { return del('families?care_home_id=eq.' + homeId); })
+    .then(function() { return del('residents?care_home_id=eq.' + homeId); })
+    .then(function() { return del('care_homes?id=eq.' + homeId); })
+    .then(function() {
+      alert(name + ' and all data permanently deleted.');
+      loadCareHomes(); loadManagerInvites(); loadStats(); loadOverviewHomes();
+    }).catch(function() { alert('Error deleting. Please try again.'); });
+}
+
+function toggleHomeStatus(id, status) {
+  var newStatus = status === 'active' ? 'suspended' : 'active';
+  if (!confirm((newStatus === 'suspended' ? 'Suspend' : 'Reactivate') + ' this care home?')) return;
+  supaPost('care_homes?id=eq.' + id, { status: newStatus }, 'PATCH').then(function() { loadCareHomes(); });
+}
+
+// ── MANAGER INVITE ──
+function openInviteManager(homeId) {
+  ['inv-first','inv-last','inv-email','inv-phone'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('inv-home-id').value = homeId;
+  document.getElementById('manager-invite-result').innerHTML = '';
+  document.getElementById('btn-invite-mgr').textContent = 'Generate invite link';
+  document.getElementById('btn-invite-mgr').disabled = false;
+  document.getElementById('modal-invite-manager').classList.add('open');
+}
+
+function inviteManager() {
+  var first = document.getElementById('inv-first').value.trim();
+  var last = document.getElementById('inv-last').value.trim();
+  var name = (first + ' ' + last).trim();
+  var email = document.getElementById('inv-email').value.trim();
+  var homeId = document.getElementById('inv-home-id').value;
+  if (!first || !email) { alert('Please enter first name and email.'); return; }
+  var btn = document.getElementById('btn-invite-mgr');
+  btn.textContent = 'Generating...'; btn.disabled = true;
+
+  supaPost('manager_invites', { care_home_id: homeId, email: email, name: name, status: 'pending' }).then(function(data) {
+    if (!data || !data[0]) { alert('Failed. Please try again.'); btn.textContent = 'Generate invite link'; btn.disabled = false; return; }
+    var link = window.location.origin + '/index.html?manager_invite=' + data[0].token;
+    var result = document.getElementById('manager-invite-result');
+    result.innerHTML = '<div class="invite-box"><p>✓ Invite created for ' + esc(name) + '</p><div class="invite-link">' + link + '</div></div>';
+    var mCopyBtn = document.createElement('button');
+    mCopyBtn.className = 'copy-btn';
+    mCopyBtn.textContent = 'Copy invite link';
+    mCopyBtn.addEventListener('click', (function(l) { return function() { copyLink(l, mCopyBtn); }; })(link));
+    result.querySelector('.invite-box').appendChild(mCopyBtn);
+    btn.textContent = 'Done ✓';
+    loadManagerInvites(); loadCareHomes(); loadStats();
+  });
+}
+
+// ── RESIDENT EDIT ──
+function openEditResident(res) {
+  document.getElementById('edit-res-id').value = res.id;
+  document.getElementById('edit-res-name').value = res.name || res.resident_name || '';
+  document.getElementById('edit-res-room').value = res.room_number || '';
+  document.getElementById('edit-res-dob').value = '';
+  document.getElementById('edit-res-care').value = res.care_type || 'residential';
+  document.getElementById('edit-res-funding').value = res.funding_type || 'private';
+  document.getElementById('modal-edit-resident').classList.add('open');
+}
+
+function saveResidentEdit() {
+  var id = document.getElementById('edit-res-id').value;
+  // Try residents table first, fallback to families
+  supaPost('residents?id=eq.' + id, {
+    name: document.getElementById('edit-res-name').value.trim(),
+    room_number: document.getElementById('edit-res-room').value.trim() || null,
+    care_type: document.getElementById('edit-res-care').value,
+    funding_type: document.getElementById('edit-res-funding').value
+  }, 'PATCH').then(function() {
+    // Also update families table
+    supaPost('families?id=eq.' + id, {
+      resident_name: document.getElementById('edit-res-name').value.trim(),
+      care_type: document.getElementById('edit-res-care').value,
+      funding_type: document.getElementById('edit-res-funding').value
+    }, 'PATCH');
+    closeModal('modal-edit-resident');
+    loadResidents();
+  });
+}
+
+// ── HELPERS ──
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function safeSetText(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
+function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function cap(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''; }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '—'; }
+function copyLink(link, btn) { navigator.clipboard.writeText(link).then(function() { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy invite link'; }, 2000); }); }
+function logActivity(text) { /* activity is loaded fresh from DB */ }
+
+document.querySelectorAll('.modal-overlay').forEach(function(o) {
+  o.addEventListener('click', function(e) { if (e.target === o) o.classList.remove('open'); });
+});
+</script>
+</body>
+</html>

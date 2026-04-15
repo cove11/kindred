@@ -1,0 +1,647 @@
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kindred — Family care, together</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f7f5f0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;}
+.box{background:#fff;border-radius:16px;border:0.5px solid rgba(0,0,0,0.12);padding:32px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,0.06);}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.logo-name{font-size:22px;font-weight:700;letter-spacing:-0.5px;}
+h2{font-size:22px;font-weight:600;margin-bottom:6px;}
+.sub{font-size:13px;color:#888;margin-bottom:24px;line-height:1.5;}
+.tabs{display:flex;background:#f7f5f0;border-radius:8px;padding:3px;margin-bottom:20px;gap:3px;}
+.tab{flex:1;padding:8px;border:none;border-radius:6px;background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:#999;font-family:inherit;}
+.tab.active{background:#fff;color:#1a1a18;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:5px;}
+.field input{width:100%;padding:11px 14px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;}
+.field input:focus{border-color:#1d6b52;box-shadow:0 0 0 3px rgba(29,107,82,0.08);}
+.role-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.role-btn{padding:12px;border:1.5px solid rgba(0,0,0,0.12);border-radius:8px;cursor:pointer;text-align:center;background:#fff;font-family:inherit;transition:all 0.15s;}
+.role-btn.sel{border-color:#1d6b52;background:#e1f5ee;}
+.role-btn .ri{font-size:20px;display:block;margin-bottom:4px;}
+.role-btn .rn{font-size:12px;font-weight:600;}
+.role-btn .rd{font-size:11px;color:#888;margin-top:2px;}
+.btn{width:100%;padding:13px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;transition:all 0.15s;}
+.btn-dark{background:#1a1a18;color:#fff;}
+.btn-dark:hover{background:#333;}
+.btn-dark:disabled{opacity:0.6;cursor:not-allowed;}
+.btn-green{background:#1d6b52;color:#fff;}
+.btn-green:hover{background:#085041;}
+.btn-outline{background:#f7f5f0;color:#1a1a18;border:1px solid rgba(0,0,0,0.15);margin-top:8px;}
+.msg{padding:10px 13px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;line-height:1.5;}
+.msg.err{background:#fcebeb;color:#791f1f;display:block;}
+.msg.ok{background:#e1f5ee;color:#085041;display:block;}
+.hidden{display:none;}
+.demo-box{background:#faeeda;border:0.5px solid #ef9f27;border-radius:10px;padding:14px;margin-top:20px;}
+.demo-box p{font-size:12px;color:#854f0b;margin-bottom:10px;font-weight:500;}
+.demo-box .btn{margin-top:0;margin-bottom:8px;}
+.demo-box .btn:last-child{margin-bottom:0;}
+.footer{margin-top:16px;text-align:center;font-size:11px;color:#aaa;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+      <circle cx="22" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+      <circle cx="18" cy="14" r="9" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
+      <circle cx="18" cy="8" r="3" fill="#1D9E75"/>
+      <circle cx="11" cy="26" r="2.5" fill="#5DCAA5"/>
+      <circle cx="25" cy="26" r="2.5" fill="#5DCAA5"/>
+    </svg>
+    <span class="logo-name">Kindred</span>
+  </div>
+
+  <h2 id="form-title">Welcome back</h2>
+  <p class="sub" id="form-sub">Sign in to your Kindred account.</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('in')">Sign in</button>
+    <button class="tab" onclick="showTab('up')">Create account</button>
+  </div>
+
+  <div id="msg" class="msg"></div>
+
+  <!-- SIGN IN -->
+  <div id="pane-in">
+    <div class="field"><label>Email</label><input type="email" id="si-email" placeholder="you@example.com" autocomplete="email"/></div>
+    <div class="field"><label>Password</label><input type="password" id="si-pass" placeholder="Your password" autocomplete="current-password"/></div>
+    <button class="btn btn-dark" id="btn-signin" onclick="doSignIn()">Sign in</button>
+  </div>
+
+  <!-- SIGN UP -->
+  <div id="pane-up" class="hidden">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="field"><label>First name</label><input type="text" id="su-firstname" placeholder="e.g. Shaun" autocomplete="given-name"/></div>
+      <div class="field"><label>Last name</label><input type="text" id="su-lastname" placeholder="e.g. Smith" autocomplete="family-name"/></div>
+    </div>
+    <div class="field"><label>Email</label><input type="email" id="su-email" placeholder="you@example.com" autocomplete="email"/></div>
+    <div class="field"><label>Password (8+ characters)</label><input type="password" id="su-pass" placeholder="Choose a password" autocomplete="new-password"/></div>
+    <label style="font-size:12px;font-weight:500;color:#555;display:block;margin-bottom:8px;">I am joining as</label>
+    <div class="role-row">
+      <div class="role-btn sel" id="r-family" onclick="pickRole('family')"><span class="ri">👨‍👩‍👧</span><span class="rn">Family</span><span class="rd">Coordinating care</span></div>
+      <div class="role-btn" id="r-nurse" onclick="pickRole('nurse')"><span class="ri">🏥</span><span class="rn">Nurse / Staff</span><span class="rd">At a care home</span></div>
+      <div class="role-btn" id="r-manager" style="display:none;" onclick="pickRole('manager')"><span class="ri">🏢</span><span class="rn">Care home manager</span><span class="rd">Managing Kindred</span></div>
+    </div>
+    <div class="field" id="f-resident">
+      <label>Your parent's name</label>
+      <input type="text" id="su-resident" placeholder="e.g. Margaret Clarke"/>
+    </div>
+    <div class="field" id="f-carehome-family" style="display:none;">
+      <label>Care home name <span style="font-weight:400;color:#aaa;font-size:11px;">where your parent lives</span></label>
+      <input type="text" id="su-carehome-family" placeholder="e.g. Meadowfield Care Home" autocomplete="off"/>
+    </div>
+    <div id="f-nurse-invite" style="display:none;">
+      <div class="field"><label>Invite code <span style="font-weight:400;color:#aaa;font-size:11px;">provided by your care home manager</span></label><input type="text" id="su-invite-token" placeholder="e.g. abc123def456..." autocomplete="off" style="font-family:monospace;"/></div>
+      <div style="background:#faeeda;border:0.5px solid #ef9f27;border-radius:8px;padding:9px 12px;font-size:12px;color:#633806;margin-bottom:12px;line-height:1.5;">Nurse accounts require an invite from your care home manager. If you do not have an invite code, ask your manager to invite you from their Kindred account.</div>
+    </div>
+    <div id="f-manager-invite" style="display:none;">
+      <div class="field"><label>Manager invite code</label><input type="text" id="su-manager-token" placeholder="Your invite code..." autocomplete="off" style="font-family:monospace;"/></div>
+    </div>
+    <button class="btn btn-dark" id="btn-signup" onclick="doSignUp()">Create my account</button>
+  </div>
+
+  <!-- RESET PASSWORD -->
+  <div id="pane-reset" class="hidden">
+    <div style="background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;margin-bottom:16px;">Enter your new password below.</div>
+    <div class="field"><label>New password</label><input type="password" id="new-pass" placeholder="8+ characters"/></div>
+    <div class="field"><label>Confirm password</label><input type="password" id="confirm-pass" placeholder="Confirm password"/></div>
+    <button class="btn btn-dark" onclick="doPasswordReset()">Set new password</button>
+  </div>
+
+  <div class="demo-box" id="demo-box">
+    <p>Try without creating an account:</p>
+    <button class="btn btn-green" onclick="demoFamily()">Enter as family (demo)</button>
+    <button class="btn btn-outline" onclick="demoNurse()">Enter as nurse (demo)</button>
+  </div>
+
+  <p class="footer">By continuing you agree to our Terms and Privacy Policy.</p>
+</div>
+
+<script>
+var SUPA_URL = 'https://xmeeyeeddayyoaxoiypd.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+var sb = null;
+var role = 'family';
+
+window.onload = function() {
+  localStorage.removeItem('kindred_user');
+
+  // Check URL params for invite tokens
+  var params = new URLSearchParams(window.location.search);
+  var familyInviteToken = params.get('family_invite');
+  var siblingInviteToken = params.get('sibling_invite');
+  var nurseInviteToken = params.get('nurse_invite');
+
+  try {
+    try { sb = window.supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) { console.log('sb init:', e); }
+    var hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) { showResetForm(); return; }
+    sb.auth.signOut();
+  } catch(e) { console.log('Supabase error:', e); }
+
+  var managerInviteToken = params.get('manager_invite');
+
+  if (managerInviteToken) {
+    window.pendingManagerInvite = managerInviteToken;
+    showTab('up');
+    pickRole('manager');
+    var mbanner = document.createElement('div');
+    mbanner.style.cssText = 'background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;margin-bottom:14px;line-height:1.5;';
+    mbanner.innerHTML = '<strong>You have been invited to manage your care home on Kindred.</strong> Create your account below.';
+    var mpaneUp = document.getElementById('pane-up');
+    if (mpaneUp) mpaneUp.insertBefore(mbanner, mpaneUp.firstChild);
+  } else if (familyInviteToken) {
+    window.pendingFamilyInvite = familyInviteToken;
+    showTab('up');
+    pickRole('family');
+    var banner = document.createElement('div');
+    banner.style.cssText = 'background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;margin-bottom:14px;line-height:1.5;';
+    banner.innerHTML = '<strong>You have been invited by your care home.</strong> Create your account below to access your family space.';
+    var paneUp = document.getElementById('pane-up');
+    if (paneUp) paneUp.insertBefore(banner, paneUp.firstChild);
+  } else if (siblingInviteToken) {
+    window.pendingSiblingInvite = siblingInviteToken;
+    showTab('up');
+    pickRole('family');
+    var banner2 = document.createElement('div');
+    banner2.style.cssText = 'background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;margin-bottom:14px;line-height:1.5;';
+    banner2.innerHTML = '<strong>You have been invited to join a family space.</strong> Create your account below.';
+    var paneUp2 = document.getElementById('pane-up');
+    if (paneUp2) paneUp2.insertBefore(banner2, paneUp2.firstChild);
+  } else if (nurseInviteToken) {
+    showTab('up');
+    pickRole('nurse');
+    var tokenInput = document.getElementById('su-invite-token');
+    if (tokenInput) tokenInput.value = nurseInviteToken;
+  }
+};
+
+function showTab(t) {
+  document.querySelectorAll('.tab').forEach(function(el, i) {
+    el.classList.toggle('active', (i === 0 && t === 'in') || (i === 1 && t === 'up'));
+  });
+  document.getElementById('pane-in').className = t === 'in' ? '' : 'hidden';
+  document.getElementById('pane-up').className = t === 'up' ? '' : 'hidden';
+  document.getElementById('form-title').textContent = t === 'in' ? 'Welcome back' : 'Create your account';
+  document.getElementById('form-sub').textContent = t === 'in' ? 'Sign in to your Kindred account.' : 'Set up Kindred for your family.';
+  clearMsg();
+}
+
+function pickRole(r) {
+  role = r;
+  document.getElementById('r-family').classList.toggle('sel', r === 'family');
+  document.getElementById('r-nurse').classList.toggle('sel', r === 'nurse');
+  if (document.getElementById('r-manager')) {
+    document.getElementById('r-manager').classList.toggle('sel', r === 'manager');
+    document.getElementById('r-manager').style.display = r === 'manager' ? 'block' : 'none';
+  }
+  document.getElementById('f-resident').style.display = r === 'family' ? 'block' : 'none';
+  document.getElementById('f-nurse-invite').style.display = r === 'nurse' ? 'block' : 'none';
+  document.getElementById('f-manager-invite').style.display = r === 'manager' ? 'block' : 'none';
+}
+
+function showMsg(type, text) {
+  var el = document.getElementById('msg');
+  el.className = 'msg ' + type;
+  el.textContent = text;
+}
+function clearMsg() {
+  var el = document.getElementById('msg');
+  el.className = 'msg';
+}
+
+function setLoading(btnId, loading, label) {
+  var btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Please wait...' : label;
+}
+
+function doSignIn() {
+  clearMsg();
+  var email = document.getElementById('si-email').value.trim();
+  var pass = document.getElementById('si-pass').value;
+  if (!email || !pass) { showMsg('err', 'Please enter your email and password.'); return; }
+  if (!sb) { showMsg('err', 'Connection error. Please try demo below.'); return; }
+
+  setLoading('btn-signin', true, 'Sign in');
+  sb.auth.signInWithPassword({ email: email, password: pass }).then(function(r) {
+    if (r.error) {
+      showMsg('err', r.error.message);
+      setLoading('btn-signin', false, 'Sign in');
+      return;
+    }
+    // Load profile from Supabase
+    var token = r.data.session ? r.data.session.access_token : null;
+    if (token) localStorage.setItem('supa_token', token);
+
+    // Load full profile from Supabase
+    var AKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+    var bearerToken = token || AKEY;
+
+    fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/profiles?select=*&id=eq.' + r.data.user.id, {
+      headers: { 'apikey': AKEY, 'Authorization': 'Bearer ' + bearerToken }
+    }).then(function(res) { return res.json(); }).then(function(rows) {
+      var profile = (rows && rows.length > 0) ? rows[0] : {};
+      var userData = {
+        id: r.data.user.id,
+        email: email,
+        name: profile.name || '',
+        role: profile.role || 'family',
+        resident_name: profile.resident_name || '',
+        care_home: profile.care_home || '',
+        care_home_id: profile.care_home_id || null,
+        family_id: profile.family_id || null,
+        is_manager: profile.is_manager || false,
+        is_primary_contact: profile.is_primary_contact || false,
+        sibling_invite_token: profile.sibling_invite_token || null,
+        demo: false
+      };
+      localStorage.setItem('kindred_user', JSON.stringify(userData));
+      window.location.href = 'app.html';
+    }).catch(function() {
+      // Profile load failed - save minimal data and go to app
+      var userData = {
+        id: r.data.user.id, email: email, name: '',
+        role: 'family', care_home: '', care_home_id: null,
+        family_id: null, is_manager: false, demo: false
+      };
+      localStorage.setItem('kindred_user', JSON.stringify(userData));
+      window.location.href = 'app.html';
+    });
+  });
+}
+
+function doSignUp() {
+  clearMsg();
+  var firstName = document.getElementById('su-firstname').value.trim();
+  var lastName = document.getElementById('su-lastname').value.trim();
+  var name = (firstName + ' ' + lastName).trim();
+  var email = document.getElementById('su-email').value.trim();
+  var pass = document.getElementById('su-pass').value;
+  var residentName = role === 'family' ? document.getElementById('su-resident').value.trim() : '';
+  var careHomeName = role === 'family' ? document.getElementById('su-carehome-family').value.trim() : '';
+
+  if (!firstName || !email || !pass) { showMsg('err', 'Please fill in your first name, email and password.'); return; }
+  if (pass.length < 8) { showMsg('err', 'Password must be at least 8 characters.'); return; }
+  if (!sb) { showMsg('err', 'Connection error. Please try demo below.'); return; }
+
+  if (role === 'manager') {
+    var mToken = window.pendingManagerInvite || document.getElementById('su-manager-token').value.trim();
+    if (!mToken) { showMsg('err', 'Please enter your manager invite code.'); return; }
+    setLoading('btn-signup', true, 'Create my account');
+    var anonKey2 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+    
+    // Look up invite - try with and without status filter
+    fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/manager_invites?token=eq.' + encodeURIComponent(mToken) + '&select=id,care_home_id,email,name', {
+      headers: { 'apikey': anonKey2, 'Authorization': 'Bearer ' + anonKey2 }
+    }).then(function(res) { return res.json(); }).then(function(rows) {
+      if (!rows || !rows.length) {
+        showMsg('err', 'Invalid manager invite code. Please check the link you were sent.');
+        setLoading('btn-signup', false, 'Create my account');
+        return;
+      }
+      var invite = rows[0];
+      
+      // Get care home name
+      fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/care_homes?id=eq.' + invite.care_home_id + '&select=id,name', {
+        headers: { 'apikey': anonKey2, 'Authorization': 'Bearer ' + anonKey2 }
+      }).then(function(r2) { return r2.json(); }).then(function(homes) {
+        var careHome = homes && homes[0] ? homes[0] : { id: invite.care_home_id, name: 'Care Home' };
+        invite.care_homes = careHome;
+        doSignUpAsManager(firstName, lastName, name, email, pass, invite);
+      }).catch(function() {
+        invite.care_homes = { name: 'Care Home' };
+        doSignUpAsManager(firstName, lastName, name, email, pass, invite);
+      });
+    }).catch(function() {
+      showMsg('err', 'Could not validate invite. Please check your connection.');
+      setLoading('btn-signup', false, 'Create my account');
+    });
+    return;
+  }
+
+  if (role === 'nurse') {
+    var token = document.getElementById('su-invite-token').value.trim();
+    if (!token) { showMsg('err', 'Please enter your invite code from your care home manager.'); return; }
+    var anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+    setLoading('btn-signup', true, 'Create my account');
+    fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/nurse_invites?token=eq.' + encodeURIComponent(token) + '&status=eq.pending&select=*,care_homes(name)', {
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey, 'Accept': 'application/vnd.pgrst.object+json' }
+    }).then(function(res) { return res.json(); }).then(function(invite) {
+      if (!invite || invite.error || !invite.id) {
+        showMsg('err', 'Invalid or already used invite code. Please check with your care home manager.');
+        setLoading('btn-signup', false, 'Create my account');
+        return;
+      }
+      doSignUpWithInvite(firstName, lastName, name, email, pass, invite);
+    }).catch(function() {
+      showMsg('err', 'Could not validate invite code. Please check your connection.');
+      setLoading('btn-signup', false, 'Create my account');
+    });
+    return;
+  }
+
+  // Family signup - requires invite token
+  var familyInviteToken = window.pendingFamilyInvite || window.pendingSiblingInvite || null;
+  var isSiblingInvite = !!window.pendingSiblingInvite;
+
+  if (!familyInviteToken) {
+    showMsg('err', 'Family accounts require an invite link from your care home. Please contact your care home manager.');
+    setLoading('btn-signup', false, 'Create my account');
+    return;
+  }
+
+  setLoading('btn-signup', true, 'Create my account');
+  var anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+
+  // Validate the invite token
+  var tokenField = isSiblingInvite ? 'sibling_invite_token' : 'resident_invite_token';
+  var table = isSiblingInvite ? 'profiles' : 'families';
+  
+  fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/' + table + '?' + tokenField + '=eq.' + encodeURIComponent(familyInviteToken) + '&select=*&limit=1', {
+    headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }
+  }).then(function(res) { return res.json(); }).then(function(rows) {
+    var inviteData = rows && rows[0] ? rows[0] : null;
+    if (!inviteData) {
+      showMsg('err', 'This invite link is invalid or has already been used. Please contact your care home or family member.');
+      setLoading('btn-signup', false, 'Create my account');
+      return;
+    }
+
+    // Valid invite - create account
+    sb.auth.signUp({ email: email, password: pass }).then(function(r) {
+      if (r.error) {
+        showMsg('err', r.error.message);
+        setLoading('btn-signup', false, 'Create my account');
+        return;
+      }
+
+      var authToken = r.data.session ? r.data.session.access_token : null;
+      if (authToken) localStorage.setItem('supa_token', authToken);
+      var bearerToken = authToken || anonKey;
+
+      var familyId = isSiblingInvite ? inviteData.family_id : inviteData.id;
+      var residentName = inviteData.resident_name || '';
+      var careHome = inviteData.care_home || '';
+      var careHomeId = inviteData.care_home_id || null;
+
+      var userData = {
+        id: r.data.user.id,
+        email: email,
+        name: name,
+        role: 'family',
+        resident_name: residentName,
+        care_home: careHome,
+        family_id: familyId,
+        care_home_id: careHomeId,
+        is_primary_contact: !isSiblingInvite,
+        demo: false
+      };
+      localStorage.setItem('kindred_user', JSON.stringify(userData));
+
+      // Save profile
+      fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/profiles', {
+        method: 'POST',
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + bearerToken, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({
+          id: r.data.user.id,
+          email: email,
+          name: name,
+          role: 'family',
+          resident_name: residentName,
+          care_home: careHome,
+          family_id: familyId,
+          care_home_id: careHomeId,
+          is_primary_contact: !isSiblingInvite,
+          sibling_invite_token: encode(gen_random_bytes(24), 'hex')
+        })
+      });
+
+      // Mark invite as used (for primary) or update family
+      if (!isSiblingInvite) {
+        fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/families?id=eq.' + familyId, {
+          method: 'PATCH',
+          headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + bearerToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ primary_contact_id: r.data.user.id, resident_invite_used: true })
+        });
+      }
+
+      window.location.href = 'app.html';
+    });
+  }).catch(function() {
+    showMsg('err', 'Could not validate invite. Please check your connection.');
+    setLoading('btn-signup', false, 'Create my account');
+  });
+  return;
+
+  // (unreachable - kept for structure)
+  sb.auth.signUp({ email: email, password: pass }).then(function(r) {
+    if (r.error) { showMsg('err', r.error.message); setLoading('btn-signup', false, 'Create my account'); return; }
+    var authToken = r.data.session ? r.data.session.access_token : null;
+    if (authToken) localStorage.setItem('supa_token', authToken);
+    var anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+    var bearerToken = authToken || anonKey;
+
+    var userData = {
+      id: r.data.user.id,
+      email: email,
+      name: name,
+      role: 'family',
+      resident_name: residentName,
+      care_home: careHomeName,
+      family_id: null,
+      care_home_id: null,
+      demo: false
+    };
+    localStorage.setItem('kindred_user', JSON.stringify(userData));
+
+    // Look up care home and create family record
+    var lookupUrl = 'https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/care_homes?select=id,name';
+    if (careHomeName) {
+      lookupUrl += '&name=ilike.' + encodeURIComponent('%' + careHomeName + '%') + '&limit=1';
+    }
+
+    fetch(lookupUrl, {
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + bearerToken }
+    }).then(function(res) { return res.json(); }).then(function(homes) {
+      var careHome = homes && homes[0] ? homes[0] : null;
+      var careHomeId = careHome ? careHome.id : null;
+      var exactCareHomeName = careHome ? careHome.name : careHomeName;
+
+      // Create family record
+      return fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/families', {
+        method: 'POST',
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + bearerToken, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          name: name + ' family',
+          resident_name: residentName,
+          care_home: exactCareHomeName,
+          care_home_id: careHomeId
+        })
+      });
+    }).then(function(res) { return res.json(); }).then(function(families) {
+      var family = families && families[0] ? families[0] : null;
+      if (family) {
+        userData.family_id = family.id;
+        userData.care_home_id = family.care_home_id;
+        localStorage.setItem('kindred_user', JSON.stringify(userData));
+      }
+      // Save profile
+      return fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/profiles', {
+        method: 'POST',
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + bearerToken, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({
+          id: r.data.user.id,
+          email: email,
+          name: name,
+          role: 'family',
+          resident_name: residentName,
+          care_home: userData.care_home,
+          family_id: family ? family.id : null
+        })
+      });
+    }).then(function() {
+      window.location.href = 'app.html';
+    }).catch(function() {
+      window.location.href = 'app.html';
+    });
+  });
+}
+
+
+function doSignUpWithInvite(firstName, lastName, name, email, pass, invite) {
+  sb.auth.signUp({ email: email, password: pass }).then(function(r) {
+    if (r.error) {
+      showMsg('err', r.error.message);
+      setLoading('btn-signup', false, 'Create my account');
+      return;
+    }
+    var token = r.data.session ? r.data.session.access_token : null;
+    if (token) localStorage.setItem('supa_token', token);
+
+    var careHomeName = invite.care_homes ? invite.care_homes.name : '';
+    var userData = {
+      id: r.data.user.id,
+      email: email,
+      name: name,
+      role: 'nurse',
+      care_home: careHomeName,
+      care_home_id: invite.care_home_id,
+      demo: false
+    };
+    localStorage.setItem('kindred_user', JSON.stringify(userData));
+
+    // Save profile to Supabase
+    var anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+    
+    // Mark invite as accepted
+    fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/nurse_invites?id=eq.' + invite.id, {
+      method: 'PATCH',
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + (token || anonKey), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'active', accepted_at: new Date().toISOString() })
+    });
+
+    // Save profile
+    fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/profiles', {
+      method: 'POST',
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + (token || anonKey), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ id: r.data.user.id, email: email, name: name, role: 'nurse', care_home: careHomeName, care_home_id: invite.care_home_id })
+    });
+
+    window.location.href = 'app.html';
+  });
+}
+
+function doSignUpAsManager(firstName, lastName, name, email, pass, invite) {
+  var anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+  var careHomeName = invite.care_homes ? invite.care_homes.name : '';
+  var careHomeId = invite.care_home_id;
+
+  sb.auth.signUp({ email: email, password: pass }).then(function(r) {
+    if (r.error) { showMsg('err', r.error.message); setLoading('btn-signup', false, 'Create my account'); return; }
+    var authToken = r.data.session ? r.data.session.access_token : null;
+    if (authToken) localStorage.setItem('supa_token', authToken);
+    var bearerToken = authToken || anonKey;
+
+    var userData = {
+      id: r.data.user.id, email: email, name: name,
+      role: 'nurse', is_manager: true, care_home: careHomeName,
+      care_home_id: careHomeId, demo: false
+    };
+    localStorage.setItem('kindred_user', JSON.stringify(userData));
+
+    var profileData = { id: r.data.user.id, email: email, name: name, role: 'nurse', is_manager: true, care_home: careHomeName, care_home_id: careHomeId };
+    
+    // Save profile then mark invite then redirect
+    fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/profiles', {
+      method: 'POST',
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + (bearerToken || anonKey), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(profileData)
+    }).then(function() {
+      return fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/manager_invites?id=eq.' + invite.id, {
+        method: 'PATCH',
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + (bearerToken || anonKey), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active', accepted_at: new Date().toISOString() })
+      });
+    }).finally(function() {
+      window.location.href = 'app.html';
+    });
+  });
+}
+
+function showResetForm() {
+  document.getElementById('pane-in').className = 'hidden';
+  document.getElementById('pane-up').className = 'hidden';
+  document.getElementById('pane-reset').className = '';
+  document.getElementById('demo-box').style.display = 'none';
+  document.getElementById('form-title').textContent = 'Set new password';
+  document.getElementById('form-sub').textContent = 'Choose a new password for your account.';
+  document.querySelectorAll('.tabs').forEach(function(t) { t.style.display = 'none'; });
+}
+
+function doPasswordReset() {
+  var p1 = document.getElementById('new-pass').value;
+  var p2 = document.getElementById('confirm-pass').value;
+  if (p1.length < 8) { showMsg('err', 'Password must be at least 8 characters.'); return; }
+  if (p1 !== p2) { showMsg('err', 'Passwords do not match.'); return; }
+  sb.auth.updateUser({ password: p1 }).then(function(r) {
+    if (r.error) { showMsg('err', r.error.message); return; }
+    showMsg('ok', 'Password updated! Taking you to the app...');
+    setTimeout(function() { window.location.href = 'app.html'; }, 1500);
+  });
+}
+
+function demoFamily() {
+  localStorage.setItem('kindred_user', JSON.stringify({
+    id: 'demo-1', email: 'sarah@demo.kindred', name: 'Sarah Clarke',
+    role: 'family', family_id: 'demo-family', resident_name: 'Margaret Clarke',
+    care_home: 'Meadowfield Care Home', demo: true
+  }));
+  window.location.href = 'app.html';
+}
+
+function demoNurse() {
+  localStorage.setItem('kindred_user', JSON.stringify({
+    id: 'demo-nurse', email: 'nurse@demo.kindred', name: 'Sarah Nguyen RN',
+    role: 'nurse', care_home: 'Meadowfield Care Home', demo: true
+  }));
+  window.location.href = 'app.html';
+}
+
+// Enter key support
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  if (!document.getElementById('pane-in').classList.contains('hidden')) doSignIn();
+  else if (!document.getElementById('pane-up').classList.contains('hidden')) doSignUp();
+});
+</script>
+</body>
+</html>

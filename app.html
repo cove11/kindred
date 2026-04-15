@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kindred</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;color:#1a1a18;font-size:15px;}
+.header{background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.1);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header-brand{display:flex;align-items:center;gap:8px;}
+.header-brand svg{flex-shrink:0;}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:-0.3px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.user-name{font-size:12px;color:#888;}
+.btn-signout{font-size:12px;padding:5px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:7px;background:#fff;cursor:pointer;color:#555;font-family:inherit;}
+.btn-signout:hover{background:#f5f5f5;}
+
+.app{max-width:720px;margin:0 auto;padding:12px;}
+
+/* TABS */
+.tabs{display:flex;background:#fff;border-radius:10px;border:0.5px solid rgba(0,0,0,0.1);overflow-x:auto;margin-bottom:12px;}
+.tab{white-space:nowrap;padding:10px 14px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;color:#aaa;border-bottom:2px solid transparent;flex-shrink:0;font-family:inherit;}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18;background:#faf9f7;}
+
+/* PANELS */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* CARDS */
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.11);border-radius:10px;overflow:hidden;margin-bottom:10px;}
+.card-head{padding:10px 14px;background:#faf9f7;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:13px;font-weight:500;}
+.card-body{padding:13px 14px;}
+.card-body p{font-size:13px;color:#555;line-height:1.65;margin-bottom:7px;}
+.card-body p:last-child{margin-bottom:0;}
+.card-foot{padding:8px 14px;border-top:0.5px solid rgba(0,0,0,0.08);background:#faf9f7;display:flex;gap:7px;flex-wrap:wrap;}
+
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid rgba(0,0,0,0.07);font-size:13px;}
+.row:last-child{border-bottom:none;}
+.row-label{color:#888;font-size:12px;}
+.row-value{font-weight:500;}
+
+/* TAGS */
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;}
+.tag-green{background:#e1f5ee;color:#085041;}
+.tag-amber{background:#faeeda;color:#633806;}
+.tag-blue{background:#e6f1fb;color:#0c447c;}
+.tag-gray{background:#f1efe8;color:#555;}
+
+/* BUTTONS */
+.btn{font-size:13px;padding:7px 14px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.18);background:#f1efe8;color:#1a1a18;cursor:pointer;font-weight:500;font-family:inherit;}
+.btn:hover{background:#e6e4dc;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-green{background:#e1f5ee;border-color:#5dcaa5;color:#085041;}
+.btn-green:hover{background:#b8e8d4;}
+.btn-dark{background:#1a1a18;color:#fff;border-color:#1a1a18;}
+.btn-dark:hover{background:#333;}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+
+/* FORM */
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px;}
+textarea,input[type=text],input[type=email]{width:100%;font-size:13px;font-family:inherit;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);border-radius:8px;background:#fff;color:#1a1a18;outline:none;line-height:1.6;}
+textarea{resize:vertical;min-height:66px;}
+textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
+
+/* SECTION HEADING */
+.sh{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;margin-bottom:9px;margin-top:18px;}
+.sh:first-child{margin-top:0;}
+
+/* INFO BOX */
+.info{background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:9px 12px;font-size:12px;color:#555;line-height:1.5;margin-bottom:12px;}
+.info-green{background:#e1f5ee;border-color:#5dcaa5;color:#085041;}
+.info-amber{background:#faeeda;border-color:#ef9f27;color:#633806;}
+
+/* MEMBERS */
+.member-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:0.5px solid rgba(0,0,0,0.07);}
+.member-row:last-child{border-bottom:none;}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:#e1f5ee;color:#085041;}
+
+/* AI BLOCK */
+.ai-block{border:0.5px solid rgba(0,0,0,0.11);border-radius:10px;overflow:hidden;margin-top:10px;}
+.ai-head{padding:8px 12px;background:#faf9f7;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:space-between;}
+.ai-body{padding:12px 13px;font-size:13px;color:#444;line-height:1.7;min-height:46px;}
+.ai-body p{margin-bottom:7px;}
+.ai-body p:last-child{margin-bottom:0;}
+.ai-foot{padding:8px 12px;border-top:0.5px solid rgba(0,0,0,0.08);background:#faf9f7;display:flex;gap:7px;}
+.gdot{width:7px;height:7px;border-radius:50%;background:#1d9e75;display:inline-block;margin-right:6px;}
+.model-tag{font-size:11px;padding:2px 6px;border-radius:99px;background:#eeedfe;color:#3c3489;font-weight:500;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:#bbb;font-size:13px;line-height:1.7;}
+
+/* INVITE */
+.invite-link{background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;padding:10px 12px;font-size:11px;color:#085041;font-family:monospace;word-break:break-all;margin:10px 0;}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:flex-end;justify-content:center;}
+.modal.open{display:flex;}
+.modal-box{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:720px;padding-bottom:30px;}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:#888;margin-bottom:14px;}
+.log-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px;}
+.log-btn{padding:12px 10px;border:0.5px solid rgba(0,0,0,0.13);border-radius:9px;background:#faf9f7;font-size:13px;font-weight:500;cursor:pointer;text-align:left;font-family:inherit;}
+.log-btn:hover{background:#f0ede8;}
+.log-btn.logged{background:#e1f5ee;border-color:#5dcaa5;color:#085041;}
+
+/* NURSE PORTAL */
+.nurse-bg{background:#e1f5ee;}
+.nurse-color{color:#085041;}
+
+/* PILLS */
+.pills{display:flex;gap:5px;flex-wrap:wrap;}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;color:#555;background:#fff;user-select:none;}
+.pill:hover{border-color:rgba(0,0,0,0.3);}
+.pill.on{background:#e6f1fb;border-color:#378add;color:#0c447c;font-weight:500;}
+
+/* TIMELINE */
+.tl-item{display:flex;gap:11px;margin-bottom:0;}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:26px;flex-shrink:0;}
+.tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tl-line{width:1.5px;flex:1;min-height:10px;background:rgba(0,0,0,0.09);margin:3px 0;}
+.tl-body{flex:1;padding-bottom:13px;}
+.tl-meta{font-size:11px;color:#aaa;margin-bottom:3px;}
+.tl-card{background:#fff;border:0.5px solid rgba(0,0,0,0.11);border-radius:9px;padding:10px 13px;}
+.tl-card p{font-size:13px;color:#555;line-height:1.6;margin-bottom:5px;}
+.tl-card p:last-child{margin-bottom:0;}
+
+/* CHECKIN */
+.checkin-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.checkin-opt{font-size:12px;padding:6px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;background:#fff;font-family:inherit;}
+.checkin-opt:hover{border-color:rgba(0,0,0,0.3);}
+.checkin-opt.selected{background:#e1f5ee;border-color:#5dcaa5;color:#085041;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+      <circle cx="22" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
+      <circle cx="18" cy="14" r="9" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
+      <circle cx="18" cy="8" r="3" fill="#1D9E75"/>
+    </svg>
+    <span class="brand-name">Kindred</span>
+    <span id="header-subtitle" style="font-size:12px;color:#aaa;font-weight:400;"></span>
+  </div>
+  <div class="header-right">
+    <span class="user-name" id="header-user"></span>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
+  </div>
+</div>
+
+<!-- FAMILY APP -->
+<div id="family-app" style="display:none;">
+  <div class="app">
+    <!-- TABS -->
+    <div class="tabs" id="family-tabs">
+      <button class="tab active" onclick="showTab('home')">Home</button>
+      <button class="tab" onclick="showTab('messages')">Messages</button>
+      <button class="tab" onclick="showTab('visits')">Visit notes</button>
+      <button class="tab" onclick="showTab('concerns')">Concerns</button>
+      <button class="tab" onclick="showTab('reviews')">Nurse reviews</button>
+      <button class="tab" onclick="showTab('timeline')">Timeline</button>
+      <button class="tab" onclick="showTab('load')">Load sharing</button>
+      <button class="tab" onclick="showTab('card')">Emergency card</button>
+    </div>
+
+    <!-- HOME -->
+    <div class="panel active" id="tab-home">
+      <div class="sh">How are you doing this week?</div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-body">
+          <p id="checkin-greeting" style="font-size:13px;color:#555;margin-bottom:10px;"></p>
+          <div class="checkin-opts">
+            <button class="checkin-opt" onclick="doCheckin(this,'Managing well')">Managing well</button>
+            <button class="checkin-opt" onclick="doCheckin(this,'Bit tired')">Bit tired</button>
+            <button class="checkin-opt" onclick="doCheckin(this,'Finding it hard')">Finding it hard</button>
+            <button class="checkin-opt" onclick="doCheckin(this,'Need support')">Need support</button>
+          </div>
+          <div id="checkin-response" style="display:none;margin-top:10px;padding:9px 11px;background:#faf9f7;border-radius:8px;font-size:13px;color:#555;line-height:1.6;"></div>
+        </div>
+      </div>
+
+      <div class="sh">Latest from your care home</div>
+      <div id="home-review-section">
+        <div class="empty">No nurse review received yet.<br>Your nurse will send one after your next appointment.</div>
+      </div>
+
+      <div class="sh">Family members</div>
+      <div class="card">
+        <div class="card-body" style="padding:9px 14px;" id="family-members-list"></div>
+        <div class="card-foot">
+          <button class="btn btn-green" onclick="showInvite()">+ Invite a sibling</button>
+          <button class="btn" onclick="copyInvite()">Copy invite link</button>
+        </div>
+      </div>
+      <div id="invite-panel" style="display:none;margin-bottom:10px;" class="card">
+        <div class="card-body">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px;">Invite a family member</div>
+          <div style="font-size:12px;color:#555;margin-bottom:8px;">Send them this link. They create an account and join your family space automatically.</div>
+          <div class="invite-link" id="invite-link-text">Generating...</div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="copyInvite()" style="font-size:12px;">Copy link</button>
+            <button class="btn" onclick="document.getElementById('invite-panel').style.display='none'" style="font-size:12px;">Close</button>
+          </div>
+          <div id="invite-copied" style="display:none;font-size:12px;color:#085041;margin-top:6px;">Copied to clipboard!</div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="showLogModal()" style="width:100%;margin-top:4px;padding:11px;font-size:13px;background:#faf9f7;border-style:dashed;display:flex;align-items:center;justify-content:center;gap:7px;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#555" stroke-width="1.2"/><path d="M7 4v6M4 7h6" stroke="#555" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span id="log-btn-text">Log something you did</span>
+      </button>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="panel" id="tab-messages">
+      <div class="info-green info">Private to your family. The care home cannot see any of this.</div>
+      <div id="message-thread" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:7px;">
+        <textarea id="msg-input" rows="2" placeholder="Write a message to your family..." style="flex:1;min-height:44px;font-size:13px;resize:none;"></textarea>
+        <button class="btn btn-green" onclick="sendMsg()" style="height:44px;padding:0 14px;flex-shrink:0;">Send</button>
+      </div>
+    </div>
+
+    <!-- VISIT NOTES -->
+    <div class="panel" id="tab-visits">
+      <div class="info-green info">Private to your family. Log what you notice between nurse reviews.</div>
+      <button class="btn btn-green" onclick="document.getElementById('visit-compose').style.display='block'" style="margin-bottom:12px;">+ Log a visit note</button>
+      <div id="visit-compose" style="display:none;margin-bottom:12px;" class="card">
+        <div class="card-body">
+          <div class="field"><label>How was your parent today?</label>
+            <div class="pills" id="visit-mood-pills">
+              <div class="pill on" data-v="Good spirits">Good spirits</div>
+              <div class="pill" data-v="Tired">Tired</div>
+              <div class="pill" data-v="Confused">Confused</div>
+              <div class="pill" data-v="Unwell">Unwell</div>
+              <div class="pill" data-v="Distressed">Distressed</div>
+            </div>
+          </div>
+          <div class="field"><label>Notes</label><textarea id="visit-text" placeholder="What did you observe? Anything the nurse should know?"></textarea></div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="saveVisit()">Save note</button>
+            <button class="btn" onclick="document.getElementById('visit-compose').style.display='none'">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div id="visits-list"><div class="empty">No visit notes yet. Log your first visit above.</div></div>
+    </div>
+
+    <!-- CONCERNS -->
+    <div class="panel" id="tab-concerns">
+      <div class="info">Log a concern if something doesn't feel right. This is a private record — not a formal complaint.</div>
+      <button class="btn" onclick="document.getElementById('concern-compose').style.display='block'" style="margin-bottom:12px;width:100%;border-style:dashed;">+ Log a concern</button>
+      <div id="concern-compose" style="display:none;margin-bottom:12px;" class="card">
+        <div class="card-body">
+          <div class="field"><label>Type of concern</label>
+            <div class="pills" id="concern-type-pills">
+              <div class="pill on" data-v="Care quality">Care quality</div>
+              <div class="pill" data-v="Staff attitude">Staff attitude</div>
+              <div class="pill" data-v="Medication">Medication</div>
+              <div class="pill" data-v="Nutrition">Nutrition</div>
+              <div class="pill" data-v="Communication">Communication</div>
+              <div class="pill" data-v="Other">Other</div>
+            </div>
+          </div>
+          <div class="field"><label>What happened?</label><textarea id="concern-text" placeholder="Be specific — date, time, who was involved."></textarea></div>
+          <div class="field"><label>How serious?</label>
+            <div class="pills" id="concern-sev-pills">
+              <div class="pill on" data-v="Minor">Minor — noting for now</div>
+              <div class="pill" data-v="Moderate">Moderate — watching closely</div>
+              <div class="pill" data-v="Serious">Serious — may escalate</div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" onclick="saveConcern()" style="background:#fcebeb;border-color:#f09595;color:#791f1f;">Save concern</button>
+            <button class="btn" onclick="document.getElementById('concern-compose').style.display='none'">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div id="concerns-list"><div class="empty">No concerns logged yet.</div></div>
+    </div>
+
+    <!-- NURSE REVIEWS -->
+    <div class="panel" id="tab-reviews">
+      <div class="info-green info">Sent by your care home nurse. Your family conversations are never visible to the nurse.</div>
+      <div id="reviews-list"><div class="empty">No nurse reviews received yet.<br>Your nurse will send one after your next appointment.</div></div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="panel" id="tab-timeline">
+      <div class="sh">Shared timeline</div>
+      <div id="timeline-list"><div class="empty">Your shared timeline will build up here over time.<br>Nurse reviews and family call summaries appear here.</div></div>
+    </div>
+
+    <!-- LOAD SHARING -->
+    <div class="panel" id="tab-load">
+      <div class="info">A private record for your family. Makes the invisible visible so everyone sees the full picture.</div>
+      <div class="sh">This month</div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-body" style="padding:9px 14px;" id="load-members"></div>
+      </div>
+      <div class="sh">Your log</div>
+      <div id="load-log"><div class="empty" style="padding:20px;">Nothing logged yet.</div></div>
+      <button class="btn btn-green" onclick="showLogModal()" style="width:100%;margin-top:10px;">+ Log something</button>
+    </div>
+
+    <!-- EMERGENCY CARD -->
+    <div class="panel" id="tab-card">
+      <div class="info">Download or print to take to a GP appointment or hand to a new care provider.</div>
+      <div class="card" id="emergency-card" style="margin-bottom:12px;">
+        <div class="card-body">
+          <div style="font-size:16px;font-weight:700;margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid rgba(0,0,0,0.1);" id="ec-resident-name">Your parent</div>
+          <div class="sh" style="margin-top:0;">Care home</div>
+          <div class="row"><span class="row-label">Name</span><span class="row-value" id="ec-care-home">Not set</span></div>
+          <div class="sh">Your details</div>
+          <div class="row"><span class="row-label">Primary contact</span><span class="row-value" id="ec-your-name">You</span></div>
+          <div style="font-size:11px;color:#aaa;margin-top:10px;padding-top:8px;border-top:0.5px solid rgba(0,0,0,0.08);">Generated by Kindred · kindred.app</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="window.print()">Print card</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NURSE APP -->
+<div id="nurse-app" style="display:none;">
+  <div class="app">
+    <div class="tabs">
+      <button class="tab active" onclick="showNurseTab('overview')">Overview</button>
+      <button class="tab" onclick="showNurseTab('residents')">Residents</button>
+      <button class="tab" onclick="showNurseTab('add-resident')">+ Add resident</button>
+      <button class="tab" onclick="showNurseTab('review')">Enter review</button>
+      <button class="tab" onclick="showNurseTab('approve')">Review &amp; approve</button>
+      <button class="tab" onclick="showNurseTab('sent')">Sent</button>
+      <button class="tab" id="tab-staff-btn" style="display:none;" onclick="showNurseTab('staff')">Staff</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="ntab-overview">
+      <div class="sh">Ward at a glance</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="card" style="margin-bottom:0;text-align:center;padding:12px;"><div style="font-size:22px;font-weight:700;" id="stat-residents">—</div><div style="font-size:11px;color:#aaa;">Residents</div></div>
+        <div style="background:#faeeda;border:0.5px solid #ef9f27;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#633806;" id="stat-reviews-due">—</div><div style="font-size:11px;color:#854f0b;">Reviews due</div></div>
+        <div style="background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#085041;" id="stat-families">—</div><div style="font-size:11px;color:#085041;">Families active</div></div>
+      </div>
+      <div class="sh">Quick actions</div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="showNurseTab('residents')">View residents</button>
+        <button class="btn" onclick="showNurseTab('review')">New review</button>
+      </div>
+      <div class="sh" style="margin-top:14px;">Your care home</div>
+      <div class="card">
+        <div class="card-body" style="padding:9px 14px;">
+          <div class="row"><span class="row-label">Care home</span><span class="row-value" id="nurse-care-home-name">Loading...</span></div>
+          <div class="row"><span class="row-label">Your role</span><span class="row-value" id="overview-role">Nurse</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESIDENTS -->
+    <div class="panel" id="ntab-residents">
+      <div id="residents-list"><div class="empty">Loading residents...</div></div>
+    </div>
+
+    <!-- REVIEW FORM -->
+    <div class="panel" id="ntab-review">
+      <div id="review-resident-header" style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:9px 13px;margin-bottom:12px;display:none;">
+        <div style="font-size:13px;font-weight:500;" id="review-resident-name">No resident selected</div>
+        <div style="font-size:11px;color:#aaa;" id="review-resident-family"></div>
+      </div>
+      <div class="info-amber info">Complete a resident's 6-month review. Opus will translate your clinical notes into plain English for the family.</div>
+      <div class="sh">Clinical assessment</div>
+      <div class="field"><label>Overall wellbeing</label>
+        <div class="pills" id="pg-w"><div class="pill on" data-v="Well">Well</div><div class="pill" data-v="Very well">Very well</div><div class="pill" data-v="Some concerns">Some concerns</div><div class="pill" data-v="Deteriorating">Deteriorating</div></div>
+        <input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe in your own words..."/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="field"><label>Mobility</label><div class="pills" id="pg-m"><div class="pill on" data-v="Independent">Independent</div><div class="pill" data-v="Assisted">Assisted</div><div class="pill" data-v="Wheelchair">Wheelchair</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+        <div class="field"><label>Appetite</label><div class="pills" id="pg-a"><div class="pill on" data-v="Good">Good</div><div class="pill" data-v="Variable">Variable</div><div class="pill" data-v="Poor">Poor</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="field"><label>Cognitive function</label><div class="pills" id="pg-c"><div class="pill on" data-v="Stable">Stable</div><div class="pill" data-v="Mild changes">Mild changes</div><div class="pill" data-v="Moderate decline">Moderate decline</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+        <div class="field"><label>Mood</label><div class="pills" id="pg-mo"><div class="pill on" data-v="Positive">Positive</div><div class="pill" data-v="Withdrawn">Withdrawn</div><div class="pill" data-v="Anxious">Anxious</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      </div>
+      <div class="field"><label>Falls — past 6 months</label><div class="pills" id="pg-f"><div class="pill on" data-v="None">None</div><div class="pill" data-v="1-2 minor">1-2 minor</div><div class="pill" data-v="3+ or serious">3+ or serious</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="field"><label>Continence</label><div class="pills" id="pg-cont"><div class="pill on" data-v="Fully continent">Fully continent</div><div class="pill" data-v="Occasional incidents">Occasional incidents</div><div class="pill" data-v="Requires support">Requires support</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+        <div class="field"><label>Nutrition &amp; hydration</label><div class="pills" id="pg-nh"><div class="pill on" data-v="Good">Good</div><div class="pill" data-v="Adequate">Adequate</div><div class="pill" data-v="At risk">At risk</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      </div>
+      <div class="sh">Clinical notes</div>
+      <div class="field"><label>Medication changes</label><textarea id="f-meds" placeholder="Any changes to medications..."></textarea></div>
+      <div class="field"><label>Observations</label><textarea id="f-obs" placeholder="What have you observed this period?"></textarea></div>
+      <div class="field"><label>Concerns and recommendations</label><textarea id="f-con" placeholder="Anything the family should discuss or action?"></textarea></div>
+      <div class="field"><label>Family present <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="f-pre" placeholder="e.g. Sarah Clarke (daughter)"/></div>
+      <div class="btn-row">
+        <button class="btn btn-green" id="btn-gen" onclick="generateSummary()">Generate family summary with Opus</button>
+      </div>
+      <div class="ai-block" id="nurse-preview" style="display:none;">
+        <div class="ai-head"><div><span class="gdot"></span><span style="font-size:12px;font-weight:500;color:#555;">Plain-English draft</span></div><span class="model-tag">claude-opus-4-6</span></div>
+        <div class="ai-body" id="nurse-preview-out"></div>
+        <div class="ai-foot"><button class="btn btn-green" style="font-size:12px;padding:5px 11px;" onclick="showNurseTab('approve')">Review &amp; approve ›</button><button class="btn" style="font-size:12px;padding:5px 11px;" onclick="generateSummary()">Regenerate</button></div>
+      </div>
+    </div>
+
+    <!-- APPROVE -->
+    <div class="panel" id="ntab-approve">
+      <div class="info-amber info"><strong>Your responsibility.</strong> Read before sending. Edit any section. Nothing reaches the family until you approve it.</div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Editable summary</span><button class="btn" style="font-size:11px;padding:2px 8px;" onclick="toggleEdit()">Edit</button></div>
+        <div class="card-body" id="summary-show"><p style="color:#aaa;font-style:italic;">Generate a summary in the review form first.</p></div>
+        <textarea id="summary-edit" style="display:none;margin:12px;width:calc(100% - 24px);min-height:140px;"></textarea>
+        <div id="edit-btns" style="display:none;padding:0 12px 12px;"><button class="btn btn-green" style="font-size:12px;" onclick="saveEdit()">Save</button></div>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>Personal note <span style="font-weight:400;color:#aaa;font-size:11px;">optional — appears above summary</span></label><textarea id="nurse-note" placeholder="e.g. Margaret was in good spirits and sends her love." style="min-height:48px;"></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-green" id="btn-send" onclick="sendReview()">Approve and send to family</button>
+        <button class="btn" onclick="showNurseTab('review')">Back to form</button>
+      </div>
+      <div id="send-confirm" style="display:none;margin-top:10px;background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;">Review sent successfully. The family have been notified.</div>
+    </div>
+
+    <!-- SENT -->
+    <div class="panel" id="ntab-sent">
+      <div id="sent-list"><div class="empty">No reviews sent yet.</div></div>
+    </div>
+
+    <!-- ADD RESIDENT -->
+    <div class="panel" id="ntab-add-resident">
+      <div class="info-green info">Add a resident to your care home. Once added you can generate a secure invite link to send to their primary family contact.</div>
+      
+      <div class="sh">Resident details</div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-body">
+          <div class="field"><label>Resident full name</label><input type="text" id="res-name" placeholder="e.g. Margaret Clarke"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>Room number <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-room" placeholder="e.g. 14B"/></div>
+            <div class="field"><label>Date of birth <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-dob" placeholder="e.g. 12/03/1946"/></div>
+          </div>
+          <div class="field"><label>Care type</label>
+            <div class="pills" id="res-care-type">
+              <div class="pill on" data-v="residential">Residential</div>
+              <div class="pill" data-v="nursing">Nursing</div>
+            </div>
+          </div>
+          <div class="field"><label>Funding</label>
+            <div class="pills" id="res-funding">
+              <div class="pill on" data-v="private">Private</div>
+              <div class="pill" data-v="fully_funded">Fully funded</div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="addResident()">Add resident</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="resident-added-panel" style="display:none;" class="card">
+        <div class="card-body">
+          <div class="info-green info" style="margin-bottom:10px;"><strong>Resident added!</strong> Send this invite link to the primary family contact. They click it, create an account, and are automatically connected to this resident.</div>
+          <div class="invite-link" id="family-invite-link"></div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="copyFamilyInvite()" style="font-size:12px;">Copy invite link</button>
+            <button class="btn" onclick="addAnother()" style="font-size:12px;">Add another resident</button>
+          </div>
+          <div id="family-invite-copied" style="display:none;font-size:12px;color:#085041;margin-top:6px;">Copied!</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- STAFF MANAGEMENT (care home admin only) -->
+    <div class="panel" id="ntab-staff">
+      <div class="info-green info">Invite nurses to Kindred. Each nurse gets a personal invite link — deactivate them instantly if they leave.</div>
+      
+      <div class="sh">Invite a nurse</div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-body">
+          <div class="field"><label>Nurse name</label><input type="text" id="invite-nurse-name" placeholder="e.g. Sarah Nguyen"/></div>
+          <div class="field"><label>Email address</label><input type="email" id="invite-nurse-email" placeholder="nurse@carehome.co.uk"/></div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="inviteNurse()">Send invite</button>
+          </div>
+          <div id="invite-result" style="display:none;margin-top:10px;font-size:13px;color:#085041;padding:8px 10px;background:#e1f5ee;border-radius:8px;"></div>
+        </div>
+      </div>
+
+      <div class="sh">Active staff</div>
+      <div id="staff-list"><div class="empty">No nurses invited yet.</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LOG MODAL -->
+<div class="modal" id="log-modal">
+  <div class="modal-box">
+    <div class="modal-title">What did you do?</div>
+    <div class="modal-sub">Tap to log — saves to the load sharing tracker</div>
+    <div class="log-grid">
+      <button class="log-btn" onclick="logActivity(this,'Visit','In person visit')">🏠 Visit</button>
+      <button class="log-btn" onclick="logActivity(this,'Phone call','Called')">📞 Phone call</button>
+      <button class="log-btn" onclick="logActivity(this,'GP / medical','Medical')">🏥 GP / medical</button>
+      <button class="log-btn" onclick="logActivity(this,'Admin','Admin or paperwork')">📋 Admin</button>
+      <button class="log-btn" onclick="logActivity(this,'Financial','Financial task')">💷 Financial</button>
+      <button class="log-btn" onclick="logActivity(this,'Emotional support','Support')">💛 Emotional support</button>
+    </div>
+    <input type="text" id="log-note" placeholder="Optional note..." style="margin-bottom:10px;font-size:13px;"/>
+    <button class="btn" onclick="closeLogModal()" style="width:100%;">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+var SUPA_URL = 'https://xmeeyeeddayyoaxoiypd.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+
+var currentUser = null;
+var nurseEditOpen = false;
+
+// ── INIT ──
+window.addEventListener('load', function() {
+  var stored = localStorage.getItem('kindred_user');
+  if (!stored) { window.location.href = 'index.html'; return; }
+  
+  currentUser = JSON.parse(stored);
+  
+  // Update header
+  document.getElementById('header-user').textContent = getFirstName(currentUser.name, currentUser.email);
+  
+  if (currentUser.role === 'nurse' || currentUser.role === 'manager') {
+    var careHomeName = currentUser.care_home || 'Nurse portal';
+    document.getElementById('header-subtitle').textContent = '· ' + careHomeName;
+    document.getElementById('nurse-app').style.display = 'block';
+    try { initPills(); } catch(e) { console.log('initPills error:', e); }
+    try { initNursePortal(); } catch(e) { console.log('initNursePortal error:', e); }
+    try { loadNursePortal(); } catch(e) { console.log('loadNursePortal error:', e); }
+  } else {
+    var resLast = currentUser.resident_name ? currentUser.resident_name.split(' ').pop() : '';
+    document.getElementById('header-subtitle').textContent = resLast ? '· ' + resLast + ' family' : '· Family space';
+    document.getElementById('family-app').style.display = 'block';
+    initFamilyApp();
+    initPills();
+  }
+});
+
+function initFamilyApp() {
+  var firstName = getFirstName(currentUser.name, currentUser.email);
+  var resName = currentUser.resident_name || 'your parent';
+  var resFirst = resName.split(' ')[0];
+  var userName = firstName;
+  
+  document.getElementById('log-btn-text').textContent = 'Log something you did for ' + resFirst;
+  document.getElementById('checkin-greeting').textContent = userName !== 'there' ? 'How are you doing this week, ' + userName + '? Being a carer takes a lot.' : 'Being a carer takes a lot. It\'s worth checking in with yourself.';
+  document.getElementById('ec-resident-name').textContent = resName;
+  document.getElementById('ec-care-home').textContent = currentUser.care_home || 'Not set';
+  document.getElementById('ec-your-name').textContent = currentUser.name || 'Primary contact';
+  
+  // Family members
+  updateFamilyMembers();
+  
+  // Load saved data
+  loadMessages();
+  loadVisits();
+  loadConcerns();
+  loadLog();
+  loadReviews();
+}
+
+// ── SIGN OUT ──
+function signOut() {
+  localStorage.removeItem('kindred_user');
+  localStorage.removeItem('supa_token');
+  window.location.replace('index.html');
+}
+
+// ── TABS ──
+function showTab(name) {
+  document.querySelectorAll('#family-app .tab').forEach(function(t, i) {
+    var tabs = ['home','messages','visits','concerns','reviews','timeline','load','card'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('#family-app .panel').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+}
+
+function showNurseTab(name) {
+  document.querySelectorAll('#nurse-app .tab').forEach(function(t, i) {
+    var tabs = ['overview','residents','add-resident','review','approve','sent','staff'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('#nurse-app .panel').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'ntab-' + name);
+  });
+  if (name === 'staff') loadStaff();
+  if (name === 'residents') loadResidents();
+}
+
+// ── PILLS ──
+function initPills() {
+  document.querySelectorAll('.pills').forEach(function(pg) {
+    pg.querySelectorAll('.pill').forEach(function(p) {
+      p.addEventListener('click', function() {
+        pg.querySelectorAll('.pill').forEach(function(x) { x.classList.remove('on'); });
+        p.classList.add('on');
+      });
+    });
+  });
+}
+
+function getPill(id) {
+  var el = document.querySelector('#' + id + ' .pill.on');
+  return el ? el.dataset.v : '';
+}
+
+// ── CHECKIN ──
+function doCheckin(btn, choice) {
+  document.querySelectorAll('.checkin-opt').forEach(function(b) { b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  var responses = {
+    'Managing well': 'That\'s great to hear. Keep checking in. You\'re doing a good job.',
+    'Bit tired': 'That makes sense. Looking after someone takes a lot. Make sure you get time for yourself too.',
+    'Finding it hard': 'Thank you for being honest. Have you been able to speak to your siblings? You do not have to carry this alone.',
+    'Need support': 'Carers UK has a free helpline: 0808 808 7777. Age UK can also connect you with local support. You deserve care too.'
+  };
+  var resp = document.getElementById('checkin-response');
+  resp.style.display = 'block';
+  resp.textContent = responses[choice] || '';
+}
+
+// ── INVITE ──
+function showInvite() {
+  if (!currentUser.is_primary_contact) {
+    alert('Only the primary family contact can invite siblings. Please ask the primary contact to send an invite.');
+    return;
+  }
+  var panel = document.getElementById('invite-panel');
+  panel.style.display = 'block';
+  // Use the sibling_invite_token stored in their profile
+  var token = currentUser.sibling_invite_token || currentUser.id;
+  var link = window.location.origin + '/index.html?sibling_invite=' + token;
+  document.getElementById('invite-link-text').textContent = link;
+}
+
+function copyInvite() {
+  showInvite();
+  var link = document.getElementById('invite-link-text').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(function() {
+      var el = document.getElementById('invite-copied');
+      el.style.display = 'block';
+      setTimeout(function() { el.style.display = 'none'; }, 3000);
+    });
+  }
+}
+
+// ── FAMILY MEMBERS ──
+function updateFamilyMembers() {
+  var list = document.getElementById('family-members-list');
+  var isPrimary = currentUser.is_primary_contact || false;
+  var initials = getInitials(currentUser.name);
+  
+  list.innerHTML = '<div class="member-row"><div class="av">' + initials + '</div><div style="flex:1"><div style="font-size:13px;font-weight:500;">' + esc(currentUser.name || currentUser.email) + '</div><div style="font-size:11px;color:#aaa;">' + (isPrimary ? 'Primary contact' : 'Family member') + '</div></div><span class="tag tag-green">You</span></div>';
+
+  if (currentUser.family_id) {
+    supaFetch('profiles?select=id,name,email,is_primary_contact,family_status&family_id=eq.' + currentUser.family_id + '&order=is_primary_contact.desc').then(function(members) {
+      if (!members || members.length === 0) return;
+      list.innerHTML = '';
+      members.forEach(function(m) {
+        var isMe = m.id === currentUser.id;
+        var isPrimaryM = m.is_primary_contact;
+        var isDeactivated = m.family_status === 'deactivated';
+        if (isDeactivated && !isPrimary) return; // hide deactivated from non-primaries
+        
+        var div = document.createElement('div');
+        div.className = 'member-row';
+        div.style.opacity = isDeactivated ? '0.5' : '1';
+
+        var avDiv = document.createElement('div');
+        avDiv.className = 'av';
+        avDiv.textContent = getInitials(m.name || m.email);
+
+        var infoDiv = document.createElement('div');
+        infoDiv.style.flex = '1';
+        infoDiv.innerHTML = '<div style="font-size:13px;font-weight:500;">' + esc(m.name || m.email) + '</div><div style="font-size:11px;color:#aaa;">' + (isPrimaryM ? 'Primary contact' : 'Family member') + '</div>';
+
+        div.appendChild(avDiv);
+        div.appendChild(infoDiv);
+
+        if (isMe) {
+          var tag = document.createElement('span');
+          tag.className = 'tag tag-green';
+          tag.textContent = 'You';
+          div.appendChild(tag);
+        } else if (isDeactivated) {
+          var tag2 = document.createElement('span');
+          tag2.className = 'tag tag-gray';
+          tag2.textContent = 'Removed';
+          div.appendChild(tag2);
+        } else if (isPrimary && !isPrimaryM) {
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'btn';
+          removeBtn.style.cssText = 'font-size:11px;padding:2px 7px;color:#c33;border-color:#f09595;';
+          removeBtn.textContent = 'Remove';
+          removeBtn.addEventListener('click', (function(id, name) {
+            return function() { removeSibling(id, name); };
+          })(m.id, m.name || m.email));
+          div.appendChild(removeBtn);
+        }
+
+        list.appendChild(div);
+      });
+    });
+  }
+}
+
+function removeSibling(memberId, memberName) {
+  if (!confirm('Remove ' + memberName + ' from this family space? They will immediately lose access.')) return;
+  supaPost('profiles?id=eq.' + memberId, { family_status: 'deactivated' }, 'PATCH').then(function() {
+    updateFamilyMembers();
+  });
+}
+
+// ── MESSAGES ──
+function loadMessages() {
+  var thread = document.getElementById('message-thread');
+  var saved = JSON.parse(localStorage.getItem('k_messages') || '[]');
+  if (saved.length === 0) {
+    thread.innerHTML = '<div class="empty">No messages yet. Start the conversation.</div>';
+    return;
+  }
+  thread.innerHTML = '';
+  saved.forEach(function(msg) { thread.appendChild(buildMsgEl(msg)); });
+}
+
+function buildMsgEl(msg) {
+  var div = document.createElement('div');
+  div.style.marginBottom = '10px';
+  if (msg.isMe) {
+    div.style.display = 'flex';
+    div.style.flexDirection = 'column';
+    div.style.alignItems = 'flex-end';
+    div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(msg.time) + '</div><div style="background:#e6f1fb;border:0.5px solid #85b7eb;border-radius:10px 0 10px 10px;padding:9px 12px;font-size:13px;color:#0c447c;max-width:85%;">' + esc(msg.text) + '</div>';
+  } else {
+    div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(msg.author) + ' · ' + esc(msg.time) + '</div><div style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:0 10px 10px 10px;padding:9px 12px;font-size:13px;color:#444;max-width:85%;">' + esc(msg.text) + '</div>';
+  }
+  return div;
+}
+
+function sendMsg() {
+  var input = document.getElementById('msg-input');
+  var text = input.value.trim();
+  if (!text) return;
+  var d = new Date();
+  var msg = { text: text, isMe: true, author: currentUser.name, time: d.getHours() + ':' + pad(d.getMinutes()), ts: Date.now() };
+  var thread = document.getElementById('message-thread');
+  if (thread.querySelector('.empty')) thread.innerHTML = '';
+  thread.appendChild(buildMsgEl(msg));
+  input.value = '';
+  thread.scrollTop = thread.scrollHeight;
+  var saved = JSON.parse(localStorage.getItem('k_messages') || '[]');
+  saved.push(msg);
+  localStorage.setItem('k_messages', JSON.stringify(saved));
+}
+
+// ── VISIT NOTES ──
+function loadVisits() {
+  var saved = JSON.parse(localStorage.getItem('k_visits') || '[]');
+  var list = document.getElementById('visits-list');
+  if (saved.length === 0) { list.innerHTML = '<div class="empty">No visit notes yet. Log your first visit above.</div>'; return; }
+  list.innerHTML = '';
+  saved.forEach(function(n) { list.appendChild(buildVisitEl(n)); });
+}
+
+function buildVisitEl(n) {
+  var colors = {'Good spirits':'tag-green','Tired':'tag-amber','Confused':'tag-amber','Unwell':'tag-amber','Distressed':'tag-amber'};
+  var div = document.createElement('div');
+  div.className = 'card';
+  div.style.marginBottom = '8px';
+  div.innerHTML = '<div class="card-head"><span class="card-title">' + esc(n.author) + ' · ' + esc(n.date) + '</span><span class="tag ' + (colors[n.mood]||'tag-gray') + '">' + esc(n.mood) + '</span></div><div class="card-body"><p>' + esc(n.text) + '</p></div>';
+  return div;
+}
+
+function saveVisit() {
+  var mood = getPill('visit-mood-pills') || 'Good spirits';
+  var text = document.getElementById('visit-text').value.trim();
+  if (!text) return;
+  var n = { mood: mood, text: text, author: currentUser.name, date: dateStr(), ts: Date.now() };
+  var list = document.getElementById('visits-list');
+  if (list.querySelector('.empty')) list.innerHTML = '';
+  list.insertBefore(buildVisitEl(n), list.firstChild);
+  document.getElementById('visit-text').value = '';
+  document.getElementById('visit-compose').style.display = 'none';
+  var saved = JSON.parse(localStorage.getItem('k_visits') || '[]');
+  saved.unshift(n);
+  localStorage.setItem('k_visits', JSON.stringify(saved));
+}
+
+// ── CONCERNS ──
+function loadConcerns() {
+  var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
+  var list = document.getElementById('concerns-list');
+  if (saved.length === 0) { list.innerHTML = '<div class="empty">No concerns logged yet.</div>'; return; }
+  list.innerHTML = '';
+  saved.forEach(function(c) { list.appendChild(buildConcernEl(c)); });
+}
+
+function buildConcernEl(c) {
+  var colors = {'Serious':'tag-amber','Moderate':'tag-amber','Minor':'tag-gray'};
+  var div = document.createElement('div');
+  div.className = 'card';
+  div.style.marginBottom = '8px';
+  div.innerHTML = '<div class="card-head"><span class="card-title">' + esc(c.type) + ' · ' + esc(c.date) + '</span><span class="tag ' + (colors[c.sev]||'tag-gray') + '">' + esc(c.sev) + '</span></div><div class="card-body"><p>' + esc(c.text) + '</p><div style="font-size:11px;color:#aaa;margin-top:5px;">Logged by ' + esc(c.author) + ' · Status: Noted</div></div>';
+  return div;
+}
+
+function saveConcern() {
+  var type = getPill('concern-type-pills') || 'Care quality';
+  var sev = getPill('concern-sev-pills') || 'Minor';
+  var text = document.getElementById('concern-text').value.trim();
+  if (!text) return;
+  var c = { type: type, sev: sev, text: text, author: currentUser.name, date: dateStr(), ts: Date.now() };
+  var list = document.getElementById('concerns-list');
+  if (list.querySelector('.empty')) list.innerHTML = '';
+  list.insertBefore(buildConcernEl(c), list.firstChild);
+  document.getElementById('concern-text').value = '';
+  document.getElementById('concern-compose').style.display = 'none';
+  var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
+  saved.unshift(c);
+  localStorage.setItem('k_concerns', JSON.stringify(saved));
+}
+
+// ── LOAD LOG ──
+function loadLog() {
+  var saved = JSON.parse(localStorage.getItem('k_load') || '[]');
+  var list = document.getElementById('load-log');
+  if (saved.length === 0) { list.innerHTML = '<div class="empty" style="padding:20px;">Nothing logged yet.</div>'; return; }
+  list.innerHTML = '';
+  saved.forEach(function(item) {
+    var div = document.createElement('div');
+    div.className = 'card';
+    div.style.marginBottom = '6px';
+    div.innerHTML = '<div class="card-body" style="padding:8px 13px;"><div class="row" style="border:none;padding:0;"><span class="row-label">' + esc(item.type) + '</span><span class="row-value" style="font-size:12px;">' + esc(item.date) + ' · ' + esc(item.note) + '</span></div></div>';
+    list.appendChild(div);
+  });
+
+  // Update load members
+  var members = document.getElementById('load-members');
+  var logCount = saved.length;
+  members.innerHTML = '<div class="member-row"><div class="av">' + getInitials(currentUser.name) + '</div><div style="flex:1"><div style="font-size:13px;font-weight:500;">' + esc(currentUser.name) + '</div><div style="font-size:11px;color:#aaa;">' + logCount + ' item' + (logCount !== 1 ? 's' : '') + ' logged this month</div></div><span class="tag tag-green">You</span></div>';
+}
+
+function showLogModal() { document.getElementById('log-modal').classList.add('open'); }
+function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
+
+function logActivity(btn, type, desc) {
+  var note = document.getElementById('log-note').value.trim() || desc;
+  var item = { type: type, note: note, date: dateStr(), ts: Date.now() };
+  btn.classList.add('logged');
+  btn.textContent = '✓ ' + btn.textContent;
+  setTimeout(function() {
+    closeLogModal();
+    document.getElementById('log-note').value = '';
+    var saved = JSON.parse(localStorage.getItem('k_load') || '[]');
+    saved.unshift(item);
+    localStorage.setItem('k_load', JSON.stringify(saved));
+    loadLog();
+    document.querySelectorAll('.log-btn').forEach(function(b) { b.classList.remove('logged'); b.textContent = b.textContent.replace('✓ ', ''); });
+  }, 600);
+}
+
+// ── REVIEWS ──
+function loadReviews() {
+  // Load from Supabase if family_id exists
+  if (currentUser.family_id && !currentUser.demo) {
+    supaFetch('reviews?family_id=eq.' + currentUser.family_id + '&status=eq.sent&select=*&order=created_at.desc').then(function(data) {
+      if (data && data.length > 0) {
+        renderReviews(data.map(function(r) {
+          return {
+            content: r.content || '',
+            nurse: r.nurse_name || 'Nurse',
+            care_home: r.care_home || '',
+            date: new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
+            ts: new Date(r.created_at).getTime()
+          };
+        }));
+      }
+    }).catch(function() {
+      // Fall back to localStorage
+      var saved = JSON.parse(localStorage.getItem('k_reviews') || '[]');
+      if (saved.length > 0) renderReviews(saved);
+    });
+    return;
+  }
+
+  var saved = JSON.parse(localStorage.getItem('k_reviews') || '[]');
+  if (saved.length === 0) return;
+  renderReviews(saved);
+}
+
+function renderReviews(reviews) {
+  if (!reviews || reviews.length === 0) return;
+  var latest = reviews[0];
+  
+  // Update home
+  var section = document.getElementById('home-review-section');
+  section.innerHTML = '<div class="card"><div class="card-head"><span class="card-title">6-month review — ' + esc(latest.date) + '</span><span class="tag tag-green">New</span></div><div class="card-body"><p>' + esc(latest.content.substring(0, 200)) + '...</p></div><div class="card-foot"><button class="btn btn-green" onclick="showTab(\'reviews\')" style="font-size:12px;padding:5px 11px;">Full review</button></div></div>';
+  
+  // Update reviews tab
+  var list = document.getElementById('reviews-list');
+  list.innerHTML = '';
+  saved.forEach(function(r) {
+    var div = document.createElement('div');
+    div.className = 'card';
+    div.style.marginBottom = '8px';
+    div.innerHTML = '<div class="card-head"><span class="card-title">6-month review — ' + esc(r.date) + '</span><span class="tag tag-green">Nurse approved</span></div><div class="card-body"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">' + esc(r.nurse || 'Nurse') + ' · ' + esc(r.care_home || 'Care home') + '</p><p>' + esc(r.content) + '</p></div>';
+    list.appendChild(div);
+  });
+
+  // Update timeline
+  var tl = document.getElementById('timeline-list');
+  tl.innerHTML = '';
+  saved.forEach(function(r, i) {
+    var div = document.createElement('div');
+    div.className = 'tl-item';
+    div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < saved.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Nurse review</div><div class="tl-card"><p>' + esc(r.content.substring(0, 120)) + '...</p></div></div>';
+    tl.appendChild(div);
+  });
+}
+
+// ── NURSE: GENERATE SUMMARY ──
+async function generateSummary() {
+  var btn = document.getElementById('btn-gen');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  document.getElementById('nurse-preview').style.display = 'block';
+  var out = document.getElementById('nurse-preview-out');
+  out.innerHTML = '<p style="color:#aaa;font-style:italic;">Opus is translating your clinical notes...</p>';
+  
+  var prompt = 'Translate this 6-month care review into a warm, plain-English letter for adult children. 3-4 paragraphs, no bullet points, no jargon, under 200 words.\n\n' +
+    'Wellbeing:' + getPill('pg-w') + ' Mobility:' + getPill('pg-m') + ' Appetite:' + getPill('pg-a') +
+    ' Cognition:' + getPill('pg-c') + ' Mood:' + getPill('pg-mo') + ' Falls:' + getPill('pg-f') +
+    ' Continence:' + getPill('pg-cont') + ' Nutrition:' + getPill('pg-nh') + '\n' +
+    'Meds:' + document.getElementById('f-meds').value + '\n' +
+    'Observations:' + document.getElementById('f-obs').value + '\n' +
+    'Concerns:' + document.getElementById('f-con').value;
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'sk-ant-api03-NFNrVDC__Yoku_VcwntuEiVRcfdxFSdxUn4q6C4i3qfYXhOrZxC5LW6OKwVOEkq9KMAvjXcy1vVpfAAiSknF9w-W9zTnQAA',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-header': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6', max_tokens: 600,
+        system: 'Write warm, honest, plain-English care review summaries for families. No jargon. No bullet points.',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    var d = await res.json();
+    var text = d.content && d.content[0] ? d.content[0].text : 'Could not generate.';
+    out.innerHTML = '';
+    text.split('\n').filter(function(l) { return l.trim(); }).forEach(function(para) {
+      var p = document.createElement('p');
+      p.textContent = para;
+      out.appendChild(p);
+    });
+    // Store for approve step
+    localStorage.setItem('k_draft_summary', text);
+    document.getElementById('summary-show').innerHTML = '';
+    text.split('\n').filter(function(l) { return l.trim(); }).forEach(function(para) {
+      var p = document.createElement('p');
+      p.textContent = para;
+      document.getElementById('summary-show').appendChild(p);
+    });
+    document.getElementById('summary-edit').value = text;
+  } catch(e) {
+    out.innerHTML = '<p style="color:#c33;">API error. Check your connection and try again.</p>';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Generate family summary with Opus';
+}
+
+// ── NURSE: EDIT/APPROVE/SEND ──
+function toggleEdit() {
+  nurseEditOpen = !nurseEditOpen;
+  document.getElementById('summary-show').style.display = nurseEditOpen ? 'none' : 'block';
+  document.getElementById('summary-edit').style.display = nurseEditOpen ? 'block' : 'none';
+  document.getElementById('edit-btns').style.display = nurseEditOpen ? 'block' : 'none';
+}
+
+function saveEdit() {
+  var text = document.getElementById('summary-edit').value;
+  var show = document.getElementById('summary-show');
+  show.innerHTML = '';
+  text.split('\n').filter(function(l) { return l.trim(); }).forEach(function(para) {
+    var p = document.createElement('p');
+    p.textContent = para;
+    show.appendChild(p);
+  });
+  localStorage.setItem('k_draft_summary', text);
+  toggleEdit();
+}
+
+function sendReview() {
+  var btn = document.getElementById('btn-send');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  if (!selectedResident) {
+    alert('Please select a resident first from the My residents tab.');
+    btn.disabled = false;
+    btn.textContent = 'Approve and send to family';
+    return;
+  }
+
+  var summaryText = localStorage.getItem('k_draft_summary') || document.getElementById('summary-show').innerText;
+  var nurseNote = document.getElementById('nurse-note').value.trim();
+
+  var review = {
+    family_id: selectedResident.id,
+    content: summaryText,
+    nurse_note: nurseNote,
+    nurse_name: currentUser.name,
+    care_home: currentUser.care_home || 'Care home',
+    resident_name: selectedResident.name,
+    status: 'sent'
+  };
+
+  // Save to Supabase
+  supaPost('reviews', review).then(function(data) {
+    document.getElementById('send-confirm').style.display = 'block';
+    btn.textContent = 'Sent ✓';
+
+    // Add to sent list
+    var sentList = document.getElementById('sent-list');
+    if (sentList.querySelector('.empty')) sentList.innerHTML = '';
+    var div = document.createElement('div');
+    div.className = 'card';
+    div.style.marginBottom = '8px';
+    div.innerHTML = '<div class="card-body" style="padding:9px 14px;"><div class="row"><span class="row-label">' + dateStr() + '</span><span class="row-value">Review sent ✓</span></div><div class="row"><span class="row-label">Resident</span><span class="row-value">' + esc(selectedResident.name) + '</span></div></div>';
+    sentList.insertBefore(div, sentList.firstChild);
+  }).catch(function() {
+    alert('Could not send review. Please check your connection and try again.');
+    btn.disabled = false;
+    btn.textContent = 'Approve and send to family';
+  });
+}
+
+// ── RESIDENT MANAGEMENT ──
+var newResidentId = null;
+
+function addResident() {
+  var name = document.getElementById('res-name').value.trim();
+  if (!name) { alert('Please enter the resident name.'); return; }
+  if (!currentUser.care_home_id) { alert('Your account is not linked to a care home. Please contact Kindred support.'); return; }
+
+  var careType = getPill('res-care-type') || 'residential';
+  var funding = getPill('res-funding') || 'private';
+  var room = document.getElementById('res-room').value.trim();
+  var dob = document.getElementById('res-dob').value.trim();
+
+  // Create family record first (placeholder until family signs up)
+  supaPost('families', {
+    name: name + ' family',
+    resident_name: name,
+    care_home: currentUser.care_home || '',
+    care_home_id: currentUser.care_home_id,
+    care_type: careType,
+    funding_type: funding,
+    status: 'pending'
+  }).then(function(data) {
+    if (!data || !data[0]) { alert('Could not add resident. Please try again.'); return; }
+    var family = data[0];
+
+    // Create resident record
+    supaPost('residents', {
+      care_home_id: currentUser.care_home_id,
+      name: name,
+      room_number: room || null,
+      care_type: careType,
+      funding_type: funding,
+      family_id: family.id,
+      added_by: currentUser.id
+    }).then(function(resData) {
+      // Generate invite link using the family's resident_invite_token
+      var token = family.resident_invite_token;
+      var inviteLink = window.location.origin + '/index.html?family_invite=' + token;
+      newResidentId = family.id;
+
+      document.getElementById('family-invite-link').textContent = inviteLink;
+      document.getElementById('resident-added-panel').style.display = 'block';
+      document.getElementById('res-name').value = '';
+      document.getElementById('res-room').value = '';
+      document.getElementById('res-dob').value = '';
+
+      // Refresh residents list
+      loadResidents();
+    });
+  });
+}
+
+function copyFamilyInvite() {
+  var link = document.getElementById('family-invite-link').textContent;
+  navigator.clipboard.writeText(link).then(function() {
+    var el = document.getElementById('family-invite-copied');
+    el.style.display = 'block';
+    setTimeout(function() { el.style.display = 'none'; }, 3000);
+  });
+}
+
+function addAnother() {
+  document.getElementById('resident-added-panel').style.display = 'none';
+  newResidentId = null;
+}
+
+// ── NURSE INVITE SYSTEM ──
+function initNursePortal() {
+  var isManager = currentUser.is_manager || false;
+
+  // Show manager-only tabs
+  var staffBtn = document.getElementById('tab-staff-btn');
+  if (staffBtn) staffBtn.style.display = isManager ? 'block' : 'none';
+
+  // Hide add-resident tab for non-managers (they can still do reviews)
+  var addResBtn = document.querySelectorAll('#nurse-app .tab')[2];
+  if (addResBtn && !isManager) addResBtn.style.display = 'none';
+
+  // Show manager badge in header
+  if (isManager) {
+    var subtitle = document.getElementById('header-subtitle');
+    if (subtitle) subtitle.textContent = '· ' + (currentUser.care_home || 'Care home') + ' — Manager';
+  }
+}
+
+function inviteNurse() {
+  var name = document.getElementById('invite-nurse-name').value.trim();
+  var email = document.getElementById('invite-nurse-email').value.trim();
+  if (!name || !email) { alert('Please enter name and email'); return; }
+
+  var careHomeId = currentUser.care_home_id;
+  if (!careHomeId) { alert('Care home not linked to your account. Please contact Kindred support.'); return; }
+
+  supaPost('nurse_invites', {
+    care_home_id: careHomeId,
+    email: email,
+    name: name,
+    invited_by: currentUser.id,
+    status: 'pending'
+  }).then(function(data) {
+    if (data && data[0] && data[0].token) {
+      var token = data[0].token;
+      var inviteLink = window.location.origin + '/index.html?nurse_invite=' + token;
+      var result = document.getElementById('invite-result');
+      result.style.display = 'block';
+      result.innerHTML = '<strong>Invite created!</strong> Send this link to ' + esc(name) + ':<br><span style="font-size:11px;font-family:monospace;word-break:break-all;">' + inviteLink + '</span>';
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'btn btn-green';
+      copyBtn.style.cssText = 'font-size:11px;margin-top:6px;padding:4px 10px;';
+      copyBtn.textContent = 'Copy link';
+      copyBtn.addEventListener('click', function() { copyText(inviteLink); });
+      result.appendChild(document.createElement('br'));
+      result.appendChild(copyBtn);
+      document.getElementById('invite-nurse-name').value = '';
+      document.getElementById('invite-nurse-email').value = '';
+      loadStaff();
+    }
+  });
+}
+
+function loadStaff() {
+  if (!currentUser.care_home_id) return;
+  supaFetch('nurse_invites?care_home_id=eq.' + currentUser.care_home_id + '&select=*&order=created_at.desc').then(function(data) {
+    var list = document.getElementById('staff-list');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">No nurses invited yet.</div>'; return; }
+    list.innerHTML = '';
+    data.forEach(function(invite) {
+      var div = document.createElement('div');
+      div.className = 'card';
+      div.style.marginBottom = '7px';
+      var statusTag = invite.status === 'active' ? '<span class="tag tag-green">Active</span>' : invite.status === 'deactivated' ? '<span class="tag tag-gray">Deactivated</span>' : '<span class="tag tag-amber">Pending</span>';
+      div.innerHTML = '<div class="card-body" style="padding:9px 13px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:13px;font-weight:500;">' + esc(invite.name || invite.email) + '</div><div style="font-size:11px;color:#aaa;">' + esc(invite.email) + '</div></div><div style="display:flex;align-items:center;gap:7px;">' + statusTag + '</div></div></div>';
+      if (invite.status === 'active') {
+        var deactivateBtn = document.createElement('button');
+        deactivateBtn.className = 'btn';
+        deactivateBtn.style.cssText = 'font-size:11px;padding:3px 8px;color:#c33;';
+        deactivateBtn.textContent = 'Deactivate';
+        deactivateBtn.addEventListener('click', (function(id) {
+          return function() { deactivateNurse(id); };
+        })(invite.id));
+        div.querySelector('[style*="gap:7px"]').appendChild(deactivateBtn);
+      }
+      list.appendChild(div);
+    });
+  });
+}
+
+function deactivateNurse(inviteId) {
+  if (!confirm('Deactivate this nurse? They will immediately lose access to Kindred.')) return;
+  supaPost('nurse_invites?id=eq.' + inviteId, { status: 'deactivated' }, 'PATCH').then(function() {
+    loadStaff();
+  });
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(function() { alert('Copied!'); });
+}
+
+function supaPost(endpoint, data, method) {
+  method = method || 'POST';
+  var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  var prefer = method === 'POST' ? 'return=representation' : 'return=minimal';
+  return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
+    method: method,
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Prefer': prefer },
+    body: JSON.stringify(data)
+  }).then(function(r) { return r.json(); }).catch(function() { return null; });
+}
+
+// ── NURSE PORTAL DATA ──
+var selectedResident = null;
+
+function loadNursePortal() {
+  try {
+    var careHomeName = currentUser.care_home || 'Your care home';
+    safeSetText('nurse-care-home-name', careHomeName);
+    safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Nurse');
+
+    if (!currentUser.care_home_id) {
+      // Account not fully set up - show message in overview
+      var overview = document.getElementById('ntab-overview');
+      if (overview) {
+        overview.innerHTML = '<div class="info-amber info"><strong>Account setup incomplete.</strong> Your account has been created but is not yet linked to a care home. Please contact Kindred support at support@kindred.app to complete your setup.</div>' +
+          '<div class="sh">Your details</div>' +
+          '<div class="card"><div class="card-body">' +
+          '<div class="row"><span class="row-label">Name</span><span class="row-value">' + esc(currentUser.name || '') + '</span></div>' +
+          '<div class="row"><span class="row-label">Email</span><span class="row-value">' + esc(currentUser.email || '') + '</span></div>' +
+          '<div class="row"><span class="row-label">Care home</span><span class="row-value">' + esc(currentUser.care_home || 'Not set') + '</span></div>' +
+          '</div></div>';
+      }
+      return;
+    }
+
+    loadResidents();
+  } catch(e) {
+    console.log('loadNursePortal error:', e);
+  }
+}
+
+function loadResidents() {
+  var list = document.getElementById('residents-list');
+  if (!list) return;
+
+  if (!currentUser.care_home_id) {
+    list.innerHTML = '<div class="empty">Your account is not linked to a care home yet. Please contact Kindred support.</div>';
+    safeSetText('stat-residents', '0');
+    safeSetText('stat-reviews-due', '0');
+    safeSetText('stat-families', '0');
+    return;
+  }
+
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=*&order=resident_name.asc').then(function(families) {
+    if (!families || families.length === 0) {
+      list.innerHTML = '<div class="empty">No families linked to your care home yet.<br><br>When a family member creates a Kindred account and enters your care home name, they will appear here.</div>';
+      safeSetText('stat-residents', '0');
+      safeSetText('stat-reviews-due', '0');
+      safeSetText('stat-families', '0');
+      return;
+    }
+
+    safeSetText('stat-residents', families.length);
+    safeSetText('stat-families', families.length);
+    safeSetText('stat-reviews-due', families.length);
+
+    list.innerHTML = '';
+    families.forEach(function(fam) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.style.marginBottom = '8px';
+
+      var resName = fam.resident_name || 'Resident';
+      var famName = fam.name || 'Family';
+      var careType = fam.care_type || 'Residential';
+
+      card.innerHTML =
+        '<div class="card-head" style="cursor:pointer;" id="ch-' + fam.id + '">' +
+        '<span class="card-title">' + esc(resName) + '</span>' +
+        '<span class="tag tag-amber">Review due</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+        '<div class="row"><span class="row-label">Family</span><span class="row-value">' + esc(famName) + '</span></div>' +
+        '<div class="row"><span class="row-label">Care type</span><span class="row-value">' + esc(careType) + '</span></div>' +
+        '</div>' +
+        '<div class="card-foot" id="cf-' + fam.id + '"></div>';
+
+      // Add event listeners using closures to avoid quote issues
+      var cardHead = card.querySelector('#ch-' + fam.id);
+      var cardFoot = card.querySelector('#cf-' + fam.id);
+
+      cardHead.addEventListener('click', (function(id, rn, fn) {
+        return function() { selectResident(id, rn, fn); };
+      })(fam.id, resName, famName));
+
+      var startBtn = document.createElement('button');
+      startBtn.className = 'btn btn-green';
+      startBtn.style.cssText = 'font-size:12px;padding:5px 11px;';
+      startBtn.textContent = 'Start review ›';
+      startBtn.addEventListener('click', (function(id, rn, fn) {
+        return function() { selectResident(id, rn, fn); showNurseTab('review'); };
+      })(fam.id, resName, famName));
+      cardFoot.appendChild(startBtn);
+
+      list.appendChild(card);
+    });
+  }).catch(function() {
+    list.innerHTML = '<div class="empty">Could not load residents. Please check your connection.</div>';
+  });
+}
+
+function selectResident(familyId, residentName, familyName) {
+  selectedResident = { id: familyId, name: residentName, family: familyName };
+  // Update review form header
+  var header = document.getElementById('review-resident-header');
+  if (header) header.style.display = 'block';
+  safeSetText('review-resident-name', residentName);
+  safeSetText('review-resident-family', familyName + ' family');
+}
+
+function safeSetText(id, text) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ── SUPABASE REST ──
+function supaFetch(endpoint) {
+  var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  }).then(function(r) { return r.json(); }).catch(function() { return null; });
+}
+
+// ── HELPERS ──
+function getFirstName(name, email) {
+  if (!name) return '';
+  if (name.indexOf('@') > -1) return '';
+  var emailUser = (email || '').split('@')[0];
+  if (name === emailUser) return '';
+  return name.split(' ')[0];
+}
+
+function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function getInitials(name) { return (name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0,2); }
+function pad(n) { return String(n).padStart(2,'0'); }
+function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); }
+</script>
+</body>
+</html>
