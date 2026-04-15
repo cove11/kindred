@@ -953,14 +953,9 @@ async function generateSummary() {
     'Concerns:' + document.getElementById('f-con').value;
 
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': 'sk-ant-api03-NFNrVDC__Yoku_VcwntuEiVRcfdxFSdxUn4q6C4i3qfYXhOrZxC5LW6OKwVOEkq9KMAvjXcy1vVpfAAiSknF9w-W9zTnQAA',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-header': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-opus-4-6', max_tokens: 600,
         system: 'Write warm, honest, plain-English care review summaries for families. No jargon. No bullet points.',
