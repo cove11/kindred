@@ -647,10 +647,10 @@ function onReviewTypeChange(type) {
   var info = document.getElementById('review-type-info');
   if (!info) return;
   var messages = {
-    '6-month review': 'Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.',
-    'health-change': 'Document a notable change or decline in the resident's health. This will be shared with the family as an important update.',
-    'medication-change': 'Record a change to the resident's medication. The family will be notified with a clear, plain-English explanation.',
-    'other': 'Record any other clinical update or observation for the family.'
+    '6-month review': "Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.",
+    'health-change': "Document a notable change or decline in the resident's health. This will be shared with the family as an important update.",
+    'medication-change': "Record a change to the resident's medication. The family will be notified with a clear, plain-English explanation.",
+    'other': "Record any other clinical update or observation for the family."
   };
   info.textContent = messages[type] || messages['6-month review'];
 }
