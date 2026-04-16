@@ -421,7 +421,7 @@ function doSignUp() {
           family_id: familyId,
           care_home_id: careHomeId,
           is_primary_contact: !isSiblingInvite,
-          sibling_invite_token: encode(gen_random_bytes(24), 'hex')
+          sibling_invite_token: Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2,'0')).join('')
         })
       });
 
