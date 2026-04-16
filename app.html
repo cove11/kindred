@@ -591,6 +591,7 @@ function showTab(name) {
   document.querySelectorAll('#family-app .panel').forEach(function(p) {
     p.classList.toggle('active', p.id === 'tab-' + name);
   });
+  if (name === 'reviews') loadReviews();
 }
 
 function showNurseTab(name) {
