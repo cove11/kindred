@@ -377,7 +377,16 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
           <option value="">Loading residents...</option>
         </select>
       </div>
-      <div class="info-amber info">Complete a resident's 6-month review. Opus will translate your clinical notes into plain English for the family.</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;">Review type</label>
+        <select id="review-type-selector" style="width:100%;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;background:#faf9f7;margin-top:4px;" onchange="onReviewTypeChange(this.value)">
+          <option value="6-month review">6-month review (scheduled)</option>
+          <option value="health-change">Notable health change / decline</option>
+          <option value="medication-change">Medication change</option>
+          <option value="other">Other update</option>
+        </select>
+      </div>
+      <div class="info-amber info" id="review-type-info">Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.</div>
       <div class="sh">Clinical assessment</div>
       <div class="field"><label>Overall wellbeing</label>
         <div class="pills" id="pg-w"><div class="pill on" data-v="Well">Well</div><div class="pill" data-v="Very well">Very well</div><div class="pill" data-v="Some concerns">Some concerns</div><div class="pill" data-v="Deteriorating">Deteriorating</div></div>
@@ -632,6 +641,23 @@ function onResidentSelect(id) {
   var sel = document.getElementById('resident-selector');
   var opt = sel.options[sel.selectedIndex];
   selectedResident = { id: id, name: opt.textContent };
+}
+
+function onReviewTypeChange(type) {
+  var info = document.getElementById('review-type-info');
+  if (!info) return;
+  var messages = {
+    '6-month review': 'Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.',
+    'health-change': 'Document a notable change or decline in the resident's health. This will be shared with the family as an important update.',
+    'medication-change': 'Record a change to the resident's medication. The family will be notified with a clear, plain-English explanation.',
+    'other': 'Record any other clinical update or observation for the family.'
+  };
+  info.textContent = messages[type] || messages['6-month review'];
+}
+
+function getReviewType() {
+  var sel = document.getElementById('review-type-selector');
+  return sel ? sel.value : '6-month review';
 }
 
 // ── PILLS ──
@@ -918,6 +944,7 @@ function loadReviews() {
             content: r.content || '',
             nurse: r.nurse_name || 'Nurse',
             care_home: r.care_home || '',
+            review_type: r.review_type || '6-month review',
             date: new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
             ts: new Date(r.created_at).getTime()
           };
@@ -942,7 +969,7 @@ function renderReviews(reviews) {
   
   // Update home
   var section = document.getElementById('home-review-section');
-  section.innerHTML = '<div class="card"><div class="card-head"><span class="card-title">6-month review — ' + esc(latest.date) + '</span><span class="tag tag-green">New</span></div><div class="card-body"><p>' + esc(latest.content.substring(0, 200)) + '...</p></div><div class="card-foot"><button class="btn btn-green" onclick="showTab(\'reviews\')" style="font-size:12px;padding:5px 11px;">Full review</button></div></div>';
+  section.innerHTML = '<div class="card"><div class="card-head"><span class="card-title">' + esc(latest.review_type || '6-month review') + ' — ' + esc(latest.date) + '</span><span class="tag tag-green">New</span></div><div class="card-body"><p>' + esc(latest.content.substring(0, 200)) + '...</p></div><div class="card-foot"><button class="btn btn-green" onclick="showTab(\'reviews\')" style="font-size:12px;padding:5px 11px;">Full review</button></div></div>';
   
   // Update reviews tab
   var list = document.getElementById('reviews-list');
@@ -951,7 +978,7 @@ function renderReviews(reviews) {
     var div = document.createElement('div');
     div.className = 'card';
     div.style.marginBottom = '8px';
-    div.innerHTML = '<div class="card-head"><span class="card-title">6-month review — ' + esc(r.date) + '</span><span class="tag tag-green">Nurse approved</span></div><div class="card-body"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">' + esc(r.nurse || 'Nurse') + ' · ' + esc(r.care_home || 'Care home') + '</p><p>' + esc(r.content) + '</p></div>';
+    div.innerHTML = '<div class="card-head"><span class="card-title">' + esc(r.review_type || '6-month review') + ' — ' + esc(r.date) + '</span><span class="tag tag-green">Nurse approved</span></div><div class="card-body"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">' + esc(r.nurse || 'Nurse') + ' · ' + esc(r.care_home || 'Care home') + '</p><p>' + esc(r.content) + '</p></div>';
     list.appendChild(div);
   });
 
@@ -1060,6 +1087,7 @@ function sendReview() {
     nurse_name: currentUser.name,
     care_home: currentUser.care_home || 'Care home',
     resident_name: selectedResident.name,
+    review_type: getReviewType(),
     status: 'sent'
   };
 
@@ -1074,7 +1102,7 @@ function sendReview() {
     var div = document.createElement('div');
     div.className = 'card';
     div.style.marginBottom = '8px';
-    div.innerHTML = '<div class="card-body" style="padding:9px 14px;"><div class="row"><span class="row-label">' + dateStr() + '</span><span class="row-value">Review sent ✓</span></div><div class="row"><span class="row-label">Resident</span><span class="row-value">' + esc(selectedResident.name) + '</span></div></div>';
+    div.innerHTML = '<div class="card-body" style="padding:9px 14px;"><div class="row"><span class="row-label">' + dateStr() + '</span><span class="row-value">Review sent ✓</span></div><div class="row"><span class="row-label">Resident</span><span class="row-value">' + esc(selectedResident.name) + '</span></div><div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(getReviewType()) + '</span></div></div>';
     sentList.insertBefore(div, sentList.firstChild);
   }).catch(function() {
     alert('Could not send review. Please check your connection and try again.');
