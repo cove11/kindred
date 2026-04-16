@@ -601,6 +601,23 @@ function showNurseTab(name) {
   });
   if (name === 'staff') loadStaff();
   if (name === 'residents') loadResidents();
+  if (name === 'review' || name === 'approve') autoSelectResident();
+}
+
+function autoSelectResident() {
+  if (selectedResident) return; // already set
+  if (!currentUser || !currentUser.care_home_id) return;
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=*&limit=1').then(function(families) {
+    if (families && families.length > 0) {
+      selectedResident = { id: families[0].id, name: families[0].resident_name, family_id: families[0].id };
+      // Update the resident selector if it exists
+      var sel = document.getElementById('pg-resident');
+      if (sel) {
+        var opt = sel.querySelector('option[value="' + families[0].id + '"]');
+        if (opt) opt.selected = true;
+      }
+    }
+  }).catch(function() {});
 }
 
 // ── PILLS ──
@@ -1227,6 +1244,7 @@ var selectedResident = null;
 
 function loadNursePortal() {
   try {
+    autoSelectResident(); // auto-load resident on sign-in
     var careHomeName = currentUser.care_home || 'Your care home';
     safeSetText('nurse-care-home-name', careHomeName);
     safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Nurse');
