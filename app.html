@@ -371,9 +371,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- REVIEW FORM -->
     <div class="panel" id="ntab-review">
-      <div id="review-resident-header" style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:9px 13px;margin-bottom:12px;display:none;">
-        <div style="font-size:13px;font-weight:500;" id="review-resident-name">No resident selected</div>
-        <div style="font-size:11px;color:#aaa;" id="review-resident-family"></div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;">Select resident</label>
+        <select id="resident-selector" style="width:100%;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;background:#faf9f7;margin-top:4px;" onchange="onResidentSelect(this.value)">
+          <option value="">Loading residents...</option>
+        </select>
       </div>
       <div class="info-amber info">Complete a resident's 6-month review. Opus will translate your clinical notes into plain English for the family.</div>
       <div class="sh">Clinical assessment</div>
@@ -605,19 +607,30 @@ function showNurseTab(name) {
 }
 
 function autoSelectResident() {
-  if (selectedResident) return; // already set
   if (!currentUser || !currentUser.care_home_id) return;
-  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=*&limit=1').then(function(families) {
-    if (families && families.length > 0) {
-      selectedResident = { id: families[0].id, name: families[0].resident_name, family_id: families[0].id };
-      // Update the resident selector if it exists
-      var sel = document.getElementById('pg-resident');
-      if (sel) {
-        var opt = sel.querySelector('option[value="' + families[0].id + '"]');
-        if (opt) opt.selected = true;
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc').then(function(families) {
+    if (!families || families.length === 0) return;
+    // Populate dropdown
+    var sel = document.getElementById('resident-selector');
+    if (sel) {
+      sel.innerHTML = families.length === 1
+        ? '<option value="' + families[0].id + '">' + esc(families[0].resident_name) + '</option>'
+        : '<option value="">-- Select a resident --</option>' + families.map(function(f) {
+            return '<option value="' + f.id + '">' + esc(f.resident_name) + '</option>';
+          }).join('');
+      // Auto-select if only one resident
+      if (families.length === 1) {
+        selectedResident = { id: families[0].id, name: families[0].resident_name };
       }
     }
   }).catch(function() {});
+}
+
+function onResidentSelect(id) {
+  if (!id) { selectedResident = null; return; }
+  var sel = document.getElementById('resident-selector');
+  var opt = sel.options[sel.selectedIndex];
+  selectedResident = { id: id, name: opt.textContent };
 }
 
 // ── PILLS ──
