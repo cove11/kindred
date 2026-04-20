@@ -542,7 +542,10 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         </div>
       </div>
 
-      <div class="sh">Active staff</div>
+      <div class="sh" style="margin-top:14px;">Active staff</div>
+      <div style="margin-bottom:8px;">
+        <input type="text" id="staff-search" placeholder="Search staff by name or email..." oninput="filterStaff()" style="width:100%;padding:7px 11px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;box-sizing:border-box;"/>
+      </div>
       <div id="staff-list"><div class="empty">No nurses invited yet.</div></div>
     </div>
 
@@ -1482,6 +1485,15 @@ function inviteNurse() {
   });
 }
 
+function filterStaff() {
+  var q = (document.getElementById('staff-search').value || '').toLowerCase();
+  var cards = document.querySelectorAll('#staff-list .card');
+  cards.forEach(function(card) {
+    var match = !q || (card.dataset.search || '').includes(q);
+    card.style.display = match ? '' : 'none';
+  });
+}
+
 function loadStaff() {
   if (!currentUser.care_home_id) return;
   supaFetch('nurse_invites?care_home_id=eq.' + currentUser.care_home_id + '&select=*&order=created_at.desc').then(function(data) {
@@ -1493,6 +1505,8 @@ function loadStaff() {
       div.className = 'card';
       div.style.marginBottom = '7px';
       var statusTag = invite.status === 'active' ? '<span class="tag tag-green">Active</span>' : invite.status === 'deactivated' ? '<span class="tag tag-gray">Deactivated</span>' : '<span class="tag tag-amber">Pending</span>';
+      div.dataset.search = (invite.name + ' ' + invite.email).toLowerCase();
+      div.dataset.search = ((invite.name || '') + ' ' + (invite.email || '')).toLowerCase();
       div.innerHTML = '<div class="card-body" style="padding:9px 13px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:13px;font-weight:500;">' + esc(invite.name || invite.email) + '</div><div style="font-size:11px;color:#aaa;">' + esc(invite.email) + '</div></div><div style="display:flex;align-items:center;gap:7px;">' + statusTag + '</div></div></div>';
       if (invite.status === 'active') {
         var deactivateBtn = document.createElement('button');
