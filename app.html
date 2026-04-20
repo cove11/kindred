@@ -454,6 +454,14 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div id="sent-list"><div class="empty">No reviews sent yet.</div></div>
     </div>
 
+    <!-- RESIDENT PROFILE -->
+    <div class="panel" id="ntab-profile">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <button onclick="showNurseTab('residents')" style="background:none;border:none;cursor:pointer;color:#5dcaa5;font-size:13px;padding:0;">← Back to residents</button>
+      </div>
+      <div id="profile-content"><div class="empty">Loading...</div></div>
+    </div>
+
     <!-- ADD RESIDENT -->
     <div class="panel" id="ntab-add-resident">
       <div class="info-green info">Add a resident to your care home. Once added you can generate a secure invite link to send to their primary family contact.</div>
@@ -628,6 +636,10 @@ function showNurseTab(name) {
   if (name === 'residents') loadResidents();
   if (name === 'review' || name === 'approve') autoSelectResident();
   if (name === 'approve') loadDraftForApprove();
+  // Profile tab doesn't appear in tab bar — hide all tab highlights when showing it
+  if (name === 'profile') {
+    document.querySelectorAll('#nurse-app .tab').forEach(function(t) { t.classList.remove('active'); });
+  }
 }
 
 function autoSelectResident() {
@@ -1572,11 +1584,12 @@ function loadResidents() {
         btn.addEventListener('click', (function(id, rn, fn) {
           return function(e) { e.stopPropagation(); selectResident(id, rn, fn); showNurseTab('review'); };
         })(fam.id, resName, famName));
+        tr.addEventListener('click', function() {}); // handled above
         tr.cells[4].appendChild(btn);
 
-        tr.addEventListener('click', (function(id, rn, fn) {
-          return function() { selectResident(id, rn, fn); };
-        })(fam.id, resName, famName));
+        tr.addEventListener('click', (function(fam, rn, fn) {
+          return function() { openResidentProfile(fam, rn, fn); };
+        })(fam, resName, famName));
 
         tbody.appendChild(tr);
       });
@@ -1588,6 +1601,91 @@ function loadResidents() {
     });
   }).catch(function() {
     list.innerHTML = '<div class="empty">Could not load residents. Please check your connection.</div>';
+  });
+}
+
+function openResidentProfile(fam, residentName, familyName) {
+  selectResident(fam.id, residentName, familyName);
+  showNurseTab('profile');
+  var container = document.getElementById('profile-content');
+  container.innerHTML = '<div class="empty" style="padding:20px;">Loading profile...</div>';
+
+  // Fetch all reviews for this resident
+  supaFetch('reviews?family_id=eq.' + fam.id + '&select=*&order=created_at.desc').then(function(reviews) {
+    var building = fam.building || '';
+    var room = fam.room_number || '';
+    var location = [building, room ? 'Room ' + room : ''].filter(Boolean).join(' · ') || 'Not specified';
+
+    var lastSixMonth = (reviews || []).find(function(r) { return r.review_type === '6-month review' && r.status === 'sent'; });
+    var nextReviewDue = '—';
+    if (lastSixMonth) {
+      var d = new Date(lastSixMonth.created_at);
+      d.setMonth(d.getMonth() + 6);
+      nextReviewDue = d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+    }
+
+    var drafts = (reviews || []).filter(function(r) { return r.status === 'draft'; });
+    var sentReviews = (reviews || []).filter(function(r) { return r.status === 'sent'; });
+
+    var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">';
+
+    // Resident info card
+    html += '<div class="card"><div class="card-head"><span class="card-title">' + esc(residentName) + '</span></div><div class="card-body">';
+    html += '<div class="row"><span class="row-label">Building / Room</span><span class="row-value">' + esc(location) + '</span></div>';
+    html += '<div class="row"><span class="row-label">Care type</span><span class="row-value" style="text-transform:capitalize;">' + esc(fam.care_type || '—') + '</span></div>';
+    html += '<div class="row"><span class="row-label">Funding</span><span class="row-value" style="text-transform:capitalize;">' + esc((fam.funding_type || '—').replace('_',' ')) + '</span></div>';
+    html += '<div class="row"><span class="row-label">Next 6-month review</span><span class="row-value">' + esc(nextReviewDue) + '</span></div>';
+    html += '</div>';
+    html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab('review')">Start review ›</button></div>';
+    html += '</div>';
+
+    // Family contact card
+    html += '<div class="card"><div class="card-head"><span class="card-title">Family contact</span></div><div class="card-body">';
+    html += '<div class="row"><span class="row-label">Contact name</span><span class="row-value">' + esc(familyName || '—') + '</span></div>';
+    html += '<div class="row"><span class="row-label">Status</span><span class="row-value">' + (fam.resident_invite_used ? '<span class="tag" style="background:#dcfce7;color:#166534;">Portal active</span>' : '<span class="tag tag-amber">Invite pending</span>') + '</span></div>';
+    html += '</div></div>';
+
+    html += '</div>';
+
+    // Pending drafts
+    if (drafts.length > 0) {
+      html += '<div class="sh" style="margin-bottom:8px;">Pending approval</div>';
+      drafts.forEach(function(d) {
+        html += '<div class="card" style="margin-bottom:8px;border-left:3px solid #f59e0b;">';
+        html += '<div class="card-body" style="padding:10px 14px;">';
+        html += '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(d.review_type || '6-month review') + '</span></div>';
+        html += '<div class="row"><span class="row-label">Written by</span><span class="row-value">' + esc(d.nurse_name || '—') + '</span></div>';
+        html += '<div class="row"><span class="row-label">Saved</span><span class="row-value">' + new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + '</span></div>';
+        html += '</div>';
+        html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab('approve')">Review &amp; approve ›</button></div>';
+        html += '</div>';
+      });
+    }
+
+    // Review history
+    html += '<div class="sh" style="margin-top:16px;margin-bottom:8px;">Review history (' + sentReviews.length + ')</div>';
+    if (sentReviews.length === 0) {
+      html += '<div class="empty" style="font-size:13px;">No reviews sent yet.</div>';
+    } else {
+      sentReviews.forEach(function(r) {
+        var dateStr = new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+        html += '<div class="card" style="margin-bottom:6px;">';
+        html += '<div class="card-head" style="cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">';
+        html += '<span class="card-title" style="font-size:13px;">' + esc(r.review_type || '6-month review') + '</span>';
+        html += '<span style="font-size:12px;color:#888;">' + dateStr + '</span>';
+        html += '</div>';
+        html += '<div class="card-body" style="display:none;">';
+        (r.content || '').split('\n').filter(function(l){return l.trim();}).forEach(function(para){
+          html += '<p style="font-size:13px;margin-bottom:6px;">' + esc(para) + '</p>';
+        });
+        html += '<p style="font-size:11px;color:#aaa;margin-top:8px;">Sent by ' + esc(r.nurse_name || 'Care team') + '</p>';
+        html += '</div></div>';
+      });
+    }
+
+    container.innerHTML = html;
+  }).catch(function() {
+    container.innerHTML = '<div class="empty">Could not load profile. Please check your connection.</div>';
   });
 }
 
