@@ -1718,6 +1718,7 @@ function openResidentProfile(fam, residentName, familyName) {
           html += '<p style="font-size:13px;margin-bottom:6px;">' + esc(para) + '</p>';
         });
         html += '<p style="font-size:11px;color:#aaa;margin-top:8px;">Sent by ' + esc(r.nurse_name || 'Care team') + '</p>';
+        html += '<div style="margin-top:8px;"><button class="btn" style="font-size:11px;padding:4px 10px;" data-review-id="' + r.id + '" data-family-id="' + r.family_id + '" onclick="recallReview(this)">Revise this review</button></div>';
         html += '</div></div>';
       });
     }
@@ -1851,6 +1852,77 @@ function filterResidents() {
   });
 }
 
+function recallReview(btn) {
+  var reviewId = btn.getAttribute('data-review-id');
+  var familyId = btn.getAttribute('data-family-id');
+  if (!confirm('This will create a revised draft for editing and re-approval.\n\nThe original sent review will be kept permanently in the audit trail. The family will see the updated version once a manager re-approves it.\n\nContinue?')) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+
+  // Fetch the original review — DO NOT modify it
+  supaFetch('reviews?id=eq.' + reviewId + '&select=*').then(function(reviews) {
+    if (!reviews || reviews.length === 0) { alert('Could not find review.'); btn.disabled = false; btn.textContent = 'Revise this review'; return; }
+    var original = reviews[0];
+
+    // Mark the original as recalled (audit trail) but keep status=sent
+    supaPost('reviews?id=eq.' + reviewId, {
+      recalled_by: currentUser.name,
+      recalled_at: new Date().toISOString()
+    }, 'PATCH');
+
+    // Create a NEW draft revision pointing back to the original
+    var newDraft = {
+      family_id: original.family_id,
+      content: original.content,
+      nurse_name: currentUser.name,
+      care_home: original.care_home,
+      resident_name: original.resident_name,
+      review_type: original.review_type,
+      status: 'draft',
+      revised_from: original.id
+    };
+
+    supaPost('reviews', newDraft).then(function(data) {
+      var newId = data && data[0] ? data[0].id : null;
+
+      // Find resident and load into approve tab
+      supaFetch('families?id=eq.' + familyId + '&select=id,resident_name,name').then(function(fams) {
+        if (fams && fams.length > 0) {
+          var fam = fams[0];
+          selectedResident = { id: fam.id, name: fam.resident_name };
+          window._currentDraftId = newId;
+
+          localStorage.setItem('k_draft_summary', original.content || '');
+          var show = document.getElementById('summary-show');
+          if (show) {
+            show.innerHTML = '';
+            (original.content || '').split('\n').filter(function(l){return l.trim();}).forEach(function(p){
+              var el = document.createElement('p');
+              el.textContent = p;
+              show.appendChild(el);
+            });
+          }
+          var edit = document.getElementById('summary-edit');
+          if (edit) edit.value = original.content || '';
+
+          showNurseTab('approve');
+          var notice = document.getElementById('draft-pending-notice');
+          if (notice) notice.style.display = 'block';
+          var nurseName = document.getElementById('draft-nurse-name');
+          if (nurseName) nurseName.textContent = currentUser.name + ' (revision)';
+          var banner = document.getElementById('approve-resident-name');
+          if (banner) banner.textContent = fam.resident_name;
+        }
+      });
+    }).catch(function() {
+      alert('Could not create revision. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Revise this review';
+    });
+  });
+}
+
 function loadSent() {
   var list = document.getElementById('sent-list');
   if (!list || !currentUser.care_home_id) return;
@@ -1889,6 +1961,9 @@ function loadSent() {
           '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(reviewType) + '</span></div>' +
           '<div style="margin-top:10px;">' +
           (r.content || '').split('\n').filter(function(l){return l.trim();}).map(function(p){ return '<p style="font-size:13px;margin-bottom:6px;">' + esc(p) + '</p>'; }).join('') +
+          '</div>' +
+          '<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.06);">' +
+          '<button class="btn" style="font-size:11px;padding:4px 10px;" data-review-id="' + r.id + '" data-family-id="' + r.family_id + '" onclick="recallReview(this)">Revise this review</button>' +
           '</div></div>';
         list.appendChild(div);
       });
