@@ -456,8 +456,36 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- RESIDENT PROFILE -->
     <div class="panel" id="ntab-profile">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <button onclick="showNurseTab('residents')" style="background:none;border:none;cursor:pointer;color:#5dcaa5;font-size:13px;padding:0;">← Back to residents</button>
+        <div id="profile-manager-btns" style="display:none;gap:8px;display:flex;">
+          <button class="btn" onclick="editResident()" style="font-size:12px;">Edit resident</button>
+          <button class="btn" onclick="deleteResident()" style="font-size:12px;color:#b91c1c;border-color:#fca5a5;">Delete resident</button>
+        </div>
+      </div>
+      <!-- Edit form (hidden by default) -->
+      <div id="edit-resident-form" style="display:none;background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div class="sh" style="margin-bottom:10px;">Edit resident details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field"><label>Building</label><input type="text" id="edit-building" placeholder="e.g. Maple Wing"/></div>
+          <div class="field"><label>Room number</label><input type="text" id="edit-room" placeholder="e.g. 14B"/></div>
+        </div>
+        <div class="field"><label>Care type</label>
+          <div class="pills" id="edit-care-type">
+            <div class="pill on" data-v="residential">Residential</div>
+            <div class="pill" data-v="nursing">Nursing</div>
+          </div>
+        </div>
+        <div class="field"><label>Funding</label>
+          <div class="pills" id="edit-funding">
+            <div class="pill on" data-v="private">Private</div>
+            <div class="pill" data-v="fully_funded">Fully funded</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="saveResidentEdit()" style="font-size:12px;">Save changes</button>
+          <button class="btn" onclick="document.getElementById('edit-resident-form').style.display='none'" style="font-size:12px;">Cancel</button>
+        </div>
       </div>
       <div id="profile-content"><div class="empty">Loading...</div></div>
     </div>
@@ -645,7 +673,7 @@ function showNurseTab(name) {
 
 function autoSelectResident() {
   if (!currentUser || !currentUser.care_home_id) return;
-  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc').then(function(families) {
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name&order=resident_name.asc').then(function(families) {
     if (!families || families.length === 0) return;
     // Populate dropdown
     var sel = document.getElementById('resident-selector');
@@ -1346,9 +1374,8 @@ function initNursePortal() {
   var staffBtn = document.getElementById('tab-staff-btn');
   if (staffBtn) staffBtn.style.display = isManager ? 'block' : 'none';
 
-  // Hide add-resident tab for non-managers (they can still do reviews)
-  var addResBtn = document.querySelectorAll('#nurse-app .tab')[2];
-  if (addResBtn && !isManager) addResBtn.style.display = 'none';
+  // All staff (nurses and managers) can add residents and enter reviews
+  // Nurses' reviews go to draft — managers approve before sending to family
 
   // Show manager badge in header
   if (isManager) {
@@ -1484,7 +1511,7 @@ function loadResidents() {
     return;
   }
 
-  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=*&order=resident_name.asc').then(function(families) {
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=*&order=resident_name.asc').then(function(families) {
     if (!families || families.length === 0) {
       list.innerHTML = '<div class="empty">No residents linked to your care home yet.</div>';
       safeSetText('stat-residents', '0');
@@ -1610,6 +1637,11 @@ function openResidentProfile(fam, residentName, familyName) {
   showNurseTab('profile');
   var container = document.getElementById('profile-content');
   container.innerHTML = '<div class="empty" style="padding:20px;">Loading profile...</div>';
+  // Show edit/delete buttons for managers only
+  var mgrBtns = document.getElementById('profile-manager-btns');
+  if (mgrBtns) mgrBtns.style.display = currentUser.is_manager ? 'flex' : 'none';
+  // Store current fam for edit/delete
+  window._profileFam = fam;
 
   // Fetch all reviews for this resident
   supaFetch('reviews?family_id=eq.' + fam.id + '&select=*&order=created_at.desc').then(function(reviews) {
@@ -1687,6 +1719,64 @@ function openResidentProfile(fam, residentName, familyName) {
     container.innerHTML = html;
   }).catch(function() {
     container.innerHTML = '<div class="empty">Could not load profile. Please check your connection.</div>';
+  });
+}
+
+function editResident() {
+  var fam = window._profileFam;
+  if (!fam) return;
+  var form = document.getElementById('edit-resident-form');
+  form.style.display = 'block';
+  // Pre-fill fields
+  document.getElementById('edit-building').value = fam.building || '';
+  document.getElementById('edit-room').value = fam.room_number || '';
+  // Set care type pill
+  var ctPills = document.querySelectorAll('#edit-care-type .pill');
+  ctPills.forEach(function(p) {
+    p.classList.toggle('on', p.dataset.v === (fam.care_type || 'residential'));
+  });
+  // Set funding pill
+  var fPills = document.querySelectorAll('#edit-funding .pill');
+  fPills.forEach(function(p) {
+    p.classList.toggle('on', p.dataset.v === (fam.funding_type || 'private'));
+  });
+}
+
+function saveResidentEdit() {
+  var fam = window._profileFam;
+  if (!fam) return;
+  var building = document.getElementById('edit-building').value.trim();
+  var room = document.getElementById('edit-room').value.trim();
+  var careType = document.querySelector('#edit-care-type .pill.on');
+  var funding = document.querySelector('#edit-funding .pill.on');
+  var updates = {
+    building: building || null,
+    room_number: room || null,
+    care_type: careType ? careType.dataset.v : fam.care_type,
+    funding_type: funding ? funding.dataset.v : fam.funding_type
+  };
+  supaPost('families?id=eq.' + fam.id, updates, 'PATCH').then(function() {
+    // Update local copy
+    Object.assign(window._profileFam, updates);
+    document.getElementById('edit-resident-form').style.display = 'none';
+    // Refresh profile
+    openResidentProfile(window._profileFam, window._profileFam.resident_name, window._profileFam.name);
+    alert('Resident details updated.');
+  }).catch(function() {
+    alert('Could not save changes. Please try again.');
+  });
+}
+
+function deleteResident() {
+  var fam = window._profileFam;
+  if (!fam) return;
+  var name = fam.resident_name || 'this resident';
+  if (!confirm('Are you sure you want to remove ' + name + ' from the active residents list?\n\nAll records will be retained for 8 years in line with UK care regulations. You can view deleted records in the admin panel.')) return;
+  supaPost('families?id=eq.' + fam.id, { status: 'deleted' }, 'PATCH').then(function() {
+    showNurseTab('residents');
+    alert(name + ' has been removed. All records are securely retained.');
+  }).catch(function() {
+    alert('Could not delete resident. Please try again.');
   });
 }
 

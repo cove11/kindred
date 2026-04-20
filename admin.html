@@ -752,10 +752,21 @@ function loadResidents() {
   supaFetch('residents?select=*,care_homes(name),families(name,resident_invite_used)&order=created_at.desc').then(function(residents) {
     if (!residents || residents.length === 0) {
       // fallback to families table
-      supaFetch('families?select=*,care_homes(name)&order=created_at.desc').then(function(families) {
+      supaFetch('families?select=*,care_homes(name)&order=resident_name.asc').then(function(families) {
         if (!families || families.length === 0) { list.innerHTML = '<div class="empty-row">No residents added yet.</div>'; return; }
+        var active = families.filter(function(f) { return f.status !== 'deleted'; });
+        var deleted = families.filter(function(f) { return f.status === 'deleted'; });
         list.innerHTML = '';
-        families.forEach(function(fam) {
+
+        // Active residents header
+        if (active.length > 0) {
+          var ah = document.createElement('div');
+          ah.style.cssText = 'font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#555;padding:10px 0 6px;margin-top:4px;';
+          ah.textContent = 'Active residents (' + active.length + ')';
+          list.appendChild(ah);
+        }
+
+        active.forEach(function(fam) {
           var row = document.createElement('div');
           row.className = 'table-row residents-grid';
           var homeName = fam.care_homes ? fam.care_homes.name : (fam.care_home || '—');
@@ -807,16 +818,39 @@ function loadResidents() {
           rDelBtn.textContent = 'Delete';
           rDelBtn.addEventListener('click', (function(id, name) {
             return function() {
-              if (confirm('Permanently delete ' + name + ' and all their data? This cannot be undone.')) {
+              if (confirm('Remove ' + name + ' from active residents?\n\nAll records are retained for 8 years in line with UK care regulations (Care Act 2014). You can view deleted records in the Residents section below.')) {
                 fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, {
-                  method: 'DELETE',
-                  headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+                  method: 'PATCH',
+                  headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: 'deleted' })
                 }).then(function() { loadResidents(); loadStats(); });
               }
             };
           })(fam.id, fam.resident_name || 'this resident'));
           ac.appendChild(rDelBtn);
         });
+
+        // Deleted residents section
+        if (deleted.length > 0) {
+          var dh = document.createElement('div');
+          dh.style.cssText = 'font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#b91c1c;padding:16px 0 6px;margin-top:8px;border-top:1px solid rgba(0,0,0,0.08);';
+          dh.textContent = 'Deleted residents — retained for 8 years (' + deleted.length + ')';
+          list.appendChild(dh);
+          deleted.forEach(function(fam) {
+            var row = document.createElement('div');
+            row.className = 'table-row residents-grid';
+            row.style.opacity = '0.55';
+            var homeName = fam.care_homes ? fam.care_homes.name : (fam.care_home || '—');
+            row.innerHTML =
+              '<div><div class="cell-main" style="text-decoration:line-through;">' + esc(fam.resident_name || 'Unknown') + '</div><div class="cell-sub" style="color:#b91c1c;">Deleted</div></div>' +
+              '<div class="cell-text">' + esc(homeName) + '</div>' +
+              '<div><span class="tag" style="background:#fee2e2;color:#b91c1c;">Deleted</span></div>' +
+              '<div class="cell-text">' + cap((fam.funding_type || 'private').replace('_', ' ')) + '</div>' +
+              '<div><span class="tag tag-gray">Retained 8yr</span></div>' +
+              '<div></div>';
+            list.appendChild(row);
+          });
+        }
       });
       return;
     }
@@ -847,11 +881,11 @@ function loadResidents() {
       resDelBtn.textContent = 'Delete';
       resDelBtn.addEventListener('click', (function(id, name) {
         return function() {
-          if (confirm('Permanently delete ' + name + '? This cannot be undone.')) {
-            var h = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
-            fetch(SUPA_URL + '/rest/v1/residents?id=eq.' + id, { method: 'DELETE', headers: h })
-              .then(function() { return fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, { method: 'DELETE', headers: h }); })
-              .then(function() { loadResidents(); loadStats(); });
+          if (confirm('Remove ' + name + ' from active residents?\n\nAll records are retained for 8 years (Care Act 2014).')) {
+            var h = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };
+            fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, {
+              method: 'PATCH', headers: h, body: JSON.stringify({ status: 'deleted' })
+            }).then(function() { loadResidents(); loadStats(); });
           }
         };
       })(res.id, res.name));
