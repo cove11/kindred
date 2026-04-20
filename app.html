@@ -1636,7 +1636,7 @@ function openResidentProfile(fam, residentName, familyName) {
     html += '<div class="row"><span class="row-label">Funding</span><span class="row-value" style="text-transform:capitalize;">' + esc((fam.funding_type || '—').replace('_',' ')) + '</span></div>';
     html += '<div class="row"><span class="row-label">Next 6-month review</span><span class="row-value">' + esc(nextReviewDue) + '</span></div>';
     html += '</div>';
-    html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab('review')">Start review ›</button></div>';
+    html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab(\'review\')">Start review ›</button></div>';
     html += '</div>';
 
     // Family contact card
@@ -1657,7 +1657,7 @@ function openResidentProfile(fam, residentName, familyName) {
         html += '<div class="row"><span class="row-label">Written by</span><span class="row-value">' + esc(d.nurse_name || '—') + '</span></div>';
         html += '<div class="row"><span class="row-label">Saved</span><span class="row-value">' + new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + '</span></div>';
         html += '</div>';
-        html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab('approve')">Review &amp; approve ›</button></div>';
+        html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab(\'approve\')">Review &amp; approve ›</button></div>';
         html += '</div>';
       });
     }
