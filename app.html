@@ -355,6 +355,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <button class="btn btn-green" onclick="showNurseTab('residents')">View residents</button>
         <button class="btn" onclick="showNurseTab('review')">New review</button>
       </div>
+      <!-- Pending drafts notice (nurses only) -->
+      <div id="nurse-pending-section" style="display:none;margin-top:14px;">
+        <div class="sh">Your pending drafts</div>
+        <div id="nurse-pending-list"><div class="empty" style="font-size:13px;">No drafts pending approval.</div></div>
+      </div>
       <div class="sh" style="margin-top:14px;">Your care home</div>
       <div class="card">
         <div class="card-body" style="padding:9px 14px;">
@@ -442,7 +447,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div id="draft-pending-notice" style="display:none;background:#f0fdf4;border:0.5px solid #5dcaa5;border-radius:8px;padding:9px 13px;font-size:13px;color:#085041;margin-bottom:10px;">
         <strong>Draft loaded.</strong> This review was saved by <span id="draft-nurse-name">a nurse</span> and is waiting for your approval.
       </div>
-      <div class="info-amber info"><strong>Your responsibility.</strong> Read before sending. Edit any section. Nothing reaches the family until you approve it.</div>
+      <div id="approve-manager-info" class="info-amber info"><strong>Your responsibility.</strong> Read before sending. Edit any section. Nothing reaches the family until you approve it.</div>
+      <div id="approve-nurse-info" class="info-green info" style="display:none;"><strong>Draft saved.</strong> Your review is waiting for a manager to approve before it reaches the family. You can edit it below or submit a new version.</div>
       <div class="card">
         <div class="card-head"><span class="card-title">Editable summary</span><button class="btn" style="font-size:11px;padding:2px 8px;" onclick="toggleEdit()">Edit</button></div>
         <div class="card-body" id="summary-show"><p style="color:#aaa;font-style:italic;">Generate a summary in the review form first.</p></div>
@@ -451,7 +457,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       </div>
       <div class="field" style="margin-top:12px;"><label>Personal note <span style="font-weight:400;color:#aaa;font-size:11px;">optional — appears above summary</span></label><textarea id="nurse-note" placeholder="e.g. Margaret was in good spirits and sends her love." style="min-height:48px;"></textarea></div>
       <div class="btn-row">
-        <button class="btn btn-green" id="btn-send" onclick="sendReview()">Approve and send to family</button>
+        <button class="btn btn-green" id="btn-send" onclick="sendReview()" style="display:none;">Approve and send to family</button>
+        <button class="btn btn-green" id="btn-submit-draft" onclick="submitDraftForApproval()" style="display:none;">Submit for manager approval</button>
         <button class="btn" onclick="showNurseTab('review')" style="display:none;"></button>
       </div>
       <div id="send-confirm" style="display:none;margin-top:10px;background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;">Review sent successfully. The family have been notified.</div>
@@ -653,6 +660,57 @@ function showNurseTab(name) {
   if (name === 'profile') {
     document.querySelectorAll('#nurse-app .tab').forEach(function(t) { t.classList.remove('active'); });
   }
+}
+
+function submitDraftForApproval() {
+  // For nurses — just saves the current draft (already saved) and shows confirmation
+  var btn = document.getElementById('btn-submit-draft');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitted ✓'; }
+  // Update draft with latest text from edit box
+  var text = document.getElementById('summary-edit').value || localStorage.getItem('k_draft_summary') || '';
+  if (window._currentDraftId && text) {
+    supaPost('reviews?id=eq.' + window._currentDraftId, {
+      content: text,
+      nurse_name: currentUser.name,
+      review_type: getReviewType()
+    }, 'PATCH');
+  }
+  var confirm = document.getElementById('send-confirm');
+  if (confirm) {
+    confirm.textContent = 'Draft submitted. A manager will review and approve before the family sees it.';
+    confirm.style.display = 'block';
+  }
+  setTimeout(function() {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit for manager approval'; }
+  }, 3000);
+}
+
+function loadNursePendingDrafts() {
+  // Show pending drafts on overview for nurses
+  var section = document.getElementById('nurse-pending-section');
+  var list = document.getElementById('nurse-pending-list');
+  if (!section || !list || !currentUser || currentUser.is_manager) return;
+  section.style.display = 'block';
+
+  supaFetch('reviews?nurse_name=eq.' + encodeURIComponent(currentUser.name) + '&status=eq.draft&select=id,resident_name,review_type,created_at&order=created_at.desc').then(function(drafts) {
+    if (!drafts || drafts.length === 0) {
+      list.innerHTML = '<div class="empty" style="font-size:13px;">No drafts pending approval.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    drafts.forEach(function(d) {
+      var dateStr = new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+      var reviewType = (d.review_type || '6-month review').replace(/-/g,' ').replace(/\w/g,function(c){return c.toUpperCase();});
+      var div = document.createElement('div');
+      div.className = 'card';
+      div.style.marginBottom = '6px';
+      div.innerHTML = '<div class="card-body" style="padding:9px 14px;">' +
+        '<div class="row"><span class="row-label">' + esc(d.resident_name || 'Resident') + '</span><span class="row-value" style="font-size:12px;">' + esc(reviewType) + '</span></div>' +
+        '<div class="row"><span class="row-label" style="color:#f59e0b;">⏳ Awaiting approval</span><span class="row-value" style="font-size:12px;color:#888;">' + dateStr + '</span></div>' +
+        '</div>';
+      list.appendChild(div);
+    });
+  }).catch(function() {});
 }
 
 function autoSelectResident() {
@@ -1180,9 +1238,19 @@ function loadDraftForApprove() {
   supaFetch('reviews?family_id=eq.' + selectedResident.id + '&status=eq.draft&select=*&order=created_at.desc&limit=1').then(function(drafts) {
     var notice = document.getElementById('draft-pending-notice');
     var nurseName = document.getElementById('draft-nurse-name');
+    var isManager = currentUser.is_manager || false;
+    // Show correct buttons based on role
+    var sendBtn = document.getElementById('btn-send');
+    var submitBtn = document.getElementById('btn-submit-draft');
+    var managerInfo = document.getElementById('approve-manager-info');
+    var nurseInfo = document.getElementById('approve-nurse-info');
+    if (sendBtn) sendBtn.style.display = isManager ? 'block' : 'none';
+    if (submitBtn) submitBtn.style.display = isManager ? 'none' : 'block';
+    if (managerInfo) managerInfo.style.display = isManager ? 'block' : 'none';
+    if (nurseInfo) nurseInfo.style.display = isManager ? 'none' : 'block';
+
     if (drafts && drafts.length > 0) {
       var draft = drafts[0];
-      // Load draft content into approve tab
       var show = document.getElementById('summary-show');
       show.innerHTML = '';
       (draft.content || '').split('\n').filter(function(l) { return l.trim(); }).forEach(function(para) {
@@ -1192,7 +1260,6 @@ function loadDraftForApprove() {
       });
       document.getElementById('summary-edit').value = draft.content || '';
       localStorage.setItem('k_draft_summary', draft.content || '');
-      // Store draft id for when we approve
       window._currentDraftId = draft.id;
       if (notice) notice.style.display = 'block';
       if (nurseName) nurseName.textContent = draft.nurse_name || 'a nurse';
@@ -1357,12 +1424,21 @@ function addAnother() {
 function initNursePortal() {
   var isManager = currentUser.is_manager || false;
 
-  // Show manager-only tabs
+  // Staff tab only visible to managers
   var staffBtn = document.getElementById('tab-staff-btn');
   if (staffBtn) staffBtn.style.display = isManager ? 'block' : 'none';
 
-  // All staff (nurses and managers) can add residents and enter reviews
-  // Nurses' reviews go to draft — managers approve before sending to family
+  // Rename approve tab based on role
+  var approveTabs = document.querySelectorAll('#nurse-app .tab');
+  approveTabs.forEach(function(t) {
+    if (t.textContent.includes('Review & approve') || t.textContent.includes('My drafts')) {
+      t.textContent = isManager ? 'Review & approve' : 'My drafts';
+    }
+  });
+
+  // Update overview greeting based on role
+  var roleLabel = document.getElementById('overview-role');
+  if (roleLabel) roleLabel.textContent = isManager ? 'Care home manager' : 'Nurse';
 
   // Show manager badge in header
   if (isManager) {
@@ -1461,6 +1537,7 @@ var selectedResident = null;
 function loadNursePortal() {
   try {
     autoSelectResident(); // auto-load resident on sign-in
+    setTimeout(loadNursePendingDrafts, 1000); // show pending drafts for nurses
     var careHomeName = currentUser.care_home || 'Your care home';
     safeSetText('nurse-care-home-name', careHomeName);
     safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Nurse');
