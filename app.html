@@ -458,33 +458,9 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <div class="panel" id="ntab-profile">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <button onclick="showNurseTab('residents')" style="background:none;border:none;cursor:pointer;color:#5dcaa5;font-size:13px;padding:0;">← Back to residents</button>
-        <div id="profile-manager-btns" style="display:none;gap:8px;display:flex;">
-          <button class="btn" onclick="editResident()" style="font-size:12px;">Edit resident</button>
-          <button class="btn" onclick="deleteResident()" style="font-size:12px;color:#b91c1c;border-color:#fca5a5;">Delete resident</button>
-        </div>
-      </div>
-      <!-- Edit form (hidden by default) -->
-      <div id="edit-resident-form" style="display:none;background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:14px;margin-bottom:14px;">
-        <div class="sh" style="margin-bottom:10px;">Edit resident details</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="field"><label>Building</label><input type="text" id="edit-building" placeholder="e.g. Maple Wing"/></div>
-          <div class="field"><label>Room number</label><input type="text" id="edit-room" placeholder="e.g. 14B"/></div>
-        </div>
-        <div class="field"><label>Care type</label>
-          <div class="pills" id="edit-care-type">
-            <div class="pill on" data-v="residential">Residential</div>
-            <div class="pill" data-v="nursing">Nursing</div>
-          </div>
-        </div>
-        <div class="field"><label>Funding</label>
-          <div class="pills" id="edit-funding">
-            <div class="pill on" data-v="private">Private</div>
-            <div class="pill" data-v="fully_funded">Fully funded</div>
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="saveResidentEdit()" style="font-size:12px;">Save changes</button>
-          <button class="btn" onclick="document.getElementById('edit-resident-form').style.display='none'" style="font-size:12px;">Cancel</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-green" id="profile-edit-btn" onclick="enterEditMode()" style="font-size:12px;display:none;">Edit details</button>
+          <button class="btn" id="profile-delete-btn" onclick="deleteResident()" style="font-size:12px;color:#b91c1c;border-color:#fca5a5;display:none;">Delete resident</button>
         </div>
       </div>
       <div id="profile-content"><div class="empty">Loading...</div></div>
@@ -1637,9 +1613,11 @@ function openResidentProfile(fam, residentName, familyName) {
   showNurseTab('profile');
   var container = document.getElementById('profile-content');
   container.innerHTML = '<div class="empty" style="padding:20px;">Loading profile...</div>';
-  // Show edit/delete buttons for managers only
-  var mgrBtns = document.getElementById('profile-manager-btns');
-  if (mgrBtns) mgrBtns.style.display = currentUser.is_manager ? 'flex' : 'none';
+  // Show edit button for all staff, delete only for managers
+  var editBtn = document.getElementById('profile-edit-btn');
+  var delBtn = document.getElementById('profile-delete-btn');
+  if (editBtn) editBtn.style.display = 'block';
+  if (delBtn) delBtn.style.display = currentUser.is_manager ? 'block' : 'none';
   // Store current fam for edit/delete
   window._profileFam = fam;
 
@@ -1660,25 +1638,44 @@ function openResidentProfile(fam, residentName, familyName) {
     var drafts = (reviews || []).filter(function(r) { return r.status === 'draft'; });
     var sentReviews = (reviews || []).filter(function(r) { return r.status === 'sent'; });
 
-    var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">';
+    var dob = fam.date_of_birth ? new Date(fam.date_of_birth).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) : '—';
+    var admitted = fam.date_admitted ? new Date(fam.date_admitted).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) : '—';
 
-    // Resident info card
-    html += '<div class="card"><div class="card-head"><span class="card-title">' + esc(residentName) + '</span></div><div class="card-body">';
-    html += '<div class="row"><span class="row-label">Building / Room</span><span class="row-value">' + esc(location) + '</span></div>';
+    var html = '';
+
+    // ── Resident info card (full width) ──
+    html += '<div class="card" style="margin-bottom:12px;">';
+    html += '<div class="card-head"><span class="card-title" style="font-size:15px;">' + esc(residentName) + '</span>';
+    html += '<button class="btn btn-green" style="font-size:11px;padding:4px 10px;" onclick="showNurseTab(\'review\')">Start review ›</button></div>';
+    html += '<div class="card-body">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">';
+    html += '<div class="row"><span class="row-label">Building</span><span class="row-value">' + esc(building || '—') + '</span></div>';
+    html += '<div class="row"><span class="row-label">Room number</span><span class="row-value">' + esc(room || '—') + '</span></div>';
+    html += '<div class="row"><span class="row-label">Date of birth</span><span class="row-value">' + esc(dob) + '</span></div>';
+    html += '<div class="row"><span class="row-label">Date admitted</span><span class="row-value">' + esc(admitted) + '</span></div>';
     html += '<div class="row"><span class="row-label">Care type</span><span class="row-value" style="text-transform:capitalize;">' + esc(fam.care_type || '—') + '</span></div>';
     html += '<div class="row"><span class="row-label">Funding</span><span class="row-value" style="text-transform:capitalize;">' + esc((fam.funding_type || '—').replace('_',' ')) + '</span></div>';
+    html += '<div class="row"><span class="row-label">NHS number</span><span class="row-value">' + esc(fam.nhs_number || '—') + '</span></div>';
+    html += '<div class="row"><span class="row-label">GP</span><span class="row-value">' + esc(fam.gp_name || '—') + '</span></div>';
     html += '<div class="row"><span class="row-label">Next 6-month review</span><span class="row-value">' + esc(nextReviewDue) + '</span></div>';
+    html += '<div class="row"><span class="row-label">Emergency contact</span><span class="row-value">' + esc(fam.emergency_contact || '—') + '</span></div>';
     html += '</div>';
-    html += '<div class="card-foot"><button class="btn btn-green" style="font-size:12px;" onclick="showNurseTab(\'review\')">Start review ›</button></div>';
-    html += '</div>';
-
-    // Family contact card
-    html += '<div class="card"><div class="card-head"><span class="card-title">Family contact</span></div><div class="card-body">';
-    html += '<div class="row"><span class="row-label">Contact name</span><span class="row-value">' + esc(familyName || '—') + '</span></div>';
-    html += '<div class="row"><span class="row-label">Status</span><span class="row-value">' + (fam.resident_invite_used ? '<span class="tag" style="background:#dcfce7;color:#166534;">Portal active</span>' : '<span class="tag tag-amber">Invite pending</span>') + '</span></div>';
+    if (fam.allergies) html += '<div class="row" style="grid-column:1/-1;background:#fef9ec;border-radius:6px;padding:7px 10px;margin-top:4px;"><span class="row-label" style="color:#b45309;">⚠ Allergies</span><span class="row-value">' + esc(fam.allergies) + '</span></div>';
+    if (fam.dietary_requirements) html += '<div class="row" style="grid-column:1/-1;"><span class="row-label">Dietary requirements</span><span class="row-value">' + esc(fam.dietary_requirements) + '</span></div>';
+    if (fam.languages) html += '<div class="row" style="grid-column:1/-1;"><span class="row-label">Languages spoken</span><span class="row-value">' + esc(fam.languages) + '</span></div>';
     html += '</div></div>';
 
-    html += '</div>';
+    // ── Family contact card ──
+    html += '<div class="card" style="margin-bottom:12px;">';
+    html += '<div class="card-head"><span class="card-title">Family contact</span></div>';
+    html += '<div class="card-body">';
+    html += '<div class="row"><span class="row-label">Contact name</span><span class="row-value">' + esc(familyName || '—') + '</span></div>';
+    html += '<div class="row"><span class="row-label">Portal status</span><span class="row-value">' + (fam.resident_invite_used ? '<span class="tag" style="background:#dcfce7;color:#166534;">Active</span>' : '<span class="tag tag-amber">Invite pending</span>') + '</span></div>';
+    if (!fam.resident_invite_used && fam.resident_invite_token) {
+      var inviteUrl = window.location.origin + '/index.html?family_invite=' + fam.resident_invite_token;
+      html += '<div class="row"><span class="row-label">Invite link</span><span class="row-value" style="font-size:11px;word-break:break-all;color:#5dcaa5;cursor:pointer;" onclick="navigator.clipboard.writeText('' + inviteUrl + '').then(function(){alert(\'Copied!\')})">Copy invite link</span></div>';
+    }
+    html += '</div></div>';
 
     // Pending drafts
     if (drafts.length > 0) {
@@ -1722,48 +1719,94 @@ function openResidentProfile(fam, residentName, familyName) {
   });
 }
 
-function editResident() {
+function enterEditMode() {
   var fam = window._profileFam;
   if (!fam) return;
-  var form = document.getElementById('edit-resident-form');
-  form.style.display = 'block';
-  // Pre-fill fields
-  document.getElementById('edit-building').value = fam.building || '';
-  document.getElementById('edit-room').value = fam.room_number || '';
-  // Set care type pill
-  var ctPills = document.querySelectorAll('#edit-care-type .pill');
-  ctPills.forEach(function(p) {
-    p.classList.toggle('on', p.dataset.v === (fam.care_type || 'residential'));
+  var container = document.getElementById('profile-content');
+  var editBtn = document.getElementById('profile-edit-btn');
+  var delBtn = document.getElementById('profile-delete-btn');
+  if (editBtn) { editBtn.textContent = 'Save changes'; editBtn.onclick = saveResidentEdit; editBtn.className = 'btn btn-green'; }
+  if (delBtn) delBtn.style.display = 'none';
+
+  // Build editable form replacing profile content
+  var html = '<div class="card" style="margin-bottom:12px;">';
+  html += '<div class="card-head"><span class="card-title" style="font-size:15px;">Editing — ' + esc(fam.resident_name || '') + '</span></div>';
+  html += '<div class="card-body">';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+  html += '<div class="field"><label>Building</label><input type="text" id="ef-building" value="' + esc(fam.building || '') + '" placeholder="e.g. Maple Wing"/></div>';
+  html += '<div class="field"><label>Room number</label><input type="text" id="ef-room" value="' + esc(fam.room_number || '') + '" placeholder="e.g. 14B"/></div>';
+  html += '<div class="field"><label>Date of birth</label><input type="date" id="ef-dob" value="' + (fam.date_of_birth || '') + '"/></div>';
+  html += '<div class="field"><label>Date admitted</label><input type="date" id="ef-admitted" value="' + (fam.date_admitted || '') + '"/></div>';
+  html += '<div class="field"><label>NHS number</label><input type="text" id="ef-nhs" value="' + esc(fam.nhs_number || '') + '" placeholder="e.g. 123 456 7890"/></div>';
+  html += '<div class="field"><label>GP name</label><input type="text" id="ef-gp" value="' + esc(fam.gp_name || '') + '" placeholder="e.g. Dr Smith"/></div>';
+  html += '<div class="field"><label>Emergency contact</label><input type="text" id="ef-emergency" value="' + esc(fam.emergency_contact || '') + '" placeholder="e.g. John Clarke — 07700 900000"/></div>';
+  html += '<div class="field"><label>Languages spoken</label><input type="text" id="ef-languages" value="' + esc(fam.languages || '') + '" placeholder="e.g. English, Welsh"/></div>';
+  html += '</div>';
+  html += '<div class="field"><label>Care type</label><div class="pills" id="ef-care-type">';
+  ['residential','nursing'].forEach(function(v) {
+    html += '<div class="pill' + ((fam.care_type||'residential')===v?' on':'') + '" data-v="' + v + '">' + v.charAt(0).toUpperCase()+v.slice(1) + '</div>';
   });
-  // Set funding pill
-  var fPills = document.querySelectorAll('#edit-funding .pill');
-  fPills.forEach(function(p) {
-    p.classList.toggle('on', p.dataset.v === (fam.funding_type || 'private'));
+  html += '</div></div>';
+  html += '<div class="field"><label>Funding</label><div class="pills" id="ef-funding">';
+  [['private','Private'],['fully_funded','Fully funded']].forEach(function(v) {
+    html += '<div class="pill' + ((fam.funding_type||'private')===v[0]?' on':'') + '" data-v="' + v[0] + '">' + v[1] + '</div>';
   });
+  html += '</div></div>';
+  html += '<div class="field"><label>Allergies / medical alerts</label><textarea id="ef-allergies" placeholder="e.g. Penicillin allergy, latex allergy" style="min-height:48px;">' + esc(fam.allergies || '') + '</textarea></div>';
+  html += '<div class="field"><label>Dietary requirements</label><textarea id="ef-dietary" placeholder="e.g. Diabetic diet, soft food only" style="min-height:48px;">' + esc(fam.dietary_requirements || '') + '</textarea></div>';
+  html += '</div></div>';
+  html += '<button class="btn" onclick="cancelEdit()" style="font-size:12px;margin-top:4px;">Cancel</button>';
+  container.innerHTML = html;
+
+  // Init pills
+  ['ef-care-type','ef-funding'].forEach(function(id) {
+    var pg = document.getElementById(id);
+    if (!pg) return;
+    pg.querySelectorAll('.pill').forEach(function(p) {
+      p.addEventListener('click', function() {
+        pg.querySelectorAll('.pill').forEach(function(x){x.classList.remove('on');});
+        p.classList.add('on');
+      });
+    });
+  });
+}
+
+function cancelEdit() {
+  var editBtn = document.getElementById('profile-edit-btn');
+  if (editBtn) { editBtn.textContent = 'Edit details'; editBtn.onclick = enterEditMode; }
+  var delBtn = document.getElementById('profile-delete-btn');
+  if (delBtn && currentUser.is_manager) delBtn.style.display = 'block';
+  openResidentProfile(window._profileFam, window._profileFam.resident_name, window._profileFam.name);
 }
 
 function saveResidentEdit() {
   var fam = window._profileFam;
   if (!fam) return;
-  var building = document.getElementById('edit-building').value.trim();
-  var room = document.getElementById('edit-room').value.trim();
-  var careType = document.querySelector('#edit-care-type .pill.on');
-  var funding = document.querySelector('#edit-funding .pill.on');
   var updates = {
-    building: building || null,
-    room_number: room || null,
-    care_type: careType ? careType.dataset.v : fam.care_type,
-    funding_type: funding ? funding.dataset.v : fam.funding_type
+    building: document.getElementById('ef-building').value.trim() || null,
+    room_number: document.getElementById('ef-room').value.trim() || null,
+    date_of_birth: document.getElementById('ef-dob').value || null,
+    date_admitted: document.getElementById('ef-admitted').value || null,
+    nhs_number: document.getElementById('ef-nhs').value.trim() || null,
+    gp_name: document.getElementById('ef-gp').value.trim() || null,
+    emergency_contact: document.getElementById('ef-emergency').value.trim() || null,
+    languages: document.getElementById('ef-languages').value.trim() || null,
+    allergies: document.getElementById('ef-allergies').value.trim() || null,
+    dietary_requirements: document.getElementById('ef-dietary').value.trim() || null,
+    care_type: (document.querySelector('#ef-care-type .pill.on') || {}).dataset.v || fam.care_type,
+    funding_type: (document.querySelector('#ef-funding .pill.on') || {}).dataset.v || fam.funding_type
   };
+  var editBtn = document.getElementById('profile-edit-btn');
+  if (editBtn) { editBtn.disabled = true; editBtn.textContent = 'Saving...'; }
   supaPost('families?id=eq.' + fam.id, updates, 'PATCH').then(function() {
-    // Update local copy
     Object.assign(window._profileFam, updates);
-    document.getElementById('edit-resident-form').style.display = 'none';
-    // Refresh profile
+    if (editBtn) { editBtn.disabled = false; editBtn.textContent = 'Edit details'; editBtn.onclick = enterEditMode; }
+    var delBtn = document.getElementById('profile-delete-btn');
+    if (delBtn && currentUser.is_manager) delBtn.style.display = 'block';
     openResidentProfile(window._profileFam, window._profileFam.resident_name, window._profileFam.name);
-    alert('Resident details updated.');
   }).catch(function() {
-    alert('Could not save changes. Please try again.');
+    alert('Could not save. Please try again.');
+    if (editBtn) { editBtn.disabled = false; editBtn.textContent = 'Save changes'; }
   });
 }
 
