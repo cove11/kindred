@@ -994,6 +994,16 @@ function renderReviews(reviews) {
 }
 
 // ── NURSE: GENERATE SUMMARY ──
+function stripMarkdown(text) {
+  return text
+    .replace(/^#{1,6}\s+/gm, '')         // Remove # headings
+    .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove **bold**
+    .replace(/\*([^*]+)\*/g, '$1')       // Remove *italic*
+    .replace(/^---+$/gm, '')              // Remove horizontal rules
+    .replace(/^\s*[-*+]\s+/gm, '')      // Remove bullet points
+    .trim();
+}
+
 async function generateSummary() {
   var btn = document.getElementById('btn-gen');
   btn.disabled = true;
@@ -1002,7 +1012,15 @@ async function generateSummary() {
   var out = document.getElementById('nurse-preview-out');
   out.innerHTML = '<p style="color:#aaa;font-style:italic;">Opus is translating your clinical notes...</p>';
   
-  var prompt = 'Translate this 6-month care review into a warm, plain-English letter for adult children. 3-4 paragraphs, no bullet points, no jargon, under 200 words.\n\n' +
+  var reviewType = getReviewType();
+  var promptIntro = {
+    '6-month review': 'Translate this 6-month care review into a warm, plain-English letter for adult children.',
+    'health-change': 'Write a warm, plain-English letter to adult children about a notable change in their parent\'s health.',
+    'medication-change': 'Write a warm, plain-English letter to adult children explaining a change in their parent\'s medication.',
+    'other': 'Write a warm, plain-English letter to adult children with a care update about their parent.'
+  };
+  var intro = promptIntro[reviewType] || promptIntro['6-month review'];
+  var prompt = intro + ' 3-4 paragraphs, no bullet points, no jargon, no markdown, no headings, plain prose only, under 200 words. Start with Dear Family,\n\n' +
     'Wellbeing:' + getPill('pg-w') + ' Mobility:' + getPill('pg-m') + ' Appetite:' + getPill('pg-a') +
     ' Cognition:' + getPill('pg-c') + ' Mood:' + getPill('pg-mo') + ' Falls:' + getPill('pg-f') +
     ' Continence:' + getPill('pg-cont') + ' Nutrition:' + getPill('pg-nh') + '\n' +
@@ -1016,12 +1034,13 @@ async function generateSummary() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-opus-4-6', max_tokens: 600,
-        system: 'Write warm, honest, plain-English care review summaries for families. No jargon. No bullet points.',
+        system: 'Write warm, honest, plain-English care review summaries for families. No jargon. No bullet points. No markdown headings or bold text. No # symbols. No ** symbols. Plain prose only. Start directly with Dear Family,',
         messages: [{ role: 'user', content: prompt }]
       })
     });
     var d = await res.json();
-    var text = d.content && d.content[0] ? d.content[0].text : 'Could not generate.';
+    var rawText = d.content && d.content[0] ? d.content[0].text : 'Could not generate.';
+    var text = stripMarkdown(rawText);
     out.innerHTML = '';
     text.split('\n').filter(function(l) { return l.trim(); }).forEach(function(para) {
       var p = document.createElement('p');
@@ -1326,7 +1345,7 @@ function loadResidents() {
 
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=*&order=resident_name.asc').then(function(families) {
     if (!families || families.length === 0) {
-      list.innerHTML = '<div class="empty">No families linked to your care home yet.<br><br>When a family member creates a Kindred account and enters your care home name, they will appear here.</div>';
+      list.innerHTML = '<div class="empty">No residents linked to your care home yet.</div>';
       safeSetText('stat-residents', '0');
       safeSetText('stat-reviews-due', '0');
       safeSetText('stat-families', '0');
@@ -1335,47 +1354,94 @@ function loadResidents() {
 
     safeSetText('stat-residents', families.length);
     safeSetText('stat-families', families.length);
-    safeSetText('stat-reviews-due', families.length);
 
-    list.innerHTML = '';
-    families.forEach(function(fam) {
-      var card = document.createElement('div');
-      card.className = 'card';
-      card.style.marginBottom = '8px';
+    // Fetch last 6-month review for each resident
+    var familyIds = families.map(function(f) { return f.id; }).join(',');
+    supaFetch('reviews?family_id=in.(' + familyIds + ')&review_type=eq.6-month%20review&status=eq.sent&select=family_id,created_at&order=created_at.desc').then(function(reviews) {
 
-      var resName = fam.resident_name || 'Resident';
-      var famName = fam.name || 'Family';
-      var careType = fam.care_type || 'Residential';
+      // Build map of last review date per family_id
+      var lastReviewMap = {};
+      (reviews || []).forEach(function(r) {
+        if (!lastReviewMap[r.family_id]) lastReviewMap[r.family_id] = r.created_at;
+      });
 
-      card.innerHTML =
-        '<div class="card-head" style="cursor:pointer;" id="ch-' + fam.id + '">' +
-        '<span class="card-title">' + esc(resName) + '</span>' +
-        '<span class="tag tag-amber">Review due</span>' +
-        '</div>' +
-        '<div class="card-body">' +
-        '<div class="row"><span class="row-label">Family</span><span class="row-value">' + esc(famName) + '</span></div>' +
-        '<div class="row"><span class="row-label">Care type</span><span class="row-value">' + esc(careType) + '</span></div>' +
-        '</div>' +
-        '<div class="card-foot" id="cf-' + fam.id + '"></div>';
+      var now = new Date();
+      var overdueCount = 0;
+      list.innerHTML = '';
 
-      // Add event listeners using closures to avoid quote issues
-      var cardHead = card.querySelector('#ch-' + fam.id);
-      var cardFoot = card.querySelector('#cf-' + fam.id);
+      families.forEach(function(fam) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.style.marginBottom = '8px';
 
-      cardHead.addEventListener('click', (function(id, rn, fn) {
-        return function() { selectResident(id, rn, fn); };
-      })(fam.id, resName, famName));
+        var resName = fam.resident_name || 'Resident';
+        var famName = fam.name || 'Family';
+        var careType = fam.care_type || 'Residential';
 
-      var startBtn = document.createElement('button');
-      startBtn.className = 'btn btn-green';
-      startBtn.style.cssText = 'font-size:12px;padding:5px 11px;';
-      startBtn.textContent = 'Start review ›';
-      startBtn.addEventListener('click', (function(id, rn, fn) {
-        return function() { selectResident(id, rn, fn); showNurseTab('review'); };
-      })(fam.id, resName, famName));
-      cardFoot.appendChild(startBtn);
+        // Calculate review due date
+        var lastReview = lastReviewMap[fam.id];
+        var dueLabel, dueTag, dueColor;
+        if (lastReview) {
+          var lastDate = new Date(lastReview);
+          var dueDate = new Date(lastDate);
+          dueDate.setMonth(dueDate.getMonth() + 6);
+          var daysUntilDue = Math.round((dueDate - now) / (1000 * 60 * 60 * 24));
+          var lastDateStr = lastDate.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+          var dueDateStr = dueDate.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 
-      list.appendChild(card);
+          if (daysUntilDue < 0) {
+            dueLabel = 'Review overdue (due ' + dueDateStr + ')';
+            dueTag = '<span class="tag" style="background:#fee2e2;color:#b91c1c;">Overdue</span>';
+            overdueCount++;
+          } else if (daysUntilDue <= 28) {
+            dueLabel = 'Review due ' + dueDateStr + ' (' + daysUntilDue + ' days)';
+            dueTag = '<span class="tag tag-amber">Due soon</span>';
+            overdueCount++;
+          } else {
+            dueLabel = 'Next review due ' + dueDateStr;
+            dueTag = '<span class="tag" style="background:#dcfce7;color:#166534;">Up to date</span>';
+          }
+        } else {
+          dueLabel = 'No 6-month review on record';
+          dueTag = '<span class="tag tag-amber">Review due</span>';
+          overdueCount++;
+        }
+
+        card.innerHTML =
+          '<div class="card-head" style="cursor:pointer;" id="ch-' + fam.id + '">' +
+          '<span class="card-title">' + esc(resName) + '</span>' +
+          dueTag +
+          '</div>' +
+          '<div class="card-body">' +
+          '<div class="row"><span class="row-label">Family contact</span><span class="row-value">' + esc(famName) + '</span></div>' +
+          '<div class="row"><span class="row-label">Care type</span><span class="row-value">' + esc(careType) + '</span></div>' +
+          '<div class="row"><span class="row-label">6-month review</span><span class="row-value" style="font-size:12px;color:#666;">' + esc(dueLabel) + '</span></div>' +
+          '</div>' +
+          '<div class="card-foot" id="cf-' + fam.id + '"></div>';
+
+        var cardHead = card.querySelector('#ch-' + fam.id);
+        var cardFoot = card.querySelector('#cf-' + fam.id);
+
+        cardHead.addEventListener('click', (function(id, rn, fn) {
+          return function() { selectResident(id, rn, fn); };
+        })(fam.id, resName, famName));
+
+        var startBtn = document.createElement('button');
+        startBtn.className = 'btn btn-green';
+        startBtn.style.cssText = 'font-size:12px;padding:5px 11px;';
+        startBtn.textContent = 'Start review ›';
+        startBtn.addEventListener('click', (function(id, rn, fn) {
+          return function() { selectResident(id, rn, fn); showNurseTab('review'); };
+        })(fam.id, resName, famName));
+        cardFoot.appendChild(startBtn);
+
+        list.appendChild(card);
+      });
+
+      safeSetText('stat-reviews-due', overdueCount);
+    }).catch(function() {
+      // If reviews fetch fails, still show residents without due dates
+      safeSetText('stat-reviews-due', families.length);
     });
   }).catch(function() {
     list.innerHTML = '<div class="empty">Could not load residents. Please check your connection.</div>';
