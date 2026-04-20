@@ -366,6 +366,15 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- RESIDENTS -->
     <div class="panel" id="ntab-residents">
+      <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+        <input type="text" id="resident-search" placeholder="Search residents..." oninput="filterResidents()" style="flex:1;padding:7px 11px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;"/>
+        <select id="resident-filter-status" onchange="filterResidents()" style="padding:7px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#fff;">
+          <option value="">All residents</option>
+          <option value="overdue">Overdue</option>
+          <option value="due-soon">Due soon</option>
+          <option value="up-to-date">Up to date</option>
+        </select>
+      </div>
       <div id="residents-list"><div class="empty">Loading residents...</div></div>
     </div>
 
@@ -454,9 +463,10 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <div class="card-body">
           <div class="field"><label>Resident full name</label><input type="text" id="res-name" placeholder="e.g. Margaret Clarke"/></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>Building <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-building" placeholder="e.g. Maple Wing"/></div>
             <div class="field"><label>Room number <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-room" placeholder="e.g. 14B"/></div>
-            <div class="field"><label>Date of birth <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-dob" placeholder="e.g. 12/03/1946"/></div>
           </div>
+          <div class="field"><label>Date of birth <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-dob" placeholder="e.g. 12/03/1946"/></div>
           <div class="field"><label>Care type</label>
             <div class="pills" id="res-care-type">
               <div class="pill on" data-v="residential">Residential</div>
@@ -1255,6 +1265,7 @@ function addResident() {
 
   var careType = getPill('res-care-type') || 'residential';
   var funding = getPill('res-funding') || 'private';
+  var building = document.getElementById('res-building') ? document.getElementById('res-building').value.trim() : '';
   var room = document.getElementById('res-room').value.trim();
   var dob = document.getElementById('res-dob').value.trim();
 
@@ -1266,6 +1277,8 @@ function addResident() {
     care_home_id: currentUser.care_home_id,
     care_type: careType,
     funding_type: funding,
+    building: building || null,
+    room_number: room || null,
     status: 'pending'
   }).then(function(data) {
     if (!data || !data[0]) { alert('Could not add resident. Please try again.'); return; }
@@ -1484,73 +1497,88 @@ function loadResidents() {
       var overdueCount = 0;
       list.innerHTML = '';
 
-      families.forEach(function(fam) {
-        var card = document.createElement('div');
-        card.className = 'card';
-        card.style.marginBottom = '8px';
+      // Build compact table
+      var table = document.createElement('table');
+      table.style.cssText = 'width:100%;border-collapse:collapse;font-size:13px;';
+      table.innerHTML = '<thead><tr style="border-bottom:1px solid rgba(0,0,0,0.08);text-align:left;">' +
+        '<th style="padding:7px 10px;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">Resident</th>' +
+        '<th style="padding:7px 10px;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">Building / Room</th>' +
+        '<th style="padding:7px 10px;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">Care type</th>' +
+        '<th style="padding:7px 10px;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;">6-month review</th>' +
+        '<th style="padding:7px 10px;font-weight:600;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;"></th>' +
+        '</tr></thead>';
+      var tbody = document.createElement('tbody');
+      tbody.id = 'residents-tbody';
+      table.appendChild(tbody);
+      list.appendChild(table);
 
+      families.forEach(function(fam) {
         var resName = fam.resident_name || 'Resident';
         var famName = fam.name || 'Family';
         var careType = fam.care_type || 'Residential';
+        var building = fam.building || '';
+        var room = fam.room_number || '';
+        var location = [building, room ? 'Room ' + room : ''].filter(Boolean).join(' · ') || '—';
 
         // Calculate review due date
         var lastReview = lastReviewMap[fam.id];
-        var dueLabel, dueTag, dueColor;
+        var dueLabel, dueTag, statusClass;
         if (lastReview) {
           var lastDate = new Date(lastReview);
           var dueDate = new Date(lastDate);
           dueDate.setMonth(dueDate.getMonth() + 6);
           var daysUntilDue = Math.round((dueDate - now) / (1000 * 60 * 60 * 24));
-          var lastDateStr = lastDate.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
           var dueDateStr = dueDate.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-
           if (daysUntilDue < 0) {
-            dueLabel = 'Review overdue (due ' + dueDateStr + ')';
-            dueTag = '<span class="tag" style="background:#fee2e2;color:#b91c1c;">Overdue</span>';
+            dueLabel = 'Overdue since ' + dueDateStr;
+            dueTag = '<span class="tag" style="background:#fee2e2;color:#b91c1c;font-size:11px;">Overdue</span>';
+            statusClass = 'overdue';
             overdueCount++;
           } else if (daysUntilDue <= 28) {
-            dueLabel = 'Review due ' + dueDateStr + ' (' + daysUntilDue + ' days)';
-            dueTag = '<span class="tag tag-amber">Due soon</span>';
+            dueLabel = 'Due ' + dueDateStr;
+            dueTag = '<span class="tag tag-amber" style="font-size:11px;">Due soon</span>';
+            statusClass = 'due-soon';
             overdueCount++;
           } else {
-            dueLabel = 'Next review due ' + dueDateStr;
-            dueTag = '<span class="tag" style="background:#dcfce7;color:#166534;">Up to date</span>';
+            dueLabel = dueDateStr;
+            dueTag = '<span class="tag" style="background:#dcfce7;color:#166534;font-size:11px;">Up to date</span>';
+            statusClass = 'up-to-date';
           }
         } else {
-          dueLabel = 'No 6-month review on record';
-          dueTag = '<span class="tag tag-amber">Review due</span>';
+          dueLabel = 'No review on record';
+          dueTag = '<span class="tag tag-amber" style="font-size:11px;">Due</span>';
+          statusClass = 'overdue';
           overdueCount++;
         }
 
-        card.innerHTML =
-          '<div class="card-head" style="cursor:pointer;" id="ch-' + fam.id + '">' +
-          '<span class="card-title">' + esc(resName) + '</span>' +
-          dueTag +
-          '</div>' +
-          '<div class="card-body">' +
-          '<div class="row"><span class="row-label">Family contact</span><span class="row-value">' + esc(famName) + '</span></div>' +
-          '<div class="row"><span class="row-label">Care type</span><span class="row-value">' + esc(careType) + '</span></div>' +
-          '<div class="row"><span class="row-label">6-month review</span><span class="row-value" style="font-size:12px;color:#666;">' + esc(dueLabel) + '</span></div>' +
-          '</div>' +
-          '<div class="card-foot" id="cf-' + fam.id + '"></div>';
+        var tr = document.createElement('tr');
+        tr.dataset.name = resName.toLowerCase();
+        tr.dataset.status = statusClass;
+        tr.style.cssText = 'border-bottom:0.5px solid rgba(0,0,0,0.06);transition:background 0.15s;cursor:pointer;';
+        tr.onmouseenter = function() { this.style.background = '#f7f6f3'; };
+        tr.onmouseleave = function() { this.style.background = ''; };
 
-        var cardHead = card.querySelector('#ch-' + fam.id);
-        var cardFoot = card.querySelector('#cf-' + fam.id);
+        tr.innerHTML =
+          '<td style="padding:10px 10px;font-weight:500;">' + esc(resName) + '</td>' +
+          '<td style="padding:10px 10px;color:#666;font-size:12px;">' + esc(location) + '</td>' +
+          '<td style="padding:10px 10px;color:#666;font-size:12px;text-transform:capitalize;">' + esc(careType) + '</td>' +
+          '<td style="padding:10px 10px;">' + dueTag + ' <span style="font-size:11px;color:#888;margin-left:4px;">' + esc(dueLabel) + '</span></td>' +
+          '<td style="padding:10px 10px;text-align:right;"></td>';
 
-        cardHead.addEventListener('click', (function(id, rn, fn) {
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-green';
+        btn.style.cssText = 'font-size:11px;padding:4px 10px;white-space:nowrap;';
+        btn.textContent = 'Start review ›';
+        btn.addEventListener('click', (function(id, rn, fn) {
+          return function(e) { e.stopPropagation(); selectResident(id, rn, fn); showNurseTab('review'); };
+        })(fam.id, resName, famName));
+        tr.cells[4].appendChild(btn);
+
+        tr.addEventListener('click', (function(id, rn, fn) {
           return function() { selectResident(id, rn, fn); };
         })(fam.id, resName, famName));
 
-        var startBtn = document.createElement('button');
-        startBtn.className = 'btn btn-green';
-        startBtn.style.cssText = 'font-size:12px;padding:5px 11px;';
-        startBtn.textContent = 'Start review ›';
-        startBtn.addEventListener('click', (function(id, rn, fn) {
-          return function() { selectResident(id, rn, fn); showNurseTab('review'); };
-        })(fam.id, resName, famName));
-        cardFoot.appendChild(startBtn);
-
-        list.appendChild(card);
+        tbody.appendChild(tr);
       });
 
       safeSetText('stat-reviews-due', overdueCount);
@@ -1560,6 +1588,17 @@ function loadResidents() {
     });
   }).catch(function() {
     list.innerHTML = '<div class="empty">Could not load residents. Please check your connection.</div>';
+  });
+}
+
+function filterResidents() {
+  var search = (document.getElementById('resident-search').value || '').toLowerCase();
+  var status = document.getElementById('resident-filter-status').value;
+  var rows = document.querySelectorAll('#residents-tbody tr');
+  rows.forEach(function(row) {
+    var nameMatch = !search || row.dataset.name.includes(search);
+    var statusMatch = !status || row.dataset.status === status;
+    row.style.display = (nameMatch && statusMatch) ? '' : 'none';
   });
 }
 
