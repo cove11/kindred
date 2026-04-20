@@ -416,12 +416,15 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div class="ai-block" id="nurse-preview" style="display:none;">
         <div class="ai-head"><div><span class="gdot"></span><span style="font-size:12px;font-weight:500;color:#555;">Plain-English draft</span></div><span class="model-tag">claude-opus-4-6</span></div>
         <div class="ai-body" id="nurse-preview-out"></div>
-        <div class="ai-foot"><button class="btn btn-green" style="font-size:12px;padding:5px 11px;" onclick="showNurseTab('approve')">Review &amp; approve ›</button><button class="btn" style="font-size:12px;padding:5px 11px;" onclick="generateSummary()">Regenerate</button></div>
+        <div class="ai-foot"><button class="btn btn-green" style="font-size:12px;padding:5px 11px;" onclick="saveDraftAndApprove()">Review &amp; approve ›</button><button class="btn" style="font-size:12px;padding:5px 11px;" onclick="generateSummary()">Regenerate</button><span id="draft-saved-msg" style="font-size:11px;color:#5dcaa5;margin-left:8px;display:none;">✓ Draft saved</span></div>
       </div>
     </div>
 
     <!-- APPROVE -->
     <div class="panel" id="ntab-approve">
+      <div id="draft-pending-notice" style="display:none;background:#f0fdf4;border:0.5px solid #5dcaa5;border-radius:8px;padding:9px 13px;font-size:13px;color:#085041;margin-bottom:10px;">
+        <strong>Draft loaded.</strong> This review was saved by <span id="draft-nurse-name">a nurse</span> and is waiting for your approval.
+      </div>
       <div class="info-amber info"><strong>Your responsibility.</strong> Read before sending. Edit any section. Nothing reaches the family until you approve it.</div>
       <div class="card">
         <div class="card-head"><span class="card-title">Editable summary</span><button class="btn" style="font-size:11px;padding:2px 8px;" onclick="toggleEdit()">Edit</button></div>
@@ -614,6 +617,7 @@ function showNurseTab(name) {
   if (name === 'staff') loadStaff();
   if (name === 'residents') loadResidents();
   if (name === 'review' || name === 'approve') autoSelectResident();
+  if (name === 'approve') loadDraftForApprove();
 }
 
 function autoSelectResident() {
@@ -641,6 +645,36 @@ function onResidentSelect(id) {
   var sel = document.getElementById('resident-selector');
   var opt = sel.options[sel.selectedIndex];
   selectedResident = { id: id, name: opt.textContent };
+
+  // Clear the review form ready for new input
+  document.getElementById('f-meds').value = '';
+  document.getElementById('f-obs').value = '';
+  document.getElementById('f-con').value = '';
+  document.getElementById('f-pre').value = '';
+
+  // Reset all pills to first option
+  document.querySelectorAll('.pills').forEach(function(pg) {
+    var pills = pg.querySelectorAll('.pill');
+    pills.forEach(function(p) { p.classList.remove('on'); });
+    if (pills[0]) pills[0].classList.add('on');
+  });
+
+  // Clear the AI summary preview
+  var preview = document.getElementById('nurse-preview');
+  if (preview) preview.style.display = 'none';
+  var previewOut = document.getElementById('nurse-preview-out');
+  if (previewOut) previewOut.innerHTML = '';
+  localStorage.removeItem('k_draft_summary');
+
+  // Clear the approve tab summary too
+  var summaryShow = document.getElementById('summary-show');
+  if (summaryShow) summaryShow.innerHTML = '';
+  var summaryEdit = document.getElementById('summary-edit');
+  if (summaryEdit) summaryEdit.value = '';
+  var sendConfirm = document.getElementById('send-confirm');
+  if (sendConfirm) sendConfirm.style.display = 'none';
+  var btnSend = document.getElementById('btn-send');
+  if (btnSend) { btnSend.disabled = false; btnSend.textContent = 'Approve and send to family'; }
 }
 
 function onReviewTypeChange(type) {
@@ -1056,11 +1090,78 @@ async function generateSummary() {
       document.getElementById('summary-show').appendChild(p);
     });
     document.getElementById('summary-edit').value = text;
+
+    // Auto-save as draft to Supabase
+    if (selectedResident) {
+      autoSaveDraft(text);
+    }
   } catch(e) {
     out.innerHTML = '<p style="color:#c33;">API error. Check your connection and try again.</p>';
   }
   btn.disabled = false;
   btn.textContent = 'Generate family summary with Opus';
+}
+
+function autoSaveDraft(text) {
+  if (!selectedResident) return;
+  var draft = {
+    family_id: selectedResident.id,
+    content: text,
+    nurse_name: currentUser.name,
+    care_home: currentUser.care_home || 'Care home',
+    resident_name: selectedResident.name,
+    review_type: getReviewType(),
+    status: 'draft'
+  };
+  // Check if a draft already exists for this resident
+  supaFetch('reviews?family_id=eq.' + selectedResident.id + '&status=eq.draft&select=id').then(function(existing) {
+    if (existing && existing.length > 0) {
+      // Update existing draft
+      supaPost('reviews?id=eq.' + existing[0].id, { content: text, review_type: getReviewType(), nurse_name: currentUser.name }, 'PATCH');
+    } else {
+      // Create new draft
+      supaPost('reviews', draft);
+    }
+    var msg = document.getElementById('draft-saved-msg');
+    if (msg) { msg.style.display = 'inline'; setTimeout(function() { msg.style.display = 'none'; }, 2000); }
+  }).catch(function() {
+    supaPost('reviews', draft);
+  });
+}
+
+function saveDraftAndApprove() {
+  var text = localStorage.getItem('k_draft_summary') || document.getElementById('summary-show').innerText;
+  if (text && selectedResident) autoSaveDraft(text);
+  showNurseTab('approve');
+  loadDraftForApprove();
+}
+
+function loadDraftForApprove() {
+  if (!selectedResident) return;
+  supaFetch('reviews?family_id=eq.' + selectedResident.id + '&status=eq.draft&select=*&order=created_at.desc&limit=1').then(function(drafts) {
+    var notice = document.getElementById('draft-pending-notice');
+    var nurseName = document.getElementById('draft-nurse-name');
+    if (drafts && drafts.length > 0) {
+      var draft = drafts[0];
+      // Load draft content into approve tab
+      var show = document.getElementById('summary-show');
+      show.innerHTML = '';
+      (draft.content || '').split('\n').filter(function(l) { return l.trim(); }).forEach(function(para) {
+        var p = document.createElement('p');
+        p.textContent = para;
+        show.appendChild(p);
+      });
+      document.getElementById('summary-edit').value = draft.content || '';
+      localStorage.setItem('k_draft_summary', draft.content || '');
+      // Store draft id for when we approve
+      window._currentDraftId = draft.id;
+      if (notice) notice.style.display = 'block';
+      if (nurseName) nurseName.textContent = draft.nurse_name || 'a nurse';
+    } else {
+      if (notice) notice.style.display = 'none';
+      window._currentDraftId = null;
+    }
+  }).catch(function() {});
 }
 
 // ── NURSE: EDIT/APPROVE/SEND ──
@@ -1110,10 +1211,23 @@ function sendReview() {
     status: 'sent'
   };
 
-  // Save to Supabase
-  supaPost('reviews', review).then(function(data) {
+  // If there's an existing draft, update it to sent; otherwise create new
+  var savePromise;
+  if (window._currentDraftId) {
+    savePromise = supaPost('reviews?id=eq.' + window._currentDraftId, {
+      content: summaryText, nurse_note: nurseNote, status: 'sent',
+      review_type: getReviewType(), nurse_name: currentUser.name
+    }, 'PATCH');
+  } else {
+    savePromise = supaPost('reviews', review);
+  }
+
+  savePromise.then(function(data) {
+    window._currentDraftId = null;
     document.getElementById('send-confirm').style.display = 'block';
     btn.textContent = 'Sent ✓';
+    var notice = document.getElementById('draft-pending-notice');
+    if (notice) notice.style.display = 'none';
 
     // Add to sent list
     var sentList = document.getElementById('sent-list');
@@ -1463,8 +1577,9 @@ function safeSetText(id, text) {
 }
 
 // ── SUPABASE REST ──
-function supaFetch(endpoint) {
+function supaFetch(endpoint, method, body) {
   var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  method = method || 'GET';
   return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
   }).then(function(r) { return r.json(); }).catch(function() { return null; });
