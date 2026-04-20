@@ -431,6 +431,14 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- APPROVE -->
     <div class="panel" id="ntab-approve">
+      <!-- Resident banner -->
+      <div id="approve-resident-banner" style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#aaa;margin-bottom:2px;">Reviewing for</div>
+          <div style="font-size:15px;font-weight:600;color:#1a1a1a;" id="approve-resident-name">No resident selected</div>
+        </div>
+        <button class="btn" onclick="showNurseTab('review')" style="font-size:11px;padding:4px 10px;">← Back to form</button>
+      </div>
       <div id="draft-pending-notice" style="display:none;background:#f0fdf4;border:0.5px solid #5dcaa5;border-radius:8px;padding:9px 13px;font-size:13px;color:#085041;margin-bottom:10px;">
         <strong>Draft loaded.</strong> This review was saved by <span id="draft-nurse-name">a nurse</span> and is waiting for your approval.
       </div>
@@ -444,7 +452,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div class="field" style="margin-top:12px;"><label>Personal note <span style="font-weight:400;color:#aaa;font-size:11px;">optional — appears above summary</span></label><textarea id="nurse-note" placeholder="e.g. Margaret was in good spirits and sends her love." style="min-height:48px;"></textarea></div>
       <div class="btn-row">
         <button class="btn btn-green" id="btn-send" onclick="sendReview()">Approve and send to family</button>
-        <button class="btn" onclick="showNurseTab('review')">Back to form</button>
+        <button class="btn" onclick="showNurseTab('review')" style="display:none;"></button>
       </div>
       <div id="send-confirm" style="display:none;margin-top:10px;background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;">Review sent successfully. The family have been notified.</div>
     </div>
@@ -1165,6 +1173,9 @@ function saveDraftAndApprove() {
 }
 
 function loadDraftForApprove() {
+  // Update the resident banner
+  var banner = document.getElementById('approve-resident-name');
+  if (banner) banner.textContent = selectedResident ? selectedResident.name : 'No resident selected';
   if (!selectedResident) return;
   supaFetch('reviews?family_id=eq.' + selectedResident.id + '&status=eq.draft&select=*&order=created_at.desc&limit=1').then(function(drafts) {
     var notice = document.getElementById('draft-pending-notice');
