@@ -636,6 +636,7 @@ function showNurseTab(name) {
   if (name === 'residents') loadResidents();
   if (name === 'review' || name === 'approve') autoSelectResident();
   if (name === 'approve') loadDraftForApprove();
+  if (name === 'sent') loadSent();
   // Profile tab doesn't appear in tab bar — hide all tab highlights when showing it
   if (name === 'profile') {
     document.querySelectorAll('#nurse-app .tab').forEach(function(t) { t.classList.remove('active'); });
@@ -1697,6 +1698,53 @@ function filterResidents() {
     var nameMatch = !search || row.dataset.name.includes(search);
     var statusMatch = !status || row.dataset.status === status;
     row.style.display = (nameMatch && statusMatch) ? '' : 'none';
+  });
+}
+
+function loadSent() {
+  var list = document.getElementById('sent-list');
+  if (!list || !currentUser.care_home_id) return;
+  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading...</div>';
+
+  // Get all family IDs for this care home first
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name').then(function(families) {
+    if (!families || families.length === 0) {
+      list.innerHTML = '<div class="empty">No reviews sent yet.</div>';
+      return;
+    }
+    var familyIds = families.map(function(f) { return f.id; }).join(',');
+    var residentMap = {};
+    families.forEach(function(f) { residentMap[f.id] = f.resident_name; });
+
+    supaFetch('reviews?family_id=in.(' + familyIds + ')&status=eq.sent&select=*&order=created_at.desc').then(function(reviews) {
+      if (!reviews || reviews.length === 0) {
+        list.innerHTML = '<div class="empty">No reviews sent yet.</div>';
+        return;
+      }
+      list.innerHTML = '';
+      reviews.forEach(function(r) {
+        var dateStr = new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+        var resName = r.resident_name || residentMap[r.family_id] || 'Resident';
+        var reviewType = (r.review_type || '6-month review').replace(/-/g, ' ').replace(/\w/g, function(c){ return c.toUpperCase(); });
+        var div = document.createElement('div');
+        div.className = 'card';
+        div.style.marginBottom = '6px';
+        div.innerHTML =
+          '<div class="card-head" style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\'">' +
+          '<div><span class="card-title" style="font-size:13px;">' + esc(resName) + ' — ' + esc(reviewType) + '</span></div>' +
+          '<span style="font-size:12px;color:#888;">' + dateStr + '</span>' +
+          '</div>' +
+          '<div class="card-body" style="display:none;">' +
+          '<div class="row"><span class="row-label">Sent by</span><span class="row-value">' + esc(r.nurse_name || 'Care team') + '</span></div>' +
+          '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(reviewType) + '</span></div>' +
+          '<div style="margin-top:10px;">' +
+          (r.content || '').split('\n').filter(function(l){return l.trim();}).map(function(p){ return '<p style="font-size:13px;margin-bottom:6px;">' + esc(p) + '</p>'; }).join('') +
+          '</div></div>';
+        list.appendChild(div);
+      });
+    });
+  }).catch(function() {
+    list.innerHTML = '<div class="empty">Could not load sent reviews.</div>';
   });
 }
 
