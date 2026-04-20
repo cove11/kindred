@@ -1670,7 +1670,7 @@ function openResidentProfile(fam, residentName, familyName) {
       sentReviews.forEach(function(r) {
         var dateStr = new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
         html += '<div class="card" style="margin-bottom:6px;">';
-        html += '<div class="card-head" style="cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">';
+        html += '<div class="card-head" style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\'">';
         html += '<span class="card-title" style="font-size:13px;">' + esc(r.review_type || '6-month review') + '</span>';
         html += '<span style="font-size:12px;color:#888;">' + dateStr + '</span>';
         html += '</div>';
