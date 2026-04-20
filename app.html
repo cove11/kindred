@@ -1648,7 +1648,6 @@ function openResidentProfile(fam, residentName, familyName) {
     html += '<div class="card-head"><span class="card-title" style="font-size:15px;">' + esc(residentName) + '</span>';
     html += '<button class="btn btn-green" style="font-size:11px;padding:4px 10px;" onclick="showNurseTab(\'review\')">Start review ›</button></div>';
     html += '<div class="card-body">';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">';
     html += '<div class="row"><span class="row-label">Building</span><span class="row-value">' + esc(building || '—') + '</span></div>';
     html += '<div class="row"><span class="row-label">Room number</span><span class="row-value">' + esc(room || '—') + '</span></div>';
     html += '<div class="row"><span class="row-label">Date of birth</span><span class="row-value">' + esc(dob) + '</span></div>';
@@ -1657,12 +1656,11 @@ function openResidentProfile(fam, residentName, familyName) {
     html += '<div class="row"><span class="row-label">Funding</span><span class="row-value" style="text-transform:capitalize;">' + esc((fam.funding_type || '—').replace('_',' ')) + '</span></div>';
     html += '<div class="row"><span class="row-label">NHS number</span><span class="row-value">' + esc(fam.nhs_number || '—') + '</span></div>';
     html += '<div class="row"><span class="row-label">GP</span><span class="row-value">' + esc(fam.gp_name || '—') + '</span></div>';
-    html += '<div class="row"><span class="row-label">Next 6-month review</span><span class="row-value">' + esc(nextReviewDue) + '</span></div>';
     html += '<div class="row"><span class="row-label">Emergency contact</span><span class="row-value">' + esc(fam.emergency_contact || '—') + '</span></div>';
-    html += '</div>';
-    if (fam.allergies) html += '<div class="row" style="grid-column:1/-1;background:#fef9ec;border-radius:6px;padding:7px 10px;margin-top:4px;"><span class="row-label" style="color:#b45309;">⚠ Allergies</span><span class="row-value">' + esc(fam.allergies) + '</span></div>';
-    if (fam.dietary_requirements) html += '<div class="row" style="grid-column:1/-1;"><span class="row-label">Dietary requirements</span><span class="row-value">' + esc(fam.dietary_requirements) + '</span></div>';
-    if (fam.languages) html += '<div class="row" style="grid-column:1/-1;"><span class="row-label">Languages spoken</span><span class="row-value">' + esc(fam.languages) + '</span></div>';
+    html += '<div class="row"><span class="row-label">Next 6-month review</span><span class="row-value">' + esc(nextReviewDue) + '</span></div>';
+    if (fam.allergies) html += '<div class="row" style="background:#fef9ec;border-radius:6px;padding:7px 10px;margin-top:4px;"><span class="row-label" style="color:#b45309;">⚠ Allergies / alerts</span><span class="row-value" style="color:#b45309;font-weight:500;">' + esc(fam.allergies) + '</span></div>';
+    if (fam.dietary_requirements) html += '<div class="row"><span class="row-label">Dietary requirements</span><span class="row-value">' + esc(fam.dietary_requirements) + '</span></div>';
+    if (fam.languages) html += '<div class="row"><span class="row-label">Languages spoken</span><span class="row-value">' + esc(fam.languages) + '</span></div>';
     html += '</div></div>';
 
     // ── Family contact card ──
