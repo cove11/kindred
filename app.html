@@ -1047,11 +1047,12 @@ async function generateSummary() {
   out.innerHTML = '<p style="color:#aaa;font-style:italic;">Opus is translating your clinical notes...</p>';
   
   var reviewType = getReviewType();
+  var resFirstName = selectedResident ? selectedResident.name.split(' ')[0] : 'the resident';
   var promptIntro = {
-    '6-month review': 'Translate this 6-month care review into a warm, plain-English letter for adult children.',
-    'health-change': 'Write a warm, plain-English letter to adult children about a notable change in their parent\'s health.',
-    'medication-change': 'Write a warm, plain-English letter to adult children explaining a change in their parent\'s medication.',
-    'other': 'Write a warm, plain-English letter to adult children with a care update about their parent.'
+    '6-month review': 'Translate this 6-month care review into a warm, plain-English letter for ' + resFirstName + '\'s family. Use ' + resFirstName + '\'s name throughout — never say "your parent", "your loved one" or "your relative". Just use ' + resFirstName + ' by name.',
+    'health-change': 'Write a warm, plain-English letter to ' + resFirstName + '\'s family about a notable change in ' + resFirstName + '\'s health. Use ' + resFirstName + '\'s name throughout — never say "your parent" or "your relative".',
+    'medication-change': 'Write a warm, plain-English letter to ' + resFirstName + '\'s family explaining a change in ' + resFirstName + '\'s medication. Use ' + resFirstName + '\'s name throughout — never say "your parent" or "your relative".',
+    'other': 'Write a warm, plain-English letter to ' + resFirstName + '\'s family with a care update about ' + resFirstName + '. Use ' + resFirstName + '\'s name throughout — never say "your parent" or "your relative".'
   };
   var intro = promptIntro[reviewType] || promptIntro['6-month review'];
   var prompt = intro + ' 3-4 paragraphs, no bullet points, no jargon, no markdown, no headings, plain prose only, under 200 words. Start with Dear Family,\n\n' +
@@ -1068,7 +1069,7 @@ async function generateSummary() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-opus-4-6', max_tokens: 600,
-        system: 'Write warm, honest, plain-English care review summaries for families. No jargon. No bullet points. No markdown headings or bold text. No # symbols. No ** symbols. Plain prose only. Start directly with Dear Family,',
+        system: 'Write warm, honest, plain-English care review summaries. Use the resident\'s first name throughout — never use "your parent", "your loved one", "your relative" or any relationship assumption. No jargon. No bullet points. No markdown. No # or ** symbols. Plain prose only. Start with Dear Family,',
         messages: [{ role: 'user', content: prompt }]
       })
     });
