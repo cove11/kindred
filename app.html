@@ -350,6 +350,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <div style="background:#faeeda;border:0.5px solid #ef9f27;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#633806;" id="stat-reviews-due">—</div><div style="font-size:11px;color:#854f0b;">Reviews due</div></div>
         <div style="background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#085041;" id="stat-families">—</div><div style="font-size:11px;color:#085041;">Families active</div></div>
       </div>
+      <!-- Manager: drafts awaiting approval -->
+      <div id="manager-pending-section" style="display:none;margin-bottom:14px;">
+        <div class="sh" style="margin-bottom:6px;">⏳ Awaiting your approval</div>
+        <div id="manager-pending-list"><div class="empty" style="font-size:13px;">No drafts waiting.</div></div>
+      </div>
       <div class="sh">Quick actions</div>
       <div class="btn-row">
         <button class="btn btn-green" onclick="showNurseTab('residents')">View residents</button>
@@ -686,6 +691,44 @@ function submitDraftForApproval() {
   setTimeout(function() {
     if (btn) { btn.disabled = false; btn.textContent = 'Submit for manager approval'; }
   }, 3000);
+}
+
+function loadManagerPendingCount() {
+  if (!currentUser.is_manager || !currentUser.care_home_id) return;
+  // Get all family IDs for this care home
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
+    if (!families || families.length === 0) return;
+    var familyIds = families.map(function(f) { return f.id; }).join(',');
+    var resMap = {};
+    families.forEach(function(f) { resMap[f.id] = f.resident_name; });
+    supaFetch('reviews?family_id=in.(' + familyIds + ')&status=eq.draft&select=id,family_id,review_type,nurse_name,created_at&order=created_at.desc').then(function(drafts) {
+      var section = document.getElementById('manager-pending-section');
+      var list = document.getElementById('manager-pending-list');
+      if (!section || !list) return;
+      if (!drafts || drafts.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = '';
+      drafts.forEach(function(d) {
+        var resName = d.resident_name || resMap[d.family_id] || 'Resident';
+        var dateStr = new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
+        var div = document.createElement('div');
+        div.className = 'card';
+        div.style.cssText = 'margin-bottom:6px;cursor:pointer;border-left:3px solid #f59e0b;';
+        div.innerHTML = '<div class="card-body" style="padding:9px 14px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<div><div style="font-size:13px;font-weight:500;">' + esc(resName) + '</div>' +
+          '<div style="font-size:11px;color:#aaa;">' + esc(fmtReviewType(d.review_type)) + ' · Written by ' + esc(d.nurse_name || 'Nurse') + ' · ' + dateStr + '</div></div>' +
+          '<span class="tag tag-amber" style="font-size:11px;">Review</span></div></div>';
+        div.addEventListener('click', (function(familyId, resName) {
+          return function() {
+            selectedResident = { id: familyId, name: resName };
+            showNurseTab('approve');
+          };
+        })(d.family_id, resName));
+        list.appendChild(div);
+      });
+    });
+  });
 }
 
 function loadNursePendingDrafts() {
@@ -1108,7 +1151,7 @@ function renderReviews(reviews) {
     var div = document.createElement('div');
     div.className = 'card';
     div.style.marginBottom = '8px';
-    div.innerHTML = '<div class="card-head"><span class="card-title">' + esc(r.review_type || '6-month review') + ' — ' + esc(r.date) + '</span><span class="tag tag-green">Nurse approved</span></div><div class="card-body"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">' + esc(r.nurse || 'Nurse') + ' · ' + esc(r.care_home || 'Care home') + '</p><p>' + esc(r.content) + '</p></div>';
+    div.innerHTML = '<div class="card-head"><span class="card-title">' + escfmtReviewType(r.review_type) + ' — ' + esc(r.date) + '</span><span class="tag tag-green">Nurse approved</span></div><div class="card-body"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">' + esc(r.nurse || 'Nurse') + ' · ' + esc(r.care_home || 'Care home') + '</p><p>' + esc(r.content) + '</p></div>';
     list.appendChild(div);
   });
 
@@ -1458,6 +1501,9 @@ function inviteNurse() {
   var careHomeId = currentUser.care_home_id;
   if (!careHomeId) { alert('Care home not linked to your account. Please contact Kindred support.'); return; }
 
+  // Cancel any existing pending invites for this email first
+  supaPost('nurse_invites?care_home_id=eq.' + careHomeId + '&email=eq.' + encodeURIComponent(email) + '&status=eq.pending', { status: 'cancelled' }, 'PATCH').catch(function(){});
+
   supaPost('nurse_invites', {
     care_home_id: careHomeId,
     email: email,
@@ -1496,11 +1542,23 @@ function filterStaff() {
 
 function loadStaff() {
   if (!currentUser.care_home_id) return;
-  supaFetch('nurse_invites?care_home_id=eq.' + currentUser.care_home_id + '&select=*&order=created_at.desc').then(function(data) {
+  supaFetch('nurse_invites?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.cancelled&select=*&order=created_at.desc').then(function(data) {
     var list = document.getElementById('staff-list');
     if (!data || data.length === 0) { list.innerHTML = '<div class="empty">No nurses invited yet.</div>'; return; }
-    list.innerHTML = '';
+    // Deduplicate — if same email has both active and pending, only show active
+    var seen = {};
+    var deduped = [];
+    // First pass — collect active ones
     data.forEach(function(invite) {
+      if (invite.status === 'active') seen[invite.email] = true;
+    });
+    // Second pass — skip pending if active exists for same email
+    data.forEach(function(invite) {
+      if (invite.status === 'pending' && seen[invite.email]) return;
+      deduped.push(invite);
+    });
+    list.innerHTML = '';
+    deduped.forEach(function(invite) {
       var div = document.createElement('div');
       div.className = 'card';
       div.style.marginBottom = '7px';
@@ -1542,7 +1600,16 @@ function supaPost(endpoint, data, method) {
     method: method,
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Prefer': prefer },
     body: JSON.stringify(data)
-  }).then(function(r) { return r.json(); }).catch(function() { return null; });
+  }).then(function(r) {
+    return r.json().then(function(data) {
+      if (data && data.message && data.message.includes('JWT expired')) {
+        localStorage.removeItem('supa_token');
+        localStorage.removeItem('kindred_user');
+        window.location.href = 'index.html?session=expired';
+      }
+      return data;
+    });
+  }).catch(function() { return null; });
 }
 
 // ── NURSE PORTAL DATA ──
@@ -1552,6 +1619,7 @@ function loadNursePortal() {
   try {
     autoSelectResident(); // auto-load resident on sign-in
     setTimeout(loadNursePendingDrafts, 1000); // show pending drafts for nurses
+    setTimeout(loadManagerPendingCount, 1200); // show pending count for managers
     var careHomeName = currentUser.care_home || 'Your care home';
     safeSetText('nurse-care-home-name', careHomeName);
     safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Nurse');
@@ -1783,7 +1851,7 @@ function openResidentProfile(fam, residentName, familyName) {
       drafts.forEach(function(d) {
         html += '<div class="card" style="margin-bottom:8px;border-left:3px solid #f59e0b;">';
         html += '<div class="card-body" style="padding:10px 14px;">';
-        html += '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(d.review_type || '6-month review') + '</span></div>';
+        html += '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(fmtReviewType(d.review_type)) + '</span></div>';
         html += '<div class="row"><span class="row-label">Written by</span><span class="row-value">' + esc(d.nurse_name || '—') + '</span></div>';
         html += '<div class="row"><span class="row-label">Saved</span><span class="row-value">' + new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + '</span></div>';
         html += '</div>';
@@ -2097,6 +2165,10 @@ function getFirstName(name, email) {
 }
 
 function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtReviewType(t) {
+  var map = {'6-month review':'6-month review','health-change':'Health change','medication-change':'Medication change','other':'Other update'};
+  return map[t] || (t ? t.replace(/-/g,' ').replace(/./g,function(c){return c.toUpperCase();}) : '6-month review');
+}
 function getInitials(name) { return (name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0,2); }
 function pad(n) { return String(n).padStart(2,'0'); }
 function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); }
