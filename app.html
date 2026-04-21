@@ -657,6 +657,8 @@ function showTab(name) {
   document.querySelectorAll('#family-app .panel').forEach(function(p) {
     p.classList.toggle('active', p.id === 'tab-' + name);
   });
+  // Scroll to top of content when switching tabs
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'reviews') loadReviews();
 }
 
