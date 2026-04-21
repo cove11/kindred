@@ -350,6 +350,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <div style="background:#faeeda;border:0.5px solid #ef9f27;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#633806;" id="stat-reviews-due">—</div><div style="font-size:11px;color:#854f0b;">Reviews due</div></div>
         <div style="background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#085041;" id="stat-families">—</div><div style="font-size:11px;color:#085041;">Families active</div></div>
       </div>
+      <!-- All staff: ward drafts in progress -->
+      <div id="ward-drafts-section" style="display:none;margin-bottom:14px;">
+        <div class="sh" style="margin-bottom:6px;">📋 Reviews in progress</div>
+        <div id="ward-drafts-list"><div class="empty" style="font-size:13px;">No reviews in progress.</div></div>
+      </div>
       <!-- Manager: drafts awaiting approval -->
       <div id="manager-pending-section" style="display:none;margin-bottom:14px;">
         <div class="sh" style="margin-bottom:6px;">⏳ Awaiting your approval</div>
@@ -691,6 +696,39 @@ function submitDraftForApproval() {
   setTimeout(function() {
     if (btn) { btn.disabled = false; btn.textContent = 'Submit for manager approval'; }
   }, 3000);
+}
+
+function loadWardDrafts() {
+  // Show all in-progress drafts to all staff — so no one duplicates work
+  if (!currentUser || !currentUser.care_home_id) return;
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
+    if (!families || families.length === 0) return;
+    var familyIds = families.map(function(f) { return f.id; }).join(',');
+    var resMap = {};
+    families.forEach(function(f) { resMap[f.id] = f.resident_name; });
+    supaFetch('reviews?family_id=in.(' + familyIds + ')&status=eq.draft&select=id,family_id,review_type,nurse_name,created_at&order=created_at.desc').then(function(drafts) {
+      var section = document.getElementById('ward-drafts-section');
+      var list = document.getElementById('ward-drafts-list');
+      if (!section || !list) return;
+      if (!drafts || drafts.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = '';
+      drafts.forEach(function(d) {
+        var resName = d.resident_name || resMap[d.family_id] || 'Resident';
+        var dateStr = new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+        var isOwn = d.nurse_name === currentUser.name;
+        var div = document.createElement('div');
+        div.className = 'card';
+        div.style.cssText = 'margin-bottom:6px;border-left:3px solid ' + (isOwn ? '#5dcaa5' : '#94a3b8') + ';';
+        div.innerHTML = '<div class="card-body" style="padding:9px 14px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<div><div style="font-size:13px;font-weight:500;">' + esc(resName) + ' — ' + esc(fmtReviewType(d.review_type)) + '</div>' +
+          '<div style="font-size:11px;color:#aaa;">Written by ' + esc(d.nurse_name || 'Staff') + (isOwn ? ' (you)' : '') + ' · ' + dateStr + ' · Awaiting manager approval</div></div>' +
+          '<span class="tag tag-amber" style="font-size:11px;">Pending</span></div></div>';
+        list.appendChild(div);
+      });
+    });
+  });
 }
 
 function loadManagerPendingCount() {
@@ -1618,7 +1656,8 @@ var selectedResident = null;
 function loadNursePortal() {
   try {
     autoSelectResident(); // auto-load resident on sign-in
-    setTimeout(loadNursePendingDrafts, 1000); // show pending drafts for nurses
+    setTimeout(loadWardDrafts, 800); // show all in-progress drafts to all staff
+    setTimeout(loadNursePendingDrafts, 1000); // show nurse's own pending drafts
     setTimeout(loadManagerPendingCount, 1200); // show pending count for managers
     var careHomeName = currentUser.care_home || 'Your care home';
     safeSetText('nurse-care-home-name', careHomeName);
@@ -1876,7 +1915,7 @@ function openResidentProfile(fam, residentName, familyName) {
         (r.content || '').split('\n').filter(function(l){return l.trim();}).forEach(function(para){
           html += '<p style="font-size:13px;margin-bottom:6px;">' + esc(para) + '</p>';
         });
-        html += '<p style="font-size:11px;color:#aaa;margin-top:8px;">Sent by ' + esc(r.nurse_name || 'Care team') + '</p>';
+        html += '<p style="font-size:11px;color:#aaa;margin-top:8px;">Written by ' + esc(r.nurse_name || 'Care team') + ' · Approved by manager · ' + new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '</p>';
         html += '<div style="margin-top:8px;"><button class="btn" style="font-size:11px;padding:4px 10px;" data-review-id="' + r.id + '" data-family-id="' + r.family_id + '" onclick="recallReview(this)">Revise this review</button></div>';
         html += '</div></div>';
       });
@@ -2116,7 +2155,7 @@ function loadSent() {
           '<span style="font-size:12px;color:#888;">' + dateStr + '</span>' +
           '</div>' +
           '<div class="card-body" style="display:none;">' +
-          '<div class="row"><span class="row-label">Sent by</span><span class="row-value">' + esc(r.nurse_name || 'Care team') + '</span></div>' +
+          '<div class="row"><span class="row-label">Written by</span><span class="row-value">' + esc(r.nurse_name || 'Care team') + '</span></div>' +
           '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(reviewType) + '</span></div>' +
           '<div style="margin-top:10px;">' +
           (r.content || '').split('\n').filter(function(l){return l.trim();}).map(function(p){ return '<p style="font-size:13px;margin-bottom:6px;">' + esc(p) + '</p>'; }).join('') +
@@ -2166,8 +2205,14 @@ function getFirstName(name, email) {
 
 function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtReviewType(t) {
-  var map = {'6-month review':'6-month review','health-change':'Health change','medication-change':'Medication change','other':'Other update'};
-  return map[t] || (t ? t.replace(/-/g,' ').replace(/./g,function(c){return c.toUpperCase();}) : '6-month review');
+  var map = {
+    '6-month review': '6-month review',
+    'health-change': 'Health change',
+    'medication-change': 'Medication change',
+    'other': 'Other update',
+    '6 month review': '6-month review'
+  };
+  return map[t] || map[(t||'').toLowerCase()] || t || '6-month review';
 }
 function getInitials(name) { return (name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0,2); }
 function pad(n) { return String(n).padStart(2,'0'); }
