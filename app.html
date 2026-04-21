@@ -194,7 +194,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div class="card">
         <div class="card-body" style="padding:9px 14px;" id="family-members-list"></div>
         <div class="card-foot">
-          <button class="btn btn-green" onclick="showInvite()">+ Invite a sibling</button>
+          <button class="btn btn-green" onclick="showInvite()">+ Invite someone</button>
           <button class="btn" onclick="copyInvite()">Copy invite link</button>
         </div>
       </div>
@@ -211,7 +211,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         </div>
       </div>
 
-      <button class="btn" onclick="showLogModal()" style="width:100%;margin-top:4px;padding:11px;font-size:13px;background:#faf9f7;border-style:dashed;display:flex;align-items:center;justify-content:center;gap:7px;">
+      <div style="font-size:11px;color:#aaa;margin-top:10px;margin-bottom:4px;">Helps the people close to Margaret see who is doing what — visible to everyone on this portal.</div>
+      <button class="btn" onclick="showLogModal()" style="width:100%;padding:11px;font-size:13px;background:#faf9f7;border-style:dashed;display:flex;align-items:center;justify-content:center;gap:7px;">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#555" stroke-width="1.2"/><path d="M7 4v6M4 7h6" stroke="#555" stroke-width="1.2" stroke-linecap="round"/></svg>
         <span id="log-btn-text">Log something you did</span>
       </button>
@@ -299,7 +300,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- LOAD SHARING -->
     <div class="panel" id="tab-load">
-      <div class="info">A private record for your family. Makes the invisible visible so everyone sees the full picture.</div>
+      <div class="info">A shared log of care contributions — visits, calls, appointments, admin. Everything that happens for <span id="load-resident-name">your family member</span> in one place, visible to everyone on this portal.</div>
       <div class="sh">This month</div>
       <div class="card" style="margin-bottom:12px;">
         <div class="card-body" style="padding:9px 14px;" id="load-members"></div>
@@ -625,6 +626,8 @@ function initFamilyApp() {
   var userName = firstName;
   
   document.getElementById('log-btn-text').textContent = 'Log something you did for ' + resFirst;
+  var loadName = document.getElementById('load-resident-name');
+  if (loadName) loadName.textContent = resFirst;
   document.getElementById('checkin-greeting').textContent = userName !== 'there' ? 'How are you doing this week, ' + userName + '? Being a carer takes a lot.' : 'Being a carer takes a lot. It\'s worth checking in with yourself.';
   document.getElementById('ec-resident-name').textContent = resName;
   document.getElementById('ec-care-home').textContent = currentUser.care_home || 'Not set';
@@ -1075,7 +1078,7 @@ function doCheckin(btn, choice) {
   var responses = {
     'Managing well': 'That\'s great to hear. Keep checking in. You\'re doing a good job.',
     'Bit tired': 'That makes sense. Looking after someone takes a lot. Make sure you get time for yourself too.',
-    'Finding it hard': 'Thank you for being honest. Have you been able to speak to your siblings? You do not have to carry this alone.',
+    'Finding it hard': 'Thank you for being honest. You do not have to carry this alone — reach out to someone you trust, or use the Messages tab to connect with others who are close to ' + resFirst + '.',
     'Need support': 'Carers UK has a free helpline: 0808 808 7777. Age UK can also connect you with local support. You deserve care too.'
   };
   var resp = document.getElementById('checkin-response');
