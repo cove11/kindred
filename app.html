@@ -254,8 +254,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- CONCERNS -->
     <div class="panel" id="tab-concerns">
-      <div class="info">Log a concern if something doesn't feel right. This is a private record — not a formal complaint.</div>
-      <button class="btn" onclick="document.getElementById('concern-compose').style.display='block'" style="margin-bottom:12px;width:100%;border-style:dashed;">+ Log a concern</button>
+      <div class="info">Log a concern if something doesn't feel right. Concerns are private to your family — you can choose to escalate to the care home manager at any time.</div>
+      <button class="btn" id="log-concern-btn" onclick="document.getElementById('concern-compose').style.display='block';this.style.display='none'" style="margin-bottom:12px;width:100%;border-style:dashed;">+ Log a concern</button>
       <div id="concern-compose" style="display:none;margin-bottom:12px;" class="card">
         <div class="card-body">
           <div class="field"><label>Type of concern</label>
@@ -278,7 +278,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
           </div>
           <div class="btn-row">
             <button class="btn" onclick="saveConcern()" style="background:#fcebeb;border-color:#f09595;color:#791f1f;">Save concern</button>
-            <button class="btn" onclick="document.getElementById('concern-compose').style.display='none'">Cancel</button>
+            <button class="btn" onclick="document.getElementById('concern-compose').style.display='none';document.getElementById('log-concern-btn').style.display='block'">Cancel</button>
           </div>
         </div>
       </div>
@@ -690,6 +690,7 @@ function showTab(name) {
   if (name === 'reviews') loadReviews();
   if (name === 'messages') loadMessages();
   if (name === 'card') initEmergencyCard();
+  if (name === 'concerns') loadConcerns();
 }
 
 function showNurseTab(name) {
@@ -763,6 +764,41 @@ function loadWardDrafts() {
           '<span class="tag tag-amber" style="font-size:11px;">Pending</span></div></div>';
         list.appendChild(div);
       });
+    });
+  });
+}
+
+function loadEscalatedConcerns() {
+  // Show escalated family concerns to managers
+  if (!currentUser.is_manager || !currentUser.care_home_id) return;
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
+    if (!families || families.length === 0) return;
+    var familyIds = families.map(function(f) { return f.id; }).join(',');
+    var resMap = {};
+    families.forEach(function(f) { resMap[f.id] = f.resident_name; });
+    supaFetch('family_concerns?family_id=in.(' + familyIds + ')&status=eq.escalated&select=*&order=escalated_at.desc').then(function(concerns) {
+      if (!concerns || concerns.length === 0) return;
+      // Add a concerns section to manager overview
+      var overview = document.getElementById('manager-pending-section');
+      if (!overview) return;
+      var existing = document.getElementById('escalated-concerns-section');
+      if (existing) existing.remove();
+      var section = document.createElement('div');
+      section.id = 'escalated-concerns-section';
+      section.style.marginBottom = '14px';
+      var html = '<div class="sh" style="margin-bottom:6px;color:#b91c1c;">⚠ Family concerns escalated to you</div>';
+      concerns.forEach(function(c) {
+        var resName = resMap[c.family_id] || 'Resident';
+        var date = new Date(c.escalated_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
+        html += '<div class="card" style="margin-bottom:6px;border-left:3px solid #ef4444;">' +
+          '<div class="card-body" style="padding:9px 14px;">' +
+          '<div style="font-size:13px;font-weight:500;">' + esc(resName) + ' — ' + esc(c.type) + '</div>' +
+          '<div style="font-size:11px;color:#aaa;">From ' + esc(c.author_name || 'Family') + ' · ' + date + ' · ' + esc(c.severity) + '</div>' +
+          '<p style="font-size:12px;margin-top:6px;">' + esc((c.content||'').substring(0,120)) + '</p>' +
+          '</div></div>';
+      });
+      section.innerHTML = html;
+      overview.parentNode.insertBefore(section, overview);
     });
   });
 }
@@ -1165,19 +1201,54 @@ function saveVisit() {
 
 // ── CONCERNS ──
 function loadConcerns() {
-  var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
   var list = document.getElementById('concerns-list');
-  if (saved.length === 0) { list.innerHTML = '<div class="empty">No concerns logged yet.</div>'; return; }
-  list.innerHTML = '';
-  saved.forEach(function(c) { list.appendChild(buildConcernEl(c)); });
+  if (!currentUser.family_id) return;
+  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading...</div>';
+  supaFetch('family_concerns?family_id=eq.' + currentUser.family_id + '&order=created_at.desc').then(function(concerns) {
+    list.innerHTML = '';
+    if (!concerns || concerns.length === 0) {
+      list.innerHTML = '<div class="empty">No concerns logged yet.</div>';
+      return;
+    }
+    concerns.forEach(function(c) { list.appendChild(buildConcernEl(c)); });
+  }).catch(function() {
+    var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
+    list.innerHTML = '';
+    if (saved.length === 0) { list.innerHTML = '<div class="empty">No concerns logged yet.</div>'; return; }
+    saved.forEach(function(c) { list.appendChild(buildConcernEl(c)); });
+  });
 }
 
 function buildConcernEl(c) {
-  var colors = {'Serious':'tag-amber','Moderate':'tag-amber','Minor':'tag-gray'};
+  var sevColors = {'Serious':'tag-amber','Moderate':'tag-amber','Minor':'tag-gray'};
+  var isEscalated = c.status === 'escalated';
   var div = document.createElement('div');
   div.className = 'card';
-  div.style.marginBottom = '8px';
-  div.innerHTML = '<div class="card-head"><span class="card-title">' + esc(c.type) + ' · ' + esc(c.date) + '</span><span class="tag ' + (colors[c.sev]||'tag-gray') + '">' + esc(c.sev) + '</span></div><div class="card-body"><p>' + esc(c.text) + '</p><div style="font-size:11px;color:#aaa;margin-top:5px;">Logged by ' + esc(c.author) + ' · Status: Noted</div></div>';
+  div.style.cssText = 'margin-bottom:8px;' + (isEscalated ? 'border-left:3px solid #ef4444;' : '');
+  var statusTag = isEscalated
+    ? '<span class="tag" style="background:#fee2e2;color:#b91c1c;font-size:11px;">Escalated to manager</span>'
+    : '<span class="tag tag-gray" style="font-size:11px;">Private</span>';
+  var date = c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : (c.date || '');
+  div.innerHTML =
+    '<div class="card-head"><span class="card-title" style="font-size:13px;">' + esc(c.type || c.type) + ' — ' + esc(c.severity || c.sev || '') + '</span>' + statusTag + '</div>' +
+    '<div class="card-body"><p style="margin-bottom:8px;">' + esc(c.content || c.text) + '</p>' +
+    '<div style="font-size:11px;color:#aaa;">Logged by ' + esc(c.author_name || c.author) + ' · ' + date + '</div>' +
+    (c.manager_response ? '<div style="margin-top:10px;padding:8px 10px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#085041;"><strong>Manager response:</strong> ' + esc(c.manager_response) + '</div>' : '') +
+    '</div>';
+  // Show escalate button only if not already escalated and has a Supabase id
+  if (!isEscalated && c.id) {
+    var foot = document.createElement('div');
+    foot.className = 'card-foot';
+    var escalateBtn = document.createElement('button');
+    escalateBtn.className = 'btn';
+    escalateBtn.style.cssText = 'font-size:11px;padding:4px 10px;color:#b91c1c;border-color:#fca5a5;';
+    escalateBtn.textContent = 'Escalate to manager';
+    escalateBtn.addEventListener('click', (function(id) {
+      return function() { escalateConcern(id, div); };
+    })(c.id));
+    foot.appendChild(escalateBtn);
+    div.appendChild(foot);
+  }
   return div;
 }
 
@@ -1186,15 +1257,37 @@ function saveConcern() {
   var sev = getPill('concern-sev-pills') || 'Minor';
   var text = document.getElementById('concern-text').value.trim();
   if (!text) return;
-  var c = { type: type, sev: sev, text: text, author: currentUser.name, date: dateStr(), ts: Date.now() };
-  var list = document.getElementById('concerns-list');
-  if (list.querySelector('.empty')) list.innerHTML = '';
-  list.insertBefore(buildConcernEl(c), list.firstChild);
+  if (!currentUser.family_id) return;
   document.getElementById('concern-text').value = '';
   document.getElementById('concern-compose').style.display = 'none';
-  var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
-  saved.unshift(c);
-  localStorage.setItem('k_concerns', JSON.stringify(saved));
+  document.getElementById('log-concern-btn').style.display = 'block';
+  supaPost('family_concerns', {
+    family_id: currentUser.family_id,
+    author_name: currentUser.name,
+    type: type,
+    severity: sev,
+    content: text,
+    status: 'private'
+  }).then(function() {
+    loadConcerns();
+  }).catch(function() {
+    var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
+    saved.unshift({ type: type, sev: sev, text: text, author: currentUser.name, date: dateStr(), ts: Date.now() });
+    localStorage.setItem('k_concerns', JSON.stringify(saved));
+    loadConcerns();
+  });
+}
+
+function escalateConcern(id, div) {
+  if (!confirm('This will notify the care home manager about your concern. They will be able to see the details and respond. Continue?')) return;
+  supaPost('family_concerns?id=eq.' + id, {
+    status: 'escalated',
+    escalated_at: new Date().toISOString()
+  }, 'PATCH').then(function() {
+    loadConcerns();
+  }).catch(function() {
+    alert('Could not escalate. Please try again.');
+  });
 }
 
 // ── LOAD LOG ──
@@ -1753,6 +1846,7 @@ function loadNursePortal() {
   try {
     autoSelectResident(); // auto-load resident on sign-in
     setTimeout(loadWardDrafts, 800); // show all in-progress drafts to all staff
+    setTimeout(loadEscalatedConcerns, 1400); // show escalated family concerns to managers
     setTimeout(loadNursePendingDrafts, 1000); // show nurse's own pending drafts
     setTimeout(loadManagerPendingCount, 1200); // show pending count for managers
     var careHomeName = currentUser.care_home || 'Your care home';
