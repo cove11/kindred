@@ -786,18 +786,126 @@ function loadEscalatedConcerns() {
       var section = document.createElement('div');
       section.id = 'escalated-concerns-section';
       section.style.marginBottom = '14px';
-      var html = '<div class="sh" style="margin-bottom:6px;color:#b91c1c;">⚠ Family concerns escalated to you</div>';
+      var heading = document.createElement('div');
+      heading.className = 'sh';
+      heading.style.cssText = 'margin-bottom:6px;color:#b91c1c;';
+      heading.textContent = '⚠ Family concerns escalated to you';
+      section.appendChild(heading);
+
       concerns.forEach(function(c) {
         var resName = resMap[c.family_id] || 'Resident';
         var date = new Date(c.escalated_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
-        html += '<div class="card" style="margin-bottom:6px;border-left:3px solid #ef4444;">' +
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.style.cssText = 'margin-bottom:8px;border-left:3px solid #ef4444;';
+
+        var bodyHtml =
           '<div class="card-body" style="padding:9px 14px;">' +
           '<div style="font-size:13px;font-weight:500;">' + esc(resName) + ' — ' + esc(c.type) + '</div>' +
-          '<div style="font-size:11px;color:#aaa;">From ' + esc(c.author_name || 'Family') + ' · ' + date + ' · ' + esc(c.severity) + '</div>' +
-          '<p style="font-size:12px;margin-top:6px;">' + esc((c.content||'').substring(0,120)) + '</p>' +
-          '</div></div>';
+          '<div style="font-size:11px;color:#aaa;margin-bottom:6px;">From ' + esc(c.author_name || 'Family') + ' · ' + date + ' · ' + esc(c.severity) + '</div>' +
+          '<p style="font-size:12px;color:#444;">' + esc(c.content || '') + '</p>';
+
+        if (c.manager_response) {
+          bodyHtml += '<div style="margin-top:10px;padding:8px 10px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#085041;border:0.5px solid #5dcaa5;">' +
+            '<strong>Your response:</strong> ' + esc(c.manager_response) + '</div>';
+        }
+        bodyHtml += '</div>';
+
+        card.innerHTML = bodyHtml;
+
+        // Reply section
+        var replySection = document.createElement('div');
+        replySection.className = 'card-foot';
+        replySection.style.flexDirection = 'column';
+        replySection.style.alignItems = 'stretch';
+        replySection.style.gap = '6px';
+
+        if (!c.manager_response) {
+          // Show reply button that expands a textarea
+          var replyBtn = document.createElement('button');
+          replyBtn.className = 'btn btn-green';
+          replyBtn.style.cssText = 'font-size:11px;padding:4px 10px;align-self:flex-start;';
+          replyBtn.textContent = 'Reply to family';
+
+          var replyForm = document.createElement('div');
+          replyForm.style.display = 'none';
+
+          var ta = document.createElement('textarea');
+          ta.placeholder = 'Write a response to ' + esc(c.author_name || 'the family') + '...';
+          ta.style.cssText = 'width:100%;min-height:60px;font-size:12px;padding:7px;border:0.5px solid rgba(0,0,0,0.15);border-radius:7px;font-family:inherit;box-sizing:border-box;margin-bottom:6px;resize:vertical;';
+
+          var disclaimer = document.createElement('div');
+          disclaimer.style.cssText = 'font-size:11px;color:#888;margin-bottom:6px;padding:6px 8px;background:#f9f9f7;border-radius:6px;border:0.5px solid rgba(0,0,0,0.08);';
+          disclaimer.textContent = '⚠ Your response is a permanent record visible to the family. It cannot be edited once sent.';
+          replyForm.appendChild(disclaimer);
+
+          var btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display:flex;gap:6px;';
+
+          var sendBtn = document.createElement('button');
+          sendBtn.className = 'btn btn-green';
+          sendBtn.style.cssText = 'font-size:11px;padding:4px 10px;';
+          sendBtn.textContent = 'Send response';
+
+          var cancelBtn = document.createElement('button');
+          cancelBtn.className = 'btn';
+          cancelBtn.style.cssText = 'font-size:11px;padding:4px 10px;';
+          cancelBtn.textContent = 'Cancel';
+
+          replyBtn.addEventListener('click', function() {
+            replyBtn.style.display = 'none';
+            replyForm.style.display = 'block';
+            ta.focus();
+          });
+
+          cancelBtn.addEventListener('click', function() {
+            replyBtn.style.display = 'block';
+            replyForm.style.display = 'none';
+            ta.value = '';
+          });
+
+          sendBtn.addEventListener('click', (function(concernId, nameEl) {
+            return function() {
+              var response = ta.value.trim();
+              if (!response) return;
+              sendBtn.disabled = true;
+              sendBtn.textContent = 'Sending...';
+              supaPost('family_concerns?id=eq.' + concernId, {
+                manager_response: response,
+                status: 'responded'
+              }, 'PATCH').then(function() {
+                // Update the card in place
+                var responseBox = document.createElement('div');
+                responseBox.style.cssText = 'margin-top:10px;padding:8px 10px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#085041;border:0.5px solid #5dcaa5;';
+                responseBox.innerHTML = '<strong>Your response:</strong> ' + esc(response);
+                card.querySelector('.card-body').appendChild(responseBox);
+                replySection.innerHTML = '<div style="font-size:11px;color:#5dcaa5;padding:4px 0;">✓ Response sent — the family will see this next time they open Concerns.</div>';
+              }).catch(function() {
+                alert('Could not send response. Please try again.');
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send response';
+              });
+            };
+          })(c.id));
+
+          btnRow.appendChild(sendBtn);
+          btnRow.appendChild(cancelBtn);
+          replyForm.appendChild(ta);
+          replyForm.appendChild(disclaimer);
+          replyForm.appendChild(btnRow);
+          replySection.appendChild(replyBtn);
+          replySection.appendChild(replyForm);
+        } else {
+          var responded = document.createElement('div');
+          responded.style.cssText = 'font-size:11px;color:#5dcaa5;padding:4px 0;';
+          responded.textContent = '✓ You have responded to this concern.';
+          replySection.appendChild(responded);
+        }
+
+        card.appendChild(replySection);
+        section.appendChild(card);
       });
-      section.innerHTML = html;
+
       overview.parentNode.insertBefore(section, overview);
     });
   });
