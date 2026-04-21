@@ -1487,20 +1487,64 @@ function renderReviews(reviews) {
     div.className = 'card';
     div.style.marginBottom = '8px';
     var cleanContent = stripMarkdown(r.content || '');
-    div.innerHTML = '<div class="card-head" style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\'"><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span><span class="tag tag-green">Sent</span></div><div class="card-body" style="display:block;"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('') + '</div>';
+    div.innerHTML = '<div class="card-head" style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'span:last-child\').textContent=b.style.display===\'none\'?\'Tap to read ›\':\'Close\'"><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span><span style="font-size:12px;color:#5dcaa5;">Tap to read ›</span></div><div class="card-body" style="display:none;"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('') + '</div>';
     list.appendChild(div);
   });
 
-  // Update timeline
+  // Update timeline — reviews + escalated concerns
   var tl = document.getElementById('timeline-list');
   tl.innerHTML = '';
-  reviews.forEach(function(r, i) {
-    var div = document.createElement('div');
-    div.className = 'tl-item';
-    var tlClean = stripMarkdown(r.content || '');
-    div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Nurse review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
-    tl.appendChild(div);
+
+  // Build combined timeline items
+  var tlItems = reviews.map(function(r) {
+    return { type: 'review', date: r.ts || 0, dateStr: r.date, content: r.content, review_type: r.review_type };
   });
+
+  // Fetch escalated concerns for this family and merge into timeline
+  if (currentUser.family_id) {
+    supaFetch('family_concerns?family_id=eq.' + currentUser.family_id + '&status=in.(escalated,responded)&select=*&order=escalated_at.desc').then(function(concerns) {
+      if (concerns) {
+        concerns.forEach(function(c) {
+          tlItems.push({
+            type: 'concern',
+            date: new Date(c.escalated_at).getTime(),
+            dateStr: new Date(c.escalated_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
+            content: c.content,
+            concern_type: c.type,
+            severity: c.severity,
+            responded: c.status === 'responded',
+            manager_response: c.manager_response
+          });
+        });
+      }
+      // Sort combined by date descending
+      tlItems.sort(function(a, b) { return b.date - a.date; });
+      tlItems.forEach(function(item, i) {
+        var div = document.createElement('div');
+        div.className = 'tl-item';
+        var isLast = i === tlItems.length - 1;
+        if (item.type === 'review') {
+          var tlClean = stripMarkdown(item.content || '');
+          div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (!isLast ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(item.dateStr) + ' · ' + esc(fmtReviewType(item.review_type)) + '</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
+        } else {
+          var statusColour = item.responded ? '#166534' : '#b91c1c';
+          var statusBg = item.responded ? '#dcfce7' : '#fee2e2';
+          var statusLabel = item.responded ? 'Manager responded' : 'Escalated to manager';
+          div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:' + statusBg + ';"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="' + statusColour + '" stroke-width="1.2"/></svg></div>' + (!isLast ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta" style="color:' + statusColour + ';">' + esc(item.dateStr) + ' · Concern — ' + esc(item.concern_type) + '</div><div class="tl-card" style="border-color:' + statusColour + ';"><p>' + esc((item.content||'').substring(0, 120)) + '...</p>' + (item.manager_response ? '<p style="font-size:11px;color:#085041;margin-top:4px;"><strong>Manager response recorded</strong></p>' : '') + '</div></div>';
+        }
+        tl.appendChild(div);
+      });
+    });
+  } else {
+    // No family ID — just show reviews
+    reviews.forEach(function(r, i) {
+      var div = document.createElement('div');
+      div.className = 'tl-item';
+      var tlClean = stripMarkdown(r.content || '');
+      div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Nurse review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
+      tl.appendChild(div);
+    });
+  }
 }
 
 // ── NURSE: GENERATE SUMMARY ──
