@@ -609,6 +609,10 @@ window.addEventListener('load', function() {
     var resLast = currentUser.resident_name ? currentUser.resident_name.split(' ').pop() : '';
     document.getElementById('header-subtitle').textContent = resLast ? '· ' + resLast + ' family' : '· Family space';
     document.getElementById('family-app').style.display = 'block';
+    // Mark invite as used
+    if (currentUser.family_id) {
+      supaPost('families?id=eq.' + currentUser.family_id, { resident_invite_used: true }, 'PATCH').catch(function(){});
+    }
     initFamilyApp();
     initPills();
   }
@@ -1180,7 +1184,9 @@ function renderReviews(reviews) {
   
   // Update home
   var section = document.getElementById('home-review-section');
-  section.innerHTML = '<div class="card"><div class="card-head"><span class="card-title">' + esc(latest.review_type || '6-month review') + ' — ' + esc(latest.date) + '</span><span class="tag tag-green">New</span></div><div class="card-body"><p>' + esc(latest.content.substring(0, 200)) + '...</p></div><div class="card-foot"><button class="btn btn-green" onclick="showTab(\'reviews\')" style="font-size:12px;padding:5px 11px;">Full review</button></div></div>';
+  var latestClean = stripMarkdown(latest.content || '');
+  var latestSnippet = latestClean.substring(0, 200);
+  section.innerHTML = '<div class="card"><div class="card-head"><span class="card-title">' + esc(fmtReviewType(latest.review_type)) + ' — ' + esc(latest.date) + '</span><span class="tag tag-green">New</span></div><div class="card-body"><p>' + esc(latestSnippet) + '...</p></div><div class="card-foot"><button class="btn btn-green" onclick="showTab(\'reviews\')" style="font-size:12px;padding:5px 11px;">Full review</button></div></div>';
   
   // Update reviews tab
   var list = document.getElementById('reviews-list');
@@ -1189,17 +1195,19 @@ function renderReviews(reviews) {
     var div = document.createElement('div');
     div.className = 'card';
     div.style.marginBottom = '8px';
-    div.innerHTML = '<div class="card-head"><span class="card-title">' + escfmtReviewType(r.review_type) + ' — ' + esc(r.date) + '</span><span class="tag tag-green">Nurse approved</span></div><div class="card-body"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">' + esc(r.nurse || 'Nurse') + ' · ' + esc(r.care_home || 'Care home') + '</p><p>' + esc(r.content) + '</p></div>';
+    var cleanContent = stripMarkdown(r.content || '');
+    div.innerHTML = '<div class="card-head" style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\'"><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span><span class="tag tag-green">Sent</span></div><div class="card-body" style="display:block;"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('') + '</div>';
     list.appendChild(div);
   });
 
   // Update timeline
   var tl = document.getElementById('timeline-list');
   tl.innerHTML = '';
-  saved.forEach(function(r, i) {
+  reviews.forEach(function(r, i) {
     var div = document.createElement('div');
     div.className = 'tl-item';
-    div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < saved.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Nurse review</div><div class="tl-card"><p>' + esc(r.content.substring(0, 120)) + '...</p></div></div>';
+    var tlClean = stripMarkdown(r.content || '');
+    div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Nurse review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
     tl.appendChild(div);
   });
 }
