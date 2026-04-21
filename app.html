@@ -1078,7 +1078,7 @@ function doCheckin(btn, choice) {
   var responses = {
     'Managing well': 'That\'s great to hear. Keep checking in. You\'re doing a good job.',
     'Bit tired': 'That makes sense. Looking after someone takes a lot. Make sure you get time for yourself too.',
-    'Finding it hard': 'Thank you for being honest. You do not have to carry this alone — reach out to someone you trust, or use the Messages tab to connect with others who are close to ' + resFirst + '.',
+    'Finding it hard': 'Thank you for being honest. You do not have to carry this alone — reach out to someone you trust, or use the Messages tab to connect with others who are close to ' + (currentUser.resident_name ? currentUser.resident_name.split(' ')[0] : 'your family member') + '.',
     'Need support': 'Carers UK has a free helpline: 0808 808 7777. Age UK can also connect you with local support. You deserve care too.'
   };
   var resp = document.getElementById('checkin-response');
