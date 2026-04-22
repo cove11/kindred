@@ -582,6 +582,25 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 </div>
 
 <script>
+
+// ── CONFIRMATION MODAL ──
+function kindredConfirm(message, onYes, title) {
+  var modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-title').textContent = title || 'Are you sure?';
+  document.getElementById('confirm-message').textContent = message;
+  modal.classList.add('open');
+  var yesBtn = document.getElementById('confirm-yes');
+  var noBtn = document.getElementById('confirm-no');
+  function cleanup() {
+    modal.classList.remove('open');
+    yesBtn.replaceWith(yesBtn.cloneNode(true));
+    noBtn.replaceWith(noBtn.cloneNode(true));
+  }
+  document.getElementById('confirm-yes').addEventListener('click', function() { cleanup(); onYes(); });
+  document.getElementById('confirm-no').addEventListener('click', function() { cleanup(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) cleanup(); }, { once: true });
+}
+
 // ── CONFIG ──
 var SUPA_URL = 'https://xmeeyeeddayyoaxoiypd.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
@@ -1173,7 +1192,7 @@ function updateFamilyMembers() {
 }
 
 function removeSibling(memberId, memberName) {
-  if (!confirm('Remove ' + memberName + ' from this family space? They will immediately lose access.')) return;
+  kindredConfirm('Remove ' + memberName + ' from this family space? They will immediately lose access.', function() { _doRemoveSibling(memberId, memberName); }, 'Remove family member'); return;
   supaPost('profiles?id=eq.' + memberId, { family_status: 'deactivated' }, 'PATCH').then(function() {
     updateFamilyMembers();
   });
@@ -1392,7 +1411,7 @@ function saveConcern() {
 }
 
 function escalateConcern(id, div) {
-  if (!confirm('This will notify the care home manager about your concern. They will be able to see the details and respond. Continue?')) return;
+  kindredConfirm('This will notify the care home manager about your concern. They will be able to see the details and respond.', function() { _doEscalateConcern(id, div); }, 'Escalate to manager'); return;
   supaPost('family_concerns?id=eq.' + id, {
     status: 'escalated',
     escalated_at: new Date().toISOString()
@@ -1966,7 +1985,7 @@ function loadStaff() {
 }
 
 function deactivateNurse(inviteId) {
-  if (!confirm('Deactivate this nurse? They will immediately lose access to Kindred.')) return;
+  kindredConfirm('Deactivate this nurse? They will immediately lose access to Kindred.', function() { _doDeactivateNurse(inviteId); }, 'Deactivate nurse'); return;
   supaPost('nurse_invites?id=eq.' + inviteId, { status: 'deactivated' }, 'PATCH').then(function() {
     loadStaff();
   });
@@ -2369,7 +2388,7 @@ function deleteResident() {
   var fam = window._profileFam;
   if (!fam) return;
   var name = fam.resident_name || 'this resident';
-  if (!confirm('Are you sure you want to remove ' + name + ' from the active residents list?\n\nAll records will be retained for 8 years in line with UK care regulations. You can view deleted records in the admin panel.')) return;
+  kindredConfirm('Remove ' + name + ' from the active residents list? All records are retained for 8 years in line with UK care regulations.', function() { _doDeleteResident(familyId, name); }, 'Remove resident'); return;
   supaPost('families?id=eq.' + fam.id, { status: 'deleted' }, 'PATCH').then(function() {
     showNurseTab('residents');
     alert(name + ' has been removed. All records are securely retained.');
@@ -2400,7 +2419,7 @@ function filterResidents() {
 function recallReview(btn) {
   var reviewId = btn.getAttribute('data-review-id');
   var familyId = btn.getAttribute('data-family-id');
-  if (!confirm('This will create a revised draft for editing and re-approval.\n\nThe original sent review will be kept permanently in the audit trail. The family will see the updated version once a manager re-approves it.\n\nContinue?')) return;
+  kindredConfirm('This will create a revised draft for editing and re-approval. The original sent review is kept permanently in the audit trail.', function() { _doReviseReview(reviewId, content); }, 'Revise review'); return;
 
   btn.disabled = true;
   btn.textContent = 'Loading...';
@@ -2565,5 +2584,19 @@ function getInitials(name) { return (name || '??').split(' ').map(function(w) { 
 function pad(n) { return String(n).padStart(2,'0'); }
 function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); }
 </script>
+
+<!-- CONFIRMATION MODAL -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:8px;" id="confirm-title">Are you sure?</div>
+    <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:20px;" id="confirm-message"></div>
+    <div style="display:flex;gap:8px;">
+      <button id="confirm-yes" style="flex:1;padding:10px;border-radius:8px;border:none;background:#e53e3e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Yes, continue</button>
+      <button id="confirm-no" style="flex:1;padding:10px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#fff;color:#444;font-size:13px;font-weight:500;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+<style>#confirm-modal{display:none;}#confirm-modal.open{display:flex;}</style>
+
 </body>
 </html>
