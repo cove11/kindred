@@ -2300,7 +2300,13 @@ function openResidentProfile(fam, residentName, familyName) {
     html += '<div class="card-head"><span class="card-title">Family contact</span></div>';
     html += '<div class="card-body">';
     html += '<div class="row"><span class="row-label">Contact name</span><span class="row-value">' + esc(familyName || '—') + '</span></div>';
-    html += '<div class="row"><span class="row-label">Portal status</span><span class="row-value">' + (fam.resident_invite_used ? '<span class="tag" style="background:#dcfce7;color:#166534;">Active</span>' : '<span class="tag tag-amber">Invite pending</span>') + '</span></div>';
+    var portalStatusTag;
+    if (fam.resident_invite_used) {
+      portalStatusTag = '<span class="tag" style="background:#dcfce7;color:#166534;">Active</span>';
+    } else {
+      portalStatusTag = '<span class="tag tag-amber">No family linked yet</span>';
+    }
+    html += '<div class="row"><span class="row-label">Portal status</span><span class="row-value">' + portalStatusTag + '</span></div>';
     if (!fam.resident_invite_used && fam.resident_invite_token) {
       var inviteUrl = window.location.origin + '/index.html?family_invite=' + fam.resident_invite_token;
       html += '<div class="row"><span class="row-label">Invite link</span><button class="btn" style="font-size:11px;padding:3px 8px;" onclick="copyInviteLink(this)" data-url="' + inviteUrl + '">Copy invite link</button></div>';
