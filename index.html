@@ -141,18 +141,21 @@ window.onload = function() {
 
   // If arriving via invite link, hide resident name & care home fields — already known from token
   if (familyInviteToken || siblingInviteToken) {
-    var resField = document.getElementById('f-resident');
-    var homeField = document.getElementById('f-carehome-family');
-    if (resField) resField.style.display = 'none';
-    if (homeField) homeField.style.display = 'none';
-    // Also show a friendly message
-    var infoEl = document.createElement('div');
-    infoEl.style.cssText = 'background:#e8f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:9px 12px;font-size:12px;color:#1a5c3a;margin-bottom:12px;line-height:1.5;';
-    infoEl.textContent = "You've been invited to a family portal. Just create your account below — your resident will be linked automatically.";
-    var roleRow = document.querySelector('.role-row');
-    if (roleRow) roleRow.insertAdjacentElement('afterend', infoEl);
-    // Hide role selector — they can only be family
-    if (roleRow) roleRow.style.display = 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+      var resField = document.getElementById('f-resident');
+      var homeField = document.getElementById('f-carehome-family');
+      if (resField) resField.style.display = 'none';
+      if (homeField) homeField.style.display = 'none';
+      var roleRow = document.querySelector('.role-row');
+      if (roleRow) roleRow.style.display = 'none';
+    });
+    // Also run immediately in case DOM is already loaded
+    var resField2 = document.getElementById('f-resident');
+    var homeField2 = document.getElementById('f-carehome-family');
+    if (resField2) resField2.style.display = 'none';
+    if (homeField2) homeField2.style.display = 'none';
+    var roleRow2 = document.querySelector('.role-row');
+    if (roleRow2) roleRow2.style.display = 'none';
   }
   var nurseInviteToken = params.get('nurse_invite');
 
