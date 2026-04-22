@@ -264,6 +264,40 @@ function doSignIn() {
         sibling_invite_token: profile.sibling_invite_token || null,
         demo: false
       };
+      // ── Check nurse isn't deactivated ──
+      if (userData.role === 'nurse' || userData.role === 'manager') {
+        fetch('https://xmeeyeeddayyoaxoiypd.supabase.co/rest/v1/nurse_invites?email=eq.' + encodeURIComponent(email) + '&select=status&order=created_at.desc&limit=1', {
+          headers: { 'apikey': AKEY, 'Authorization': 'Bearer ' + bearerToken }
+        }).then(function(res) { return res.json(); }).then(function(invites) {
+          if (invites && invites.length > 0 && invites[0].status === 'deactivated') {
+            sb.auth.signOut();
+            localStorage.removeItem('kindred_user');
+            localStorage.removeItem('supa_token');
+            showMsg('err', 'Your account has been deactivated. Please contact your care home manager.');
+            setLoading('btn-signin', false, 'Sign in');
+            return;
+          }
+          localStorage.setItem('kindred_user', JSON.stringify(userData));
+          window.location.href = 'app.html';
+        }).catch(function() {
+          localStorage.setItem('kindred_user', JSON.stringify(userData));
+          window.location.href = 'app.html';
+        });
+        return;
+      }
+
+      // ── Check family member isn't deactivated ──
+      if (userData.role === 'family' && userData.id) {
+        if (profile.family_status === 'deactivated') {
+          sb.auth.signOut();
+          localStorage.removeItem('kindred_user');
+          localStorage.removeItem('supa_token');
+          showMsg('err', 'Your access to this family portal has been removed. Please contact the primary family contact.');
+          setLoading('btn-signin', false, 'Sign in');
+          return;
+        }
+      }
+
       localStorage.setItem('kindred_user', JSON.stringify(userData));
       window.location.href = 'app.html';
     }).catch(function() {
