@@ -1689,6 +1689,7 @@ function saveDraftAndApprove() {
   if (text && selectedResident) autoSaveDraft(text);
   showNurseTab('approve');
   loadDraftForApprove();
+  setTimeout(function() { loadWardDrafts(); loadNursePendingDrafts(); }, 800);
 }
 
 function loadDraftForApprove() {
@@ -2021,6 +2022,7 @@ function deactivateNurse(inviteId) {
   kindredConfirm('Deactivate this nurse? They will immediately lose access to Kindred.', function() {
     supaPost('nurse_invites?id=eq.' + inviteId, { status: 'deactivated' }, 'PATCH').then(function() {
       loadStaff();
+      setTimeout(function() { loadWardDrafts(); loadManagerPendingCount(); }, 600);
     });
   }, 'Deactivate nurse');
 }
@@ -2425,6 +2427,7 @@ function deleteResident() {
   kindredConfirm('Remove ' + name + ' from the active residents list? All records are retained for 8 years in line with UK care regulations.', function() {
     supaPost('families?id=eq.' + fam.id, { status: 'deleted' }, 'PATCH').then(function() {
       showNurseTab('residents');
+      setTimeout(function() { loadNursePortal(); }, 800);
       alert(name + ' has been removed. All records are securely retained.');
     }).catch(function() {
       alert('Could not delete resident. Please try again.');
