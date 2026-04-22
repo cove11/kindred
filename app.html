@@ -1202,10 +1202,11 @@ function updateFamilyMembers() {
 }
 
 function removeSibling(memberId, memberName) {
-  kindredConfirm('Remove ' + memberName + ' from this family space? They will immediately lose access.', function() { _doRemoveSibling(memberId, memberName); }, 'Remove family member'); return;
-  supaPost('profiles?id=eq.' + memberId, { family_status: 'deactivated' }, 'PATCH').then(function() {
-    updateFamilyMembers();
-  });
+  kindredConfirm('Remove ' + memberName + ' from this family space? They will immediately lose access.', function() {
+    supaPost('profiles?id=eq.' + memberId, { family_status: 'deactivated' }, 'PATCH').then(function() {
+      updateFamilyMembers();
+    });
+  }, 'Remove family member');
 }
 
 // ── MESSAGES ──
@@ -1421,15 +1422,16 @@ function saveConcern() {
 }
 
 function escalateConcern(id, div) {
-  kindredConfirm('This will notify the care home manager about your concern. They will be able to see the details and respond.', function() { _doEscalateConcern(id, div); }, 'Escalate to manager'); return;
-  supaPost('family_concerns?id=eq.' + id, {
-    status: 'escalated',
-    escalated_at: new Date().toISOString()
-  }, 'PATCH').then(function() {
-    loadConcerns();
-  }).catch(function() {
-    alert('Could not escalate. Please try again.');
-  });
+  kindredConfirm('This will notify the care home manager about your concern. They will be able to see the details and respond.', function() {
+    supaPost('family_concerns?id=eq.' + id, {
+      status: 'escalated',
+      escalated_at: new Date().toISOString()
+    }, 'PATCH').then(function() {
+      loadConcerns();
+    }).catch(function() {
+      alert('Could not escalate. Please try again.');
+    });
+  }, 'Escalate to manager');
 }
 
 // ── LOAD LOG ──
@@ -2001,10 +2003,11 @@ function loadStaff() {
 }
 
 function deactivateNurse(inviteId) {
-  kindredConfirm('Deactivate this nurse? They will immediately lose access to Kindred.', function() { _doDeactivateNurse(inviteId); }, 'Deactivate nurse'); return;
-  supaPost('nurse_invites?id=eq.' + inviteId, { status: 'deactivated' }, 'PATCH').then(function() {
-    loadStaff();
-  });
+  kindredConfirm('Deactivate this nurse? They will immediately lose access to Kindred.', function() {
+    supaPost('nurse_invites?id=eq.' + inviteId, { status: 'deactivated' }, 'PATCH').then(function() {
+      loadStaff();
+    });
+  }, 'Deactivate nurse');
 }
 
 function copyText(text) {
@@ -2404,13 +2407,14 @@ function deleteResident() {
   var fam = window._profileFam;
   if (!fam) return;
   var name = fam.resident_name || 'this resident';
-  kindredConfirm('Remove ' + name + ' from the active residents list? All records are retained for 8 years in line with UK care regulations.', function() { _doDeleteResident(familyId, name); }, 'Remove resident'); return;
-  supaPost('families?id=eq.' + fam.id, { status: 'deleted' }, 'PATCH').then(function() {
-    showNurseTab('residents');
-    alert(name + ' has been removed. All records are securely retained.');
-  }).catch(function() {
-    alert('Could not delete resident. Please try again.');
-  });
+  kindredConfirm('Remove ' + name + ' from the active residents list? All records are retained for 8 years in line with UK care regulations.', function() {
+    supaPost('families?id=eq.' + fam.id, { status: 'deleted' }, 'PATCH').then(function() {
+      showNurseTab('residents');
+      alert(name + ' has been removed. All records are securely retained.');
+    }).catch(function() {
+      alert('Could not delete resident. Please try again.');
+    });
+  }, 'Remove resident');
 }
 
 function copyInviteLink(btn) {
@@ -2435,8 +2439,6 @@ function filterResidents() {
 function recallReview(btn) {
   var reviewId = btn.getAttribute('data-review-id');
   var familyId = btn.getAttribute('data-family-id');
-  kindredConfirm('This will create a revised draft for editing and re-approval. The original sent review is kept permanently in the audit trail.', function() { _doReviseReview(reviewId, content); }, 'Revise review'); return;
-
   btn.disabled = true;
   btn.textContent = 'Loading...';
 
