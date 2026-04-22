@@ -589,16 +589,23 @@ function kindredConfirm(message, onYes, title) {
   document.getElementById('confirm-title').textContent = title || 'Are you sure?';
   document.getElementById('confirm-message').textContent = message;
   modal.classList.add('open');
-  var yesBtn = document.getElementById('confirm-yes');
-  var noBtn = document.getElementById('confirm-no');
+
   function cleanup() {
     modal.classList.remove('open');
-    yesBtn.replaceWith(yesBtn.cloneNode(true));
-    noBtn.replaceWith(noBtn.cloneNode(true));
   }
-  document.getElementById('confirm-yes').addEventListener('click', function() { cleanup(); onYes(); });
-  document.getElementById('confirm-no').addEventListener('click', function() { cleanup(); });
-  modal.addEventListener('click', function(e) { if (e.target === modal) cleanup(); }, { once: true });
+
+  var yesBtn = document.getElementById('confirm-yes');
+  var noBtn = document.getElementById('confirm-no');
+
+  // Clone to remove any old listeners
+  var newYes = yesBtn.cloneNode(true);
+  var newNo = noBtn.cloneNode(true);
+  yesBtn.parentNode.replaceChild(newYes, yesBtn);
+  noBtn.parentNode.replaceChild(newNo, noBtn);
+
+  newYes.addEventListener('click', function() { cleanup(); onYes(); });
+  newNo.addEventListener('click', function() { cleanup(); });
+  modal.onclick = function(e) { if (e.target === modal) cleanup(); };
 }
 
 // ── CONFIG ──
