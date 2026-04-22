@@ -1237,11 +1237,7 @@ function loadMessages() {
     });
     thread.scrollTop = thread.scrollHeight;
   }).catch(function() {
-    // fallback to localStorage
-    var saved = JSON.parse(localStorage.getItem('k_messages') || '[]');
-    if (saved.length === 0) { thread.innerHTML = '<div class="empty">No messages yet. Start the conversation.</div>'; return; }
-    thread.innerHTML = '';
-    saved.forEach(function(msg) { thread.appendChild(buildMsgEl(msg)); });
+    thread.innerHTML = '<div class="empty">Could not load messages. Check your connection.</div>';
   });
 }
 
@@ -1277,10 +1273,7 @@ function sendMsg() {
     sender_name: currentUser.name,
     content: text
   }).catch(function() {
-    // fallback localStorage
-    var saved = JSON.parse(localStorage.getItem('k_messages') || '[]');
-    saved.push({ text: text, isMe: true, author: currentUser.name, time: time, ts: Date.now() });
-    localStorage.setItem('k_messages', JSON.stringify(saved));
+    console.log('Message save failed - check connection');
   });
 }
 
@@ -1317,11 +1310,16 @@ function initEmergencyCard() {
 
 // ── VISIT NOTES ──
 function loadVisits() {
-  var saved = JSON.parse(localStorage.getItem('k_visits') || '[]');
   var list = document.getElementById('visits-list');
-  if (saved.length === 0) { list.innerHTML = '<div class="empty">No visit notes yet. Log your first visit above.</div>'; return; }
-  list.innerHTML = '';
-  saved.forEach(function(n) { list.appendChild(buildVisitEl(n)); });
+  if (!currentUser.family_id) return;
+  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading...</div>';
+  supaFetch('family_visit_notes?family_id=eq.' + currentUser.family_id + '&order=created_at.desc').then(function(rows) {
+    list.innerHTML = '';
+    if (!rows || rows.length === 0) { list.innerHTML = '<div class="empty">No visit notes yet. Log your first visit above.</div>'; return; }
+    rows.forEach(function(n) { list.appendChild(buildVisitEl({mood: n.mood, text: n.note, author: n.author, date: new Date(n.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})})); });
+  }).catch(function() {
+    list.innerHTML = '<div class="empty">Could not load visit notes.</div>';
+  });
 }
 
 function buildVisitEl(n) {
@@ -1337,15 +1335,17 @@ function saveVisit() {
   var mood = getPill('visit-mood-pills') || 'Good spirits';
   var text = document.getElementById('visit-text').value.trim();
   if (!text) return;
-  var n = { mood: mood, text: text, author: currentUser.name, date: dateStr(), ts: Date.now() };
-  var list = document.getElementById('visits-list');
-  if (list.querySelector('.empty')) list.innerHTML = '';
-  list.insertBefore(buildVisitEl(n), list.firstChild);
+  if (!currentUser.family_id) return;
+  supaPost('family_visit_notes', {
+    family_id: currentUser.family_id,
+    author: currentUser.name,
+    mood: mood,
+    note: text
+  }).then(function() {
+    loadVisits();
+  });
   document.getElementById('visit-text').value = '';
   document.getElementById('visit-compose').style.display = 'none';
-  var saved = JSON.parse(localStorage.getItem('k_visits') || '[]');
-  saved.unshift(n);
-  localStorage.setItem('k_visits', JSON.stringify(saved));
 }
 
 // ── CONCERNS ──
@@ -1361,10 +1361,7 @@ function loadConcerns() {
     }
     concerns.forEach(function(c) { list.appendChild(buildConcernEl(c)); });
   }).catch(function() {
-    var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
-    list.innerHTML = '';
-    if (saved.length === 0) { list.innerHTML = '<div class="empty">No concerns logged yet.</div>'; return; }
-    saved.forEach(function(c) { list.appendChild(buildConcernEl(c)); });
+    list.innerHTML = '<div class="empty">Could not load concerns. Check your connection.</div>';
   });
 }
 
@@ -1422,10 +1419,7 @@ function saveConcern() {
   }).then(function() {
     loadConcerns();
   }).catch(function() {
-    var saved = JSON.parse(localStorage.getItem('k_concerns') || '[]');
-    saved.unshift({ type: type, sev: sev, text: text, author: currentUser.name, date: dateStr(), ts: Date.now() });
-    localStorage.setItem('k_concerns', JSON.stringify(saved));
-    loadConcerns();
+    console.log('Concern save failed - check connection');
   });
 }
 
@@ -1444,22 +1438,28 @@ function escalateConcern(id, div) {
 
 // ── LOAD LOG ──
 function loadLog() {
-  var saved = JSON.parse(localStorage.getItem('k_load') || '[]');
   var list = document.getElementById('load-log');
-  if (saved.length === 0) { list.innerHTML = '<div class="empty" style="padding:20px;">Nothing logged yet.</div>'; return; }
-  list.innerHTML = '';
-  saved.forEach(function(item) {
-    var div = document.createElement('div');
-    div.className = 'card';
-    div.style.marginBottom = '6px';
-    div.innerHTML = '<div class="card-body" style="padding:8px 13px;"><div class="row" style="border:none;padding:0;"><span class="row-label">' + esc(item.type) + '</span><span class="row-value" style="font-size:12px;">' + esc(item.date) + ' · ' + esc(item.note) + '</span></div></div>';
-    list.appendChild(div);
+  if (!currentUser.family_id) return;
+  list.innerHTML = '<div class="empty" style="padding:20px;color:#aaa;">Loading...</div>';
+  supaFetch('family_load_log?family_id=eq.' + currentUser.family_id + '&order=created_at.desc').then(function(rows) {
+    list.innerHTML = '';
+    if (!rows || rows.length === 0) { list.innerHTML = '<div class="empty" style="padding:20px;">Nothing logged yet.</div>'; return; }
+    rows.forEach(function(item) {
+      var div = document.createElement('div');
+      div.className = 'card';
+      div.style.marginBottom = '6px';
+      var date = new Date(item.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+      div.innerHTML = '<div class="card-body" style="padding:8px 13px;"><div class="row" style="border:none;padding:0;"><span class="row-label">' + esc(item.type) + '</span><span class="row-value" style="font-size:12px;">' + date + ' · ' + esc(item.note || item.type) + '</span></div></div>';
+      list.appendChild(div);
+    });
+    // Update load members count
+    var members = document.getElementById('load-members');
+    var now = new Date(); var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    var monthCount = rows.filter(function(r) { return new Date(r.created_at) >= monthStart; }).length;
+    members.innerHTML = '<div class="member-row"><div class="av">' + getInitials(currentUser.name) + '</div><div style="flex:1"><div style="font-size:13px;font-weight:500;">' + esc(currentUser.name) + '</div><div style="font-size:11px;color:#aaa;">' + monthCount + ' item' + (monthCount !== 1 ? 's' : '') + ' logged this month</div></div><span class="tag tag-green">You</span></div>';
+  }).catch(function() {
+    list.innerHTML = '<div class="empty" style="padding:20px;">Could not load activity.</div>';
   });
-
-  // Update load members
-  var members = document.getElementById('load-members');
-  var logCount = saved.length;
-  members.innerHTML = '<div class="member-row"><div class="av">' + getInitials(currentUser.name) + '</div><div style="flex:1"><div style="font-size:13px;font-weight:500;">' + esc(currentUser.name) + '</div><div style="font-size:11px;color:#aaa;">' + logCount + ' item' + (logCount !== 1 ? 's' : '') + ' logged this month</div></div><span class="tag tag-green">You</span></div>';
 }
 
 function showLogModal() { document.getElementById('log-modal').classList.add('open'); }
@@ -1473,10 +1473,12 @@ function logActivity(btn, type, desc) {
   setTimeout(function() {
     closeLogModal();
     document.getElementById('log-note').value = '';
-    var saved = JSON.parse(localStorage.getItem('k_load') || '[]');
-    saved.unshift(item);
-    localStorage.setItem('k_load', JSON.stringify(saved));
-    loadLog();
+    supaPost('family_load_log', {
+      family_id: currentUser.family_id,
+      author_name: currentUser.name,
+      type: type,
+      note: note
+    }).then(function() { loadLog(); });
     document.querySelectorAll('.log-btn').forEach(function(b) { b.classList.remove('logged'); b.textContent = b.textContent.replace('✓ ', ''); });
   }, 600);
 }
@@ -1499,16 +1501,10 @@ function loadReviews() {
         }));
       }
     }).catch(function() {
-      // Fall back to localStorage
-      var saved = JSON.parse(localStorage.getItem('k_reviews') || '[]');
-      if (saved.length > 0) renderReviews(saved);
+      list.innerHTML = '<div class="empty">Could not load reviews. Check your connection.</div>';
     });
     return;
   }
-
-  var saved = JSON.parse(localStorage.getItem('k_reviews') || '[]');
-  if (saved.length === 0) return;
-  renderReviews(saved);
 }
 
 function renderReviews(reviews) {
