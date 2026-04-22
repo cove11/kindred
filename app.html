@@ -1764,6 +1764,21 @@ function sendReview() {
     return;
   }
 
+  // If draft ID not yet loaded (race condition), fetch it first then proceed
+  if (!window._currentDraftId) {
+    supaFetch('reviews?family_id=eq.' + selectedResident.id + '&status=eq.draft&select=id&order=created_at.desc&limit=1').then(function(drafts) {
+      if (drafts && drafts.length > 0) {
+        window._currentDraftId = drafts[0].id;
+      }
+      _doSendReview(btn);
+    }).catch(function() { _doSendReview(btn); });
+    return;
+  }
+  _doSendReview(btn);
+}
+
+function _doSendReview(btn) {
+
   var summaryText = localStorage.getItem('k_draft_summary') || document.getElementById('summary-show').innerText;
   var nurseNote = document.getElementById('nurse-note').value.trim();
 
