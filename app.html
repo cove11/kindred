@@ -504,7 +504,15 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
             <div class="field"><label>Building <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-building" placeholder="e.g. Maple Wing"/></div>
             <div class="field"><label>Room number <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-room" placeholder="e.g. 14B"/></div>
           </div>
-          <div class="field"><label>Date of birth <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-dob" placeholder="e.g. 12/03/1946"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>Date of birth <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="date" id="res-dob"/></div>
+            <div class="field"><label>Date admitted <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="date" id="res-admitted"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>NHS number <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-nhs" placeholder="e.g. 943 476 5919"/></div>
+            <div class="field"><label>GP name <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-gp" placeholder="e.g. Dr Sarah Jones"/></div>
+          </div>
+          <div class="field"><label>Allergies <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-allergies" placeholder="e.g. Penicillin, latex"/></div>
           <div class="field"><label>Care type</label>
             <div class="pills" id="res-care-type">
               <div class="pill on" data-v="residential">Residential</div>
@@ -1845,7 +1853,11 @@ function addResident() {
   var funding = getPill('res-funding') || 'private';
   var building = document.getElementById('res-building') ? document.getElementById('res-building').value.trim() : '';
   var room = document.getElementById('res-room').value.trim();
-  var dob = document.getElementById('res-dob').value.trim();
+  var dob = document.getElementById('res-dob').value || null;
+  var admitted = document.getElementById('res-admitted') ? document.getElementById('res-admitted').value || null : null;
+  var nhs = document.getElementById('res-nhs') ? document.getElementById('res-nhs').value.trim() || null : null;
+  var gp = document.getElementById('res-gp') ? document.getElementById('res-gp').value.trim() || null : null;
+  var allergies = document.getElementById('res-allergies') ? document.getElementById('res-allergies').value.trim() || null : null;
 
   // Create family record first (placeholder until family signs up)
   supaPost('families', {
@@ -1857,6 +1869,11 @@ function addResident() {
     funding_type: funding,
     building: building || null,
     room_number: room || null,
+    date_of_birth: dob,
+    date_admitted: admitted,
+    nhs_number: nhs,
+    gp_name: gp,
+    allergies: allergies,
     status: 'pending'
   }).then(function(data) {
     if (!data || !data[0]) { alert('Could not add resident. Please try again.'); return; }
@@ -1882,6 +1899,10 @@ function addResident() {
       document.getElementById('res-name').value = '';
       document.getElementById('res-room').value = '';
       document.getElementById('res-dob').value = '';
+      if (document.getElementById('res-admitted')) document.getElementById('res-admitted').value = '';
+      if (document.getElementById('res-nhs')) document.getElementById('res-nhs').value = '';
+      if (document.getElementById('res-gp')) document.getElementById('res-gp').value = '';
+      if (document.getElementById('res-allergies')) document.getElementById('res-allergies').value = '';
 
       // Refresh residents list
       loadResidents();
