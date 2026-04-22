@@ -164,6 +164,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;
     <button class="nav-tab" onclick="showPage('care-homes')">Care homes</button>
     <button class="nav-tab" onclick="showPage('residents')">Residents</button>
     <button class="nav-tab" onclick="showPage('nurses')">Nurses</button>
+    <button class="nav-tab" onclick="showPage('families')">Families</button>
     <button class="nav-tab" onclick="showPage('activity')">Activity</button>
   </div>
 
@@ -260,6 +261,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;
           <span class="section-title">All residents</span>
           <button class="section-btn" onclick="openAddResident()">+ Add resident</button>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input type="text" id="res-search" placeholder="Search by name or care home..." oninput="filterAdminList('residents-list','res-search')" style="flex:1;padding:7px 11px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;"/>
+          <select id="res-filter-home" onchange="filterAdminList('residents-list','res-search')" style="padding:7px 10px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;">
+            <option value="">All care homes</option>
+          </select>
+        </div>
         <div class="table">
           <div class="table-head residents-grid">
             <span>Resident</span>
@@ -281,6 +288,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;
           <span class="section-title">All nurses &amp; staff</span>
           <button class="section-btn" onclick="openAddNurse()">+ Add nurse</button>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input type="text" id="nur-search" placeholder="Search by name or email..." oninput="filterAdminList('nurses-list','nur-search')" style="flex:1;padding:7px 11px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;"/>
+          <select id="nur-filter-status" onchange="filterAdminList('nurses-list','nur-search')" style="padding:7px 10px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="deactivated">Deactivated</option>
+          </select>
+        </div>
         <div class="table">
           <div class="table-head nurses-grid">
             <span>Name / Email</span>
@@ -290,6 +306,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;
             <span>Actions</span>
           </div>
           <div id="nurses-list"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAMILIES PAGE -->
+    <div class="page" id="page-families">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">All families</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input type="text" id="fam-search" placeholder="Search by name, email or resident..." oninput="filterAdminList('families-list','fam-search')" style="flex:1;padding:7px 11px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;"/>
+          <select id="fam-filter-status" onchange="filterAdminList('families-list','fam-search')" style="padding:7px 10px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;">
+            <option value="">All statuses</option>
+            <option value="active">Portal active</option>
+            <option value="pending">Awaiting</option>
+          </select>
+          <select id="fam-filter-home" onchange="filterAdminList('families-list','fam-search')" style="padding:7px 10px;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;font-size:13px;background:#2a2a2a;color:#e8e6e0;">
+            <option value="">All care homes</option>
+          </select>
+        </div>
+        <div class="table">
+          <div class="table-head" style="display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1fr 1fr;gap:8px;">
+            <span>Family contact</span>
+            <span>Resident</span>
+            <span>Care home</span>
+            <span>Portal status</span>
+            <span>Joined</span>
+          </div>
+          <div id="families-list"><div class="loading">Loading...</div></div>
         </div>
       </div>
     </div>
@@ -491,7 +537,7 @@ document.getElementById('admin-pass').addEventListener('keydown', function(e) { 
 function showPage(name) {
   currentPage = name;
   document.querySelectorAll('.nav-tab').forEach(function(t, i) {
-    var pages = ['overview','care-homes','residents','nurses','activity'];
+    var pages = ['overview','care-homes','residents','nurses','families','activity'];
     t.classList.toggle('active', pages[i] === name);
   });
   document.querySelectorAll('.page').forEach(function(p) {
@@ -517,6 +563,87 @@ function supaPost(endpoint, data, method) {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(data)
   }).then(function(r) { return r.json(); }).catch(function() { return null; });
+}
+
+function filterAdminList(listId, searchId) {
+  var q = (document.getElementById(searchId).value || '').toLowerCase();
+  // Check for additional filter dropdowns
+  var statusFilter = '';
+  var homeFilter = '';
+  if (listId === 'nurses-list') {
+    var sf = document.getElementById('nur-filter-status');
+    if (sf) statusFilter = sf.value.toLowerCase();
+  }
+  if (listId === 'families-list') {
+    var sf2 = document.getElementById('fam-filter-status');
+    if (sf2) statusFilter = sf2.value.toLowerCase();
+    var hf = document.getElementById('fam-filter-home');
+    if (hf) homeFilter = hf.value.toLowerCase();
+  }
+  if (listId === 'residents-list') {
+    var hf2 = document.getElementById('res-filter-home');
+    if (hf2) homeFilter = hf2.value.toLowerCase();
+  }
+  var rows = document.querySelectorAll('#' + listId + ' .table-row');
+  rows.forEach(function(row) {
+    var text = (row.dataset.search || row.textContent || '').toLowerCase();
+    var status = (row.dataset.status || '').toLowerCase();
+    var home = (row.dataset.home || '').toLowerCase();
+    var matchQ = !q || text.includes(q);
+    var matchStatus = !statusFilter || status.includes(statusFilter);
+    var matchHome = !homeFilter || home.includes(homeFilter);
+    row.style.display = (matchQ && matchStatus && matchHome) ? '' : 'none';
+  });
+}
+
+function loadFamilies() {
+  var list = document.getElementById('families-list');
+  list.innerHTML = '<div class="loading">Loading...</div>';
+  supaFetch('profiles?role=eq.family&select=id,name,email,created_at,resident_name,care_home,care_home_id,family_id&order=created_at.desc').then(function(profiles) {
+    if (!profiles || profiles.length === 0) { list.innerHTML = '<div class="empty-row">No families yet.</div>'; return; }
+
+    // Also fetch families table to get invite status
+    supaFetch('families?select=id,resident_invite_used,primary_contact_id').then(function(families) {
+      var inviteMap = {};
+      if (families) families.forEach(function(f) { inviteMap[f.id] = f.resident_invite_used; });
+
+      // Populate care home filter
+      var homeFilter = document.getElementById('fam-filter-home');
+      if (homeFilter && homeFilter.options.length === 1) {
+        var homes = [...new Set(profiles.map(function(p) { return p.care_home; }).filter(Boolean))];
+        homes.forEach(function(h) {
+          var opt = document.createElement('option');
+          opt.value = h.toLowerCase();
+          opt.textContent = h;
+          homeFilter.appendChild(opt);
+        });
+      }
+
+      list.innerHTML = '';
+      profiles.forEach(function(p) {
+        var isActive = p.family_id ? inviteMap[p.family_id] : false;
+        var statusTag = isActive
+          ? '<span class="tag tag-green" style="font-size:11px;">Active</span>'
+          : '<span class="tag tag-amber" style="font-size:11px;">Awaiting</span>';
+        var joined = p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '—';
+        var row = document.createElement('div');
+        row.className = 'table-row';
+        row.style.gridTemplateColumns = '2fr 1.5fr 1.5fr 1fr 1fr';
+        row.dataset.search = ((p.name||'') + ' ' + (p.email||'') + ' ' + (p.resident_name||'') + ' ' + (p.care_home||'')).toLowerCase();
+        row.dataset.status = isActive ? 'active' : 'pending';
+        row.dataset.home = (p.care_home||'').toLowerCase();
+        row.innerHTML =
+          '<div><div class="cell-main">' + esc(p.name || 'Unknown') + '</div><div class="cell-sub">' + esc(p.email || '') + '</div></div>' +
+          '<div class="cell-text">' + esc(p.resident_name || '—') + '</div>' +
+          '<div class="cell-text">' + esc(p.care_home || '—') + '</div>' +
+          '<div>' + statusTag + '</div>' +
+          '<div class="cell-text" style="font-size:12px;">' + joined + '</div>';
+        list.appendChild(row);
+      });
+    });
+  }).catch(function() {
+    list.innerHTML = '<div class="empty-row">Could not load families.</div>';
+  });
 }
 
 function loadAll() {
@@ -776,6 +903,8 @@ function loadResidents() {
             ? '<span class="tag tag-green">Linked</span>'
             : '<span class="tag tag-amber">Awaiting</span>';
 
+          row.dataset.search = ((fam.resident_name||'') + ' ' + (fam.name||'') + ' ' + (homeName||'')).toLowerCase();
+          row.dataset.home = homeName.toLowerCase();
           row.innerHTML =
             '<div><div class="cell-main">' + esc(fam.resident_name || 'Unknown') + '</div><div class="cell-sub">' + esc(fam.name || '') + '</div></div>' +
             '<div class="cell-text">' + esc(homeName) + '</div>' +
