@@ -1026,10 +1026,11 @@ function loadNurses() {
     if (!nurses || nurses.length === 0) { list.innerHTML = '<div class="empty-row">No nurses invited yet.</div>'; return; }
     list.innerHTML = '';
     nurses.forEach(function(n) {
+      try {
       var row = document.createElement('div');
       row.className = 'table-row nurses-grid';
-      row.dataset.search = ((invite.name||'') + ' ' + (invite.email||'') + ' ' + (invite.care_home||'')).toLowerCase();
-      row.dataset.status = (invite.status||'').toLowerCase();
+      row.dataset.search = ((n.name||'') + ' ' + (n.email||'') + ' ' + (homeName||'')).toLowerCase();
+      row.dataset.status = (n.status||'').toLowerCase();
       var homeName = n.care_homes ? n.care_homes.name : '—';
       var statusClass = n.status === 'active' ? 'tag-green' : n.status === 'deactivated' ? 'tag-red' : 'tag-amber';
       row.innerHTML =
@@ -1039,6 +1040,7 @@ function loadNurses() {
         '<div><span class="tag ' + statusClass + '">' + cap(n.status) + '</span></div>' +
         '<div id="na-' + n.id + '"></div>';
       list.appendChild(row);
+      } catch(e) { console.log('Nurse row error:', e.message, n); }
 
       var ac = document.getElementById('na-' + n.id);
       if (n.status === 'pending') {
