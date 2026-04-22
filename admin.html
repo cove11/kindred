@@ -545,10 +545,10 @@ function showPage(name) {
     p.classList.toggle('active', p.id === 'page-' + name);
   });
   if (name === 'care-homes') { loadCareHomes(); loadManagerInvites(); }
-  if (name === 'residents') setTimeout(loadResidents, 300);
-  if (name === 'nurses') setTimeout(loadNurses, 300);
-  if (name === 'families') setTimeout(loadFamilies, 300);
-  if (name === 'activity') loadActivity('full-activity', 50);
+  if (name === 'residents') setTimeout(loadResidents, 800);
+  if (name === 'nurses') setTimeout(loadNurses, 800);
+  if (name === 'families') setTimeout(loadFamilies, 800);
+  if (name === 'activity') setTimeout(function(){ loadActivity('full-activity', 50); }, 800);
 }
 
 // ── DATA ──
