@@ -141,21 +141,12 @@ window.onload = function() {
 
   // If arriving via invite link, hide resident name & care home fields — already known from token
   if (familyInviteToken || siblingInviteToken) {
-    document.addEventListener('DOMContentLoaded', function() {
-      var resField = document.getElementById('f-resident');
-      var homeField = document.getElementById('f-carehome-family');
-      if (resField) resField.style.display = 'none';
-      if (homeField) homeField.style.display = 'none';
-      var roleRow = document.querySelector('.role-row');
-      if (roleRow) roleRow.style.display = 'none';
-    });
-    // Also run immediately in case DOM is already loaded
-    var resField2 = document.getElementById('f-resident');
-    var homeField2 = document.getElementById('f-carehome-family');
-    if (resField2) resField2.style.display = 'none';
-    if (homeField2) homeField2.style.display = 'none';
-    var roleRow2 = document.querySelector('.role-row');
-    if (roleRow2) roleRow2.style.display = 'none';
+    var resField = document.getElementById('f-resident');
+    var homeField = document.getElementById('f-carehome-family');
+    if (resField) resField.style.display = 'none';
+    if (homeField) homeField.style.display = 'none';
+    var roleRow = document.querySelector('.role-row');
+    if (roleRow) roleRow.style.display = 'none';
   }
   var nurseInviteToken = params.get('nurse_invite');
 
@@ -222,7 +213,8 @@ function pickRole(r) {
     document.getElementById('r-manager').classList.toggle('sel', r === 'manager');
     document.getElementById('r-manager').style.display = r === 'manager' ? 'block' : 'none';
   }
-  document.getElementById('f-resident').style.display = r === 'family' ? 'block' : 'none';
+  var onInvite = !!(window.pendingFamilyInvite || window.pendingSiblingInvite);
+  document.getElementById('f-resident').style.display = (r === 'family' && !onInvite) ? 'block' : 'none';
   document.getElementById('f-nurse-invite').style.display = r === 'nurse' ? 'block' : 'none';
   document.getElementById('f-manager-invite').style.display = r === 'manager' ? 'block' : 'none';
 }
