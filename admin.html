@@ -65,6 +65,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;
 .invites-grid{grid-template-columns:2fr 1.5fr 1fr 1fr 150px;}
 .residents-grid{grid-template-columns:2fr 1.5fr 1fr 1fr 1fr 100px;}
 .nurses-grid{grid-template-columns:2fr 1.5fr 1.5fr 1fr 100px;}
+.families-grid{grid-template-columns:2fr 1.5fr 1.5fr 1fr 1fr;}
 .cell-main{font-size:13px;font-weight:500;color:#e8e6e0;}
 .cell-sub{font-size:11px;color:#555;margin-top:2px;}
 .cell-text{font-size:13px;color:#888;}
@@ -328,7 +329,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f1117;
           </select>
         </div>
         <div class="table">
-          <div class="table-head" style="display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1fr 1fr;gap:8px;">
+          <div class="table-head families-grid">
             <span>Family contact</span>
             <span>Resident</span>
             <span>Care home</span>
@@ -627,8 +628,7 @@ function loadFamilies() {
           : '<span class="tag tag-amber" style="font-size:11px;">Awaiting</span>';
         var joined = p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '—';
         var row = document.createElement('div');
-        row.className = 'table-row';
-        row.style.gridTemplateColumns = '2fr 1.5fr 1.5fr 1fr 1fr';
+        row.className = 'table-row families-grid';
         row.dataset.search = ((p.name||'') + ' ' + (p.email||'') + ' ' + (p.resident_name||'') + ' ' + (p.care_home||'')).toLowerCase();
         row.dataset.status = isActive ? 'active' : 'pending';
         row.dataset.home = (p.care_home||'').toLowerCase();
@@ -1032,6 +1032,8 @@ function loadNurses() {
     nurses.forEach(function(n) {
       var row = document.createElement('div');
       row.className = 'table-row nurses-grid';
+      row.dataset.search = ((invite.name||'') + ' ' + (invite.email||'') + ' ' + (invite.care_home||'')).toLowerCase();
+      row.dataset.status = (invite.status||'').toLowerCase();
       var homeName = n.care_homes ? n.care_homes.name : '—';
       var statusClass = n.status === 'active' ? 'tag-green' : n.status === 'deactivated' ? 'tag-red' : 'tag-amber';
       row.innerHTML =
