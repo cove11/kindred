@@ -759,9 +759,12 @@ function submitDraftForApproval() {
     confirm.textContent = 'Draft submitted. A manager will review and approve before the family sees it.';
     confirm.style.display = 'block';
   }
+  // Refresh Overview so new draft appears/disappears correctly
   setTimeout(function() {
+    loadWardDrafts();
+    loadNursePendingDrafts();
     if (btn) { btn.disabled = false; btn.textContent = 'Submit for manager approval'; }
-  }, 3000);
+  }, 800);
 }
 
 function loadWardDrafts() {
@@ -1790,6 +1793,12 @@ function sendReview() {
     btn.textContent = 'Sent ✓';
     var notice = document.getElementById('draft-pending-notice');
     if (notice) notice.style.display = 'none';
+    // Refresh Overview so approved review disappears from pending sections
+    setTimeout(function() {
+      loadWardDrafts();
+      loadManagerPendingCount();
+      loadNursePendingDrafts();
+    }, 800);
 
     // Add to sent list
     var sentList = document.getElementById('sent-list');
