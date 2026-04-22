@@ -791,9 +791,9 @@ function loadCareHomes() {
             homeDelBtn.textContent = 'Delete';
             homeDelBtn.addEventListener('click', (function(id, name) {
               return function() {
-                if (confirm('Permanently delete ' + name + ' and ALL associated data (residents, nurse invites, manager invites, families)? This CANNOT be undone.')) {
+                kindredConfirm('Permanently delete ' + name + ' and ALL associated data? This CANNOT be undone.', function() {
                   deleteCareHome(id, name);
-                }
+                }, 'Delete care home');
               };
             })(home.id, home.name));
             ac.appendChild(homeDelBtn);
@@ -844,9 +844,9 @@ function loadManagerInvites() {
         deactBtn.textContent = 'Deactivate';
         deactBtn.addEventListener('click', (function(id) {
           return function() {
-            if (confirm('Deactivate this manager? They will lose access.')) {
+            kindredConfirm('Deactivate this manager? They will lose access.', function() {
               supaPost('manager_invites?id=eq.' + id, { status: 'deactivated' }, 'PATCH').then(function() { loadManagerInvites(); loadStats(); });
-            }
+            }, 'Deactivate manager');
           };
         })(inv.id));
         ac.appendChild(deactBtn);
@@ -856,12 +856,12 @@ function loadManagerInvites() {
       mDelBtn.textContent = 'Delete';
       mDelBtn.addEventListener('click', (function(id, name) {
         return function() {
-          if (confirm('Permanently delete invite for ' + name + '? This cannot be undone.')) {
+          kindredConfirm('Permanently delete invite for ' + name + '? This cannot be undone.', function() {
             fetch(SUPA_URL + '/rest/v1/manager_invites?id=eq.' + id, {
               method: 'DELETE',
               headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
             }).then(function() { loadManagerInvites(); loadCareHomes(); loadStats(); });
-          }
+          }, 'Delete invite');
         };
       })(inv.id, inv.name || inv.email));
       ac.appendChild(mDelBtn);
@@ -943,13 +943,13 @@ function loadResidents() {
           rDelBtn.textContent = 'Delete';
           rDelBtn.addEventListener('click', (function(id, name) {
             return function() {
-              if (confirm('Remove ' + name + ' from active residents?\n\nAll records are retained for 8 years in line with UK care regulations (Care Act 2014). You can view deleted records in the Residents section below.')) {
+              kindredConfirm('Remove ' + name + ' from the active residents list? All records are retained for 8 years (Care Act 2014).', function() {
                 fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, {
                   method: 'PATCH',
                   headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' },
                   body: JSON.stringify({ status: 'deleted' })
                 }).then(function() { loadResidents(); loadStats(); });
-              }
+              }, 'Remove resident');
             };
           })(fam.id, fam.resident_name || 'this resident'));
           ac.appendChild(rDelBtn);
@@ -1006,12 +1006,12 @@ function loadResidents() {
       resDelBtn.textContent = 'Delete';
       resDelBtn.addEventListener('click', (function(id, name) {
         return function() {
-          if (confirm('Remove ' + name + ' from active residents?\n\nAll records are retained for 8 years (Care Act 2014).')) {
+          kindredConfirm('Remove ' + name + ' from active residents? All records are retained for 8 years (Care Act 2014).', function() {
             var h = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };
             fetch(SUPA_URL + '/rest/v1/families?id=eq.' + id, {
               method: 'PATCH', headers: h, body: JSON.stringify({ status: 'deleted' })
             }).then(function() { loadResidents(); loadStats(); });
-          }
+          }, 'Remove resident');
         };
       })(res.id, res.name));
       ac2.appendChild(resDelBtn);
@@ -1061,9 +1061,9 @@ function loadNurses() {
         deactBtn.textContent = 'Deactivate';
         deactBtn.addEventListener('click', (function(id) {
           return function() {
-            if (confirm('Deactivate this nurse? They will immediately lose access.')) {
+            kindredConfirm('Deactivate this nurse? They will immediately lose access.', function() {
               supaPost('nurse_invites?id=eq.' + id, { status: 'deactivated' }, 'PATCH').then(function() { loadNurses(); loadStats(); });
-            }
+            }, 'Deactivate nurse');
           };
         })(n.id));
         ac.appendChild(deactBtn);
@@ -1073,12 +1073,12 @@ function loadNurses() {
       delBtn.textContent = 'Delete';
       delBtn.addEventListener('click', (function(id, name) {
         return function() {
-          if (confirm('Permanently delete ' + name + '? This cannot be undone.')) {
+          kindredConfirm('Permanently delete ' + name + '? This cannot be undone.', function() {
             fetch(SUPA_URL + '/rest/v1/nurse_invites?id=eq.' + id, {
               method: 'DELETE',
               headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
             }).then(function() { loadNurses(); loadStats(); });
-          }
+          }, 'Delete nurse');
         };
       })(n.id, n.name || n.email));
       ac.appendChild(delBtn);
@@ -1282,9 +1282,9 @@ function deleteCareHome(homeId, name) {
 
 function toggleHomeStatus(id, status) {
   var newStatus = status === 'active' ? 'suspended' : 'active';
-  if (!confirm((newStatus === 'suspended' ? 'Suspend' : 'Reactivate') + ' this care home?')) return;
+  kindredConfirm((newStatus === 'suspended' ? 'Suspend' : 'Reactivate') + ' this care home?', function() {
   supaPost('care_homes?id=eq.' + id, { status: newStatus }, 'PATCH').then(function() { loadCareHomes(); });
-}
+}, 'Update care home');
 
 // ── MANAGER INVITE ──
 function openInviteManager(homeId) {
@@ -1365,5 +1365,19 @@ document.querySelectorAll('.modal-overlay').forEach(function(o) {
   o.addEventListener('click', function(e) { if (e.target === o) o.classList.remove('open'); });
 });
 </script>
+
+<!-- CONFIRMATION MODAL -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:8px;" id="confirm-title">Are you sure?</div>
+    <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:20px;" id="confirm-message"></div>
+    <div style="display:flex;gap:8px;">
+      <button id="confirm-yes" style="flex:1;padding:10px;border-radius:8px;border:none;background:#e53e3e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Yes, continue</button>
+      <button id="confirm-no" style="flex:1;padding:10px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);background:#fff;color:#444;font-size:13px;font-weight:500;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+<style>#confirm-modal{display:none;}#confirm-modal.open{display:flex;}</style>
+
 </body>
 </html>
