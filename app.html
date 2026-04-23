@@ -996,7 +996,13 @@ function loadNursePendingDrafts() {
   if (!section || !list || !currentUser || currentUser.is_manager) return;
   section.style.display = 'block';
 
-  supaFetch('reviews?nurse_name=eq.' + encodeURIComponent(currentUser.name) + '&status=eq.draft&select=id,resident_name,review_type,created_at&order=created_at.desc').then(function(drafts) {
+  // Show ALL drafts for this care home — not just this nurse's drafts
+  var careHomeId = currentUser.care_home_id;
+  if (!careHomeId) return;
+  supaFetch('families?care_home_id=eq.' + careHomeId + '&select=id,resident_name').then(function(families) {
+    if (!families || families.length === 0) { list.innerHTML = '<div class="empty" style="font-size:13px;">No drafts pending approval.</div>'; return; }
+    var famIds = families.map(function(f) { return f.id; }).join(',');
+    supaFetch('reviews?family_id=in.(' + famIds + ')&status=eq.draft&select=id,family_id,resident_name,nurse_name,review_type,created_at&order=created_at.desc').then(function(drafts) {
     if (!drafts || drafts.length === 0) {
       list.innerHTML = '<div class="empty" style="font-size:13px;">No drafts pending approval.</div>';
       return;
@@ -1005,15 +1011,17 @@ function loadNursePendingDrafts() {
     drafts.forEach(function(d) {
       var dateStr = new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
       var reviewType = (d.review_type || '6-month review').replace(/-/g,' ').replace(/\w/g,function(c){return c.toUpperCase();});
+      var isOwn = d.nurse_name === currentUser.name;
       var div = document.createElement('div');
       div.className = 'card';
       div.style.marginBottom = '6px';
       div.innerHTML = '<div class="card-body" style="padding:9px 14px;">' +
         '<div class="row"><span class="row-label">' + esc(d.resident_name || 'Resident') + '</span><span class="row-value" style="font-size:12px;">' + esc(reviewType) + '</span></div>' +
-        '<div class="row"><span class="row-label" style="color:#f59e0b;">⏳ Awaiting approval</span><span class="row-value" style="font-size:12px;color:#888;">' + dateStr + '</span></div>' +
+        '<div class="row"><span class="row-label" style="color:#f59e0b;">⏳ ' + (isOwn ? 'Your draft — awaiting approval' : 'Written by ' + esc(d.nurse_name || 'Nurse') + ' — awaiting approval') + '</span><span class="row-value" style="font-size:12px;color:#888;">' + dateStr + '</span></div>' +
         '</div>';
       list.appendChild(div);
     });
+    }).catch(function() {});
   }).catch(function() {});
 }
 
@@ -1487,7 +1495,7 @@ function logActivity(btn, type, desc) {
 function loadReviews() {
   // Load from Supabase if family_id exists
   if (currentUser.family_id && !currentUser.demo) {
-    supaFetch('reviews?family_id=eq.' + currentUser.family_id + '&status=eq.sent&select=*&order=created_at.desc').then(function(data) {
+    supaFetch('reviews?family_id=eq.' + currentUser.family_id + '&status=in.(sent,draft)&select=*&order=created_at.desc').then(function(data) {
       if (data && data.length > 0) {
         renderReviews(data.map(function(r) {
           return {
@@ -1525,7 +1533,15 @@ function renderReviews(reviews) {
     div.className = 'card';
     div.style.marginBottom = '8px';
     var cleanContent = stripMarkdown(r.content || '');
-    div.innerHTML = '<div class="card-head" style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'span:last-child\').textContent=b.style.display===\'none\'?\'Tap to read ›\':\'Close\'"><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span><span style="font-size:12px;color:#5dcaa5;">Tap to read ›</span></div><div class="card-body" style="display:none;"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('') + '</div>';
+    var isDraft = r.status === 'draft';
+    var statusBadge = isDraft
+      ? '<span class="tag tag-amber" style="font-size:11px;">⏳ Pending approval</span>'
+      : '<span style="font-size:12px;color:#5dcaa5;">Tap to read ›</span>';
+    var bodyContent = isDraft
+      ? '<p style="font-size:12px;color:#888;">This review has been written and is awaiting manager approval before it reaches you.</p>'
+      : cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('');
+    var headClick = isDraft ? '' : ' style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'span:last-child\').textContent=b.style.display===\'none\'?\'Tap to read ›\':\'Close\'"';
+    div.innerHTML = '<div class="card-head"' + headClick + '><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span>' + statusBadge + '</div><div class="card-body" style="' + (isDraft ? '' : 'display:none;') + '"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + bodyContent + '</div>';
     list.appendChild(div);
   });
 
@@ -2137,6 +2153,13 @@ function loadResidents() {
         if (!lastReviewMap[r.family_id]) lastReviewMap[r.family_id] = r.created_at;
       });
 
+      // Also fetch pending drafts so we can show "Pending approval" status
+      var draftMap = {};
+      supaFetch('reviews?family_id=in.(' + familyIds + ')&status=eq.draft&select=family_id,nurse_name&order=created_at.desc').then(function(drafts) {
+        (drafts || []).forEach(function(d) {
+          if (!draftMap[d.family_id]) draftMap[d.family_id] = d.nurse_name || 'a nurse';
+        });
+
       var now = new Date();
       var overdueCount = 0;
       list.innerHTML = '';
@@ -2167,7 +2190,12 @@ function loadResidents() {
         // Calculate review due date
         var lastReview = lastReviewMap[fam.id];
         var dueLabel, dueTag, statusClass;
-        if (lastReview) {
+        // Check if there's a draft pending approval first
+        if (draftMap[fam.id]) {
+          dueLabel = 'Pending approval from manager';
+          dueTag = '<span class="tag" style="background:#fef3c7;color:#92400e;font-size:11px;">⏳ Pending approval</span>';
+          statusClass = 'due-soon';
+        } else if (lastReview) {
           var lastDate = new Date(lastReview);
           var dueDate = new Date(lastDate);
           dueDate.setMonth(dueDate.getMonth() + 6);
@@ -2194,6 +2222,7 @@ function loadResidents() {
           statusClass = 'overdue';
           overdueCount++;
         }
+        // Don't count pending-approval reviews as overdue
 
         var tr = document.createElement('tr');
         tr.dataset.name = resName.toLowerCase();
@@ -2227,6 +2256,7 @@ function loadResidents() {
       });
 
       safeSetText('stat-reviews-due', overdueCount);
+        }).catch(function() { console.log('draft map fetch failed'); });
     }).catch(function() {
       // If reviews fetch fails, still show residents without due dates
       safeSetText('stat-reviews-due', families.length);
