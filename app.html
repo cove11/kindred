@@ -2888,8 +2888,10 @@ function loadInbox() {
 }
 
 function openInboxThread(familyId, resName) {
-  // Show thread panel overlaying the inbox
   var list = document.getElementById('inbox-list');
+  // Store current thread context
+  window._currentInboxFamilyId = familyId;
+  window._currentInboxResName = resName;
   list.innerHTML =
     '<div style="margin-bottom:10px;">' +
     '<button class="btn" style="font-size:12px;" onclick="loadInbox()">← Back to inbox</button>' +
@@ -2898,7 +2900,10 @@ function openInboxThread(familyId, resName) {
     '<div id="inbox-thread" style="margin-bottom:12px;max-height:350px;overflow-y:auto;"></div>' +
     '<div style="display:flex;gap:8px;align-items:flex-end;">' +
     '<textarea id="inbox-reply-input" placeholder="Reply to this family..." rows="3" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>' +
-    '<button class="btn btn-green" onclick="sendInboxReply('\'' + familyId + '\'')" style="padding:10px 16px;flex-shrink:0;">Reply</button>' +
+    '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">' +
+    '<label class="btn" style="padding:8px 12px;cursor:pointer;font-size:12px;margin:0;" title="Attach photo or PDF">📎<input type="file" id="inbox-file" accept="image/*,.pdf" style="display:none;" onchange="previewInboxFile(this)"/></label>' +
+    '<button class="btn btn-green" onclick="sendInboxReply()" style="padding:8px 12px;">Reply</button>' +
+    '</div>' +
     '</div>';
 
   // Load thread messages
@@ -2909,9 +2914,9 @@ function openInboxThread(familyId, resName) {
     msgs.forEach(function(m) {
       var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
       var time = new Date(m.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      var attach = m.file_url ? renderAttachment(STORAGE_URL + '/object/public/' + BUCKET_NAME + '/' + m.file_url, m.file_name, m.file_type) : '';
       var div = document.createElement('div');
       div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-end' : 'flex-start') + ';';
-      var attach = m.file_url ? renderAttachment(STORAGE_URL + '/object/public/' + BUCKET_NAME + '/' + m.file_url, m.file_name, m.file_type) : '';
       div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + (isStaff ? ' (staff)' : '') + ' · ' + time + '</div>' +
         '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
         (isStaff ? 'background:#085041;color:#fff;border-bottom-right-radius:3px;' : 'background:#f1f5f9;color:#1e293b;border-bottom-left-radius:3px;') +
@@ -2922,7 +2927,11 @@ function openInboxThread(familyId, resName) {
   });
 }
 
-function sendInboxReply(familyId) {
+
+function sendInboxReply() {
+  var familyId = window._currentInboxFamilyId;
+  var resName = window._currentInboxResName;
+  if (!familyId) return;
   var input = document.getElementById('inbox-reply-input');
   var msg = input ? input.value.trim() : '';
   if (!msg) return;
@@ -2956,7 +2965,7 @@ function sendInboxReply(familyId) {
       input.value = '';
       input.disabled = false;
       if (fileInput) fileInput.value = '';
-      openInboxThread(familyId, fam.resident_name || 'Family');
+      openInboxThread(familyId, fam.resident_name || resName || 'Family');
     }).catch(function(){
       input.disabled = false;
       alert('Could not send reply. Please try again.');
