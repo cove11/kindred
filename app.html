@@ -2916,14 +2916,14 @@ function openInboxThread(familyId, resName) {
     msgs.forEach(function(m) {
       var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
       var time = new Date(m.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      var attach = m.file_url ? renderAttachment(STORAGE_URL + '/object/public/' + BUCKET_NAME + '/' + m.file_url, m.file_name, m.file_type) : '';
       var div = document.createElement('div');
       div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-end' : 'flex-start') + ';';
       div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + (isStaff ? ' (staff)' : '') + ' · ' + time + '</div>' +
-        '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
+        '<div class="msg-bubble" style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
         (isStaff ? 'background:#085041;color:#fff;border-bottom-right-radius:3px;' : 'background:#f1f5f9;color:#1e293b;border-bottom-left-radius:3px;') +
-        '">' + (m.message ? esc(m.message) : '') + attach + '</div>';
+        '">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>';
       thread.appendChild(div);
+      if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, div.querySelector('.msg-bubble'));
     });
     thread.scrollTop = thread.scrollHeight;
   });
