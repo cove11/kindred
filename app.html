@@ -3038,7 +3038,7 @@ function renderAttachment(fileUrl, fileName, fileType) {
   if (!fileUrl) return '';
   var isImage = fileType && fileType.startsWith('image/');
   if (isImage) {
-    return '<div style="margin-top:6px;"><img src="' + fileUrl + '" style="max-width:200px;max-height:150px;border-radius:8px;cursor:pointer;" onclick="window.open(this.src)" onerror="this.style.display='none'"/></div>';
+    return '<div style="margin-top:6px;"><img src="' + fileUrl + '" style="max-width:200px;max-height:150px;border-radius:8px;cursor:pointer;" onclick="window.open(this.src)" onerror="this.style.display=&quot;none&quot;"/></div>';
   }
   return '<div style="margin-top:6px;"><a href="' + fileUrl + '" target="_blank" style="font-size:12px;color:#085041;text-decoration:underline;">📄 ' + esc(fileName || 'Attachment') + '</a></div>';
 }
