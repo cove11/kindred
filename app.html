@@ -2873,7 +2873,7 @@ function loadInbox() {
         var div = document.createElement('div');
         div.className = 'card';
         div.style.cssText = 'margin-bottom:8px;border-left:3px solid ' + (unread ? '#f59e0b' : '#e2e8f0') + ';cursor:pointer;';
-        div.innerHTML = '<div class="card-body" style="padding:10px 14px;" onclick="openInboxThread('' + fid + '','' + esc(resName) + '')">' +
+        div.innerHTML = '<div class="card-body" style="padding:10px 14px;" onclick="openInboxThread(\'' + fid + '\',\'' + esc(resName) + '\')">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;">' +
           '<div style="font-size:13px;font-weight:600;">' + esc(resName) + ' family</div>' +
           (unread ? '<span class="tag tag-amber" style="font-size:11px;">Needs reply</span>' : '<span class="tag" style="background:#dcfce7;color:#166534;font-size:11px;">Up to date</span>') +
