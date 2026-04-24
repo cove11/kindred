@@ -3086,20 +3086,13 @@ function refreshCurrentTab() {
 }
 
 function startAutoRefresh() {
-  if (_refreshInterval) clearInterval(_refreshInterval);
-  _refreshInterval = setInterval(function() {
-    if (currentUser) refreshCurrentTab();
-  }, 60000);
+  // Auto-refresh disabled — use the manual ↻ button instead
+  // Prevents wiping text input boxes mid-reply
 }
 
 function stopAutoRefresh() {
   if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
 }
-
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden) { stopAutoRefresh(); }
-  else if (typeof currentUser !== 'undefined' && currentUser) { startAutoRefresh(); refreshCurrentTab(); }
-});
 </script>
 
 </body>
