@@ -163,7 +163,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <button class="tab" onclick="showTab('messages')">Messages</button>
       <button class="tab" onclick="showTab('visits')">Visit notes</button>
       <button class="tab" onclick="showTab('concerns')">Concerns</button>
-      <button class="tab" onclick="showTab('reviews')">Nurse reviews</button>
+      <button class="tab" onclick="showTab('reviews')">Care reviews</button>
       <button class="tab" onclick="showTab('timeline')">Timeline</button>
       <button class="tab" onclick="showTab('load')">Load sharing</button>
       <button class="tab" onclick="showTab('card')">Emergency card</button>
@@ -288,14 +288,14 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- NURSE REVIEWS -->
     <div class="panel" id="tab-reviews">
-      <div class="info-green info">Sent by your care home nurse. Your family conversations are never visible to the nurse.</div>
+      <div class="info-green info">Sent by your care home senior staff. Your family conversations are never visible to staff.</div>
       <div id="reviews-list"><div class="empty">No nurse reviews received yet.<br>Your nurse will send one after your next appointment.</div></div>
     </div>
 
     <!-- TIMELINE -->
     <div class="panel" id="tab-timeline">
       <div class="sh">Shared timeline</div>
-      <div id="timeline-list"><div class="empty">Your shared timeline will build up here over time.<br>Nurse reviews and family call summaries appear here.</div></div>
+      <div id="timeline-list"><div class="empty">Your shared timeline will build up here over time.<br>Care reviews and family updates appear here.</div></div>
     </div>
 
     <!-- LOAD SHARING -->
@@ -341,6 +341,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <button class="tab" onclick="showNurseTab('approve')">Review &amp; approve</button>
       <button class="tab" onclick="showNurseTab('sent')">Sent</button>
       <button class="tab" id="tab-staff-btn" style="display:none;" onclick="showNurseTab('staff')">Staff</button>
+      <button class="tab" id="tab-team-btn" onclick="showNurseTab('team')">Our team</button>
     </div>
 
     <!-- OVERVIEW -->
@@ -375,7 +376,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div class="card">
         <div class="card-body" style="padding:9px 14px;">
           <div class="row"><span class="row-label">Care home</span><span class="row-value" id="nurse-care-home-name">Loading...</span></div>
-          <div class="row"><span class="row-label">Your role</span><span class="row-value" id="overview-role">Nurse</span></div>
+          <div class="row"><span class="row-label">Your role</span><span class="row-value" id="overview-role">Senior staff</span></div>
         </div>
       </div>
     </div>
@@ -547,13 +548,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- STAFF MANAGEMENT (care home admin only) -->
     <div class="panel" id="ntab-staff">
-      <div class="info-green info">Invite nurses to Kindred. Each nurse gets a personal invite link — deactivate them instantly if they leave.</div>
+      <div class="info-green info">Invite senior staff to Kindred. Each team member gets a personal invite link — deactivate them instantly if they leave.</div>
       
-      <div class="sh">Invite a nurse</div>
+      <div class="sh">Invite a senior staff member</div>
       <div class="card" style="margin-bottom:12px;">
         <div class="card-body">
-          <div class="field"><label>Nurse name</label><input type="text" id="invite-nurse-name" placeholder="e.g. Sarah Nguyen"/></div>
-          <div class="field"><label>Email address</label><input type="email" id="invite-nurse-email" placeholder="nurse@carehome.co.uk"/></div>
+          <div class="field"><label>Senior staff name</label><input type="text" id="invite-nurse-name" placeholder="e.g. Sarah Nguyen"/></div>
+          <div class="field"><label>Email address</label><input type="email" id="invite-nurse-email" placeholder="staff@carehome.co.uk"/></div>
           <div class="btn-row">
             <button class="btn btn-green" onclick="inviteNurse()">Send invite</button>
           </div>
@@ -565,7 +566,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div style="margin-bottom:8px;">
         <input type="text" id="staff-search" placeholder="Search staff by name or email..." oninput="filterStaff()" style="width:100%;padding:7px 11px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;box-sizing:border-box;"/>
       </div>
-      <div id="staff-list"><div class="empty">No nurses invited yet.</div></div>
+      <div id="staff-list"><div class="empty">No senior staff invited yet.</div></div>
+    </div>
+
+    <!-- TEAM DIRECTORY (all staff) -->
+    <div class="panel" id="ntab-team">
+      <div class="info-green info">Everyone at your care home who has access to Kindred.</div>
+      <div id="team-list"><div class="empty" style="color:#aaa;">Loading...</div></div>
     </div>
 
   </div>
@@ -732,13 +739,14 @@ function showTab(name) {
 
 function showNurseTab(name) {
   document.querySelectorAll('#nurse-app .tab').forEach(function(t, i) {
-    var tabs = ['overview','residents','add-resident','review','approve','sent','staff'];
+    var tabs = ['overview','residents','add-resident','review','approve','sent','staff','team'];
     t.classList.toggle('active', tabs[i] === name);
   });
   document.querySelectorAll('#nurse-app .panel').forEach(function(p) {
     p.classList.toggle('active', p.id === 'ntab-' + name);
   });
   if (name === 'staff') loadStaff();
+  if (name === 'team') loadTeam();
   if (name === 'residents') loadResidents();
   if (name === 'review' || name === 'approve') autoSelectResident();
   if (name === 'approve') loadDraftForApprove();
@@ -1504,7 +1512,8 @@ function loadReviews() {
             care_home: r.care_home || '',
             review_type: r.review_type || '6-month review',
             date: new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
-            ts: new Date(r.created_at).getTime()
+            ts: new Date(r.created_at).getTime(),
+            status: r.status || 'sent'
           };
         }));
       }
@@ -1595,7 +1604,7 @@ function renderReviews(reviews) {
       var div = document.createElement('div');
       div.className = 'tl-item';
       var tlClean = stripMarkdown(r.content || '');
-      div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Nurse review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
+      div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Care review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
       tl.appendChild(div);
     });
   }
@@ -1954,7 +1963,7 @@ function initNursePortal() {
 
   // Update overview greeting based on role
   var roleLabel = document.getElementById('overview-role');
-  if (roleLabel) roleLabel.textContent = isManager ? 'Care home manager' : 'Nurse';
+  if (roleLabel) roleLabel.textContent = isManager ? 'Care home manager' : 'Senior staff';
 
   // Show manager badge in header
   if (isManager) {
@@ -2010,11 +2019,42 @@ function filterStaff() {
   });
 }
 
+function loadTeam() {
+  var list = document.getElementById('team-list');
+  if (!list || !currentUser || !currentUser.care_home_id) return;
+  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading...</div>';
+  var html = '';
+  // Fetch managers
+  supaFetch('profiles?care_home_id=eq.' + currentUser.care_home_id + '&role=eq.manager&select=name,email&order=name.asc').then(function(managers) {
+    (managers || []).forEach(function(m) {
+      var initials = (m.name||'?').split(' ').map(function(p){return p[0]||'';}).join('').substring(0,2).toUpperCase();
+      html += '<div class="card" style="margin-bottom:8px;"><div class="card-body" style="padding:10px 14px;display:flex;align-items:center;gap:12px;">' +
+        '<div class="av" style="background:#085041;color:#fff;flex-shrink:0;">' + initials + '</div>' +
+        '<div style="flex:1"><div style="font-size:13px;font-weight:500;">' + esc(m.name) + '</div>' +
+        '<div style="font-size:11px;color:#aaa;">' + esc(m.email) + '</div></div>' +
+        '<span class="tag" style="background:#e1f5ee;color:#085041;font-size:11px;">Manager</span></div></div>';
+    });
+    // Fetch senior staff
+    supaFetch('nurse_invites?care_home_id=eq.' + currentUser.care_home_id + '&status=eq.active&select=name,email,accepted_at&order=name.asc').then(function(staff) {
+      (staff || []).forEach(function(m) {
+        var initials = (m.name||'?').split(' ').map(function(p){return p[0]||'';}).join('').substring(0,2).toUpperCase();
+        var joined = m.accepted_at ? new Date(m.accepted_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Pending';
+        html += '<div class="card" style="margin-bottom:8px;"><div class="card-body" style="padding:10px 14px;display:flex;align-items:center;gap:12px;">' +
+          '<div class="av" style="flex-shrink:0;">' + initials + '</div>' +
+          '<div style="flex:1"><div style="font-size:13px;font-weight:500;">' + esc(m.name) + '</div>' +
+          '<div style="font-size:11px;color:#aaa;">' + esc(m.email) + ' · Joined ' + joined + '</div></div>' +
+          '<span class="tag tag-green" style="font-size:11px;">Senior staff</span></div></div>';
+      });
+      list.innerHTML = html || '<div class="empty">No team members found.</div>';
+    }).catch(function() { list.innerHTML = '<div class="empty">Could not load team.</div>'; });
+  }).catch(function() { list.innerHTML = '<div class="empty">Could not load team.</div>'; });
+}
+
 function loadStaff() {
   if (!currentUser.care_home_id) return;
   supaFetch('nurse_invites?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.cancelled&select=*&order=created_at.desc').then(function(data) {
     var list = document.getElementById('staff-list');
-    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">No nurses invited yet.</div>'; return; }
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">No senior staff invited yet.</div>'; return; }
     // Deduplicate — if same email has both active and pending, only show active
     var seen = {};
     var deduped = [];
@@ -2057,7 +2097,7 @@ function deactivateNurse(inviteId) {
       loadStaff();
       setTimeout(function() { loadWardDrafts(); loadManagerPendingCount(); }, 600);
     });
-  }, 'Deactivate nurse');
+  }, 'Deactivate staff member');
 }
 
 function copyText(text) {
