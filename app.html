@@ -336,8 +336,15 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div id="contact-thread" style="margin-bottom:12px;min-height:80px;max-height:400px;overflow-y:auto;"></div>
       <div style="display:flex;gap:8px;align-items:flex-end;">
         <textarea id="contact-input" placeholder="Write a message to the care home..." rows="3" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-        <button class="btn btn-green" onclick="sendContactMessage()" style="padding:10px 16px;flex-shrink:0;">Send</button>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <label class="btn" style="padding:8px 12px;cursor:pointer;font-size:12px;margin:0;" title="Attach photo or PDF">
+            📎
+            <input type="file" id="contact-file" accept="image/*,.pdf" style="display:none;" onchange="previewContactFile(this)"/>
+          </label>
+          <button class="btn btn-green" onclick="sendContactMessage()" style="padding:8px 12px;">Send</button>
+        </div>
       </div>
+      <div id="contact-file-preview" style="display:none;font-size:12px;color:#085041;margin-top:6px;padding:6px 10px;background:#e1f5ee;border-radius:8px;"></div>
     </div>
 
   </div>
@@ -2788,10 +2795,11 @@ function loadContactMessages() {
       var time = new Date(m.created_at).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       var div = document.createElement('div');
       div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-start' : 'flex-end') + ';';
+      var attach = m.file_url ? renderAttachment(STORAGE_URL + '/object/public/' + BUCKET_NAME + '/' + m.file_url, m.file_name, m.file_type) : '';
       div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + ' · ' + time + '</div>' +
         '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
         (isStaff ? 'background:#e1f5ee;color:#085041;border-bottom-left-radius:3px;' : 'background:#085041;color:#fff;border-bottom-right-radius:3px;') +
-        '">' + esc(m.message) + '</div>';
+        '">' + (m.message ? esc(m.message) : '') + attach + '</div>';
       thread.appendChild(div);
     });
     thread.scrollTop = thread.scrollHeight;
@@ -2802,23 +2810,37 @@ function loadContactMessages() {
 
 function sendContactMessage() {
   var input = document.getElementById('contact-input');
+  var fileInput = document.getElementById('contact-file');
   var msg = input ? input.value.trim() : '';
-  if (!msg) return;
+  var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+  if (!msg && !file) return;
   if (!currentUser.family_id || !currentUser.care_home_id) return;
-  input.disabled = true;
-  supaPost('family_contact_messages', {
+  if (input) input.disabled = true;
+  var msgData = {
     family_id: currentUser.family_id,
     care_home_id: currentUser.care_home_id,
     resident_name: currentUser.resident_name,
     sender_name: currentUser.name,
     sender_role: 'family',
-    message: msg
+    message: msg || ''
+  };
+  var uploadPromise = file
+    ? uploadFileToStorage(file, 'messages').then(function(f) {
+        msgData.file_url = f.path;
+        msgData.file_name = f.name;
+        msgData.file_type = f.type;
+      })
+    : Promise.resolve();
+  uploadPromise.then(function() {
+    return supaPost('family_contact_messages', msgData);
   }).then(function() {
-    input.value = '';
-    input.disabled = false;
+    if (input) { input.value = ''; input.disabled = false; }
+    if (fileInput) fileInput.value = '';
+    var preview = document.getElementById('contact-file-preview');
+    if (preview) preview.style.display = 'none';
     loadContactMessages();
   }).catch(function() {
-    input.disabled = false;
+    if (input) input.disabled = false;
     alert('Could not send. Please try again.');
   });
 }
@@ -2889,10 +2911,11 @@ function openInboxThread(familyId, resName) {
       var time = new Date(m.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       var div = document.createElement('div');
       div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-end' : 'flex-start') + ';';
+      var attach = m.file_url ? renderAttachment(STORAGE_URL + '/object/public/' + BUCKET_NAME + '/' + m.file_url, m.file_name, m.file_type) : '';
       div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + (isStaff ? ' (staff)' : '') + ' · ' + time + '</div>' +
         '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
         (isStaff ? 'background:#085041;color:#fff;border-bottom-right-radius:3px;' : 'background:#f1f5f9;color:#1e293b;border-bottom-left-radius:3px;') +
-        '">' + esc(m.message) + '</div>';
+        '">' + (m.message ? esc(m.message) : '') + attach + '</div>';
       thread.appendChild(div);
     });
     thread.scrollTop = thread.scrollHeight;
@@ -2907,8 +2930,9 @@ function sendInboxReply(familyId) {
   // Find resident name from family
   supaFetch('families?id=eq.' + familyId + '&select=resident_name,care_home_id').then(function(fams) {
     var fam = fams && fams[0] ? fams[0] : {};
-    input.disabled = true;
-    supaPost('family_contact_messages', {
+    var fileInput = document.getElementById('inbox-file');
+    var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    var replyData = {
       family_id: familyId,
       care_home_id: currentUser.care_home_id,
       resident_name: fam.resident_name || '',
@@ -2917,15 +2941,97 @@ function sendInboxReply(familyId) {
       message: msg,
       replied_by: currentUser.name,
       replied_at: new Date().toISOString()
+    };
+    input.disabled = true;
+    var uploadP = file
+      ? uploadFileToStorage(file, 'messages').then(function(f) {
+          replyData.file_url = f.path;
+          replyData.file_name = f.name;
+          replyData.file_type = f.type;
+        })
+      : Promise.resolve();
+    uploadP.then(function() {
+      return supaPost('family_contact_messages', replyData);
     }).then(function() {
       input.value = '';
       input.disabled = false;
+      if (fileInput) fileInput.value = '';
       openInboxThread(familyId, fam.resident_name || 'Family');
     }).catch(function(){
       input.disabled = false;
       alert('Could not send reply. Please try again.');
     });
   });
+}
+
+// ── FILE UPLOAD HELPERS ──
+var STORAGE_URL = 'https://xmeeyeeddayyoaxoiypd.supabase.co/storage/v1';
+var BUCKET_NAME = 'kindred-files';
+var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtZWV5ZWVkZGF5eW9heG9peXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTYwMTQsImV4cCI6MjA5MTczMjAxNH0.Zj17BFLA9jo2PhBn0XA2dkXfKEDst9UDFIkrnTDqMrQ';
+
+function previewContactFile(input) {
+  var preview = document.getElementById('contact-file-preview');
+  if (input.files && input.files[0]) {
+    preview.style.display = 'block';
+    preview.textContent = '📎 ' + input.files[0].name + ' ready to send';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function previewInboxFile(input) {
+  var preview = document.getElementById('inbox-file-preview');
+  if (!preview) {
+    preview = document.createElement('div');
+    preview.id = 'inbox-file-preview';
+    preview.style.cssText = 'font-size:12px;color:#085041;margin-top:6px;padding:6px 10px;background:#e1f5ee;border-radius:8px;';
+    input.closest('div').parentNode.appendChild(preview);
+  }
+  if (input.files && input.files[0]) {
+    preview.textContent = '📎 ' + input.files[0].name + ' ready to send';
+    preview.style.display = 'block';
+  }
+}
+
+function uploadFileToStorage(file, folder) {
+  var ext = file.name.split('.').pop();
+  var fileName = folder + '/' + Date.now() + '_' + Math.random().toString(36).substring(2,8) + '.' + ext;
+  return fetch(STORAGE_URL + '/object/' + BUCKET_NAME + '/' + fileName, {
+    method: 'POST',
+    headers: {
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + ANON_KEY,
+      'Content-Type': file.type,
+      'x-upsert': 'true'
+    },
+    body: file
+  }).then(function(r) {
+    if (!r.ok) throw new Error('Upload failed');
+    return { path: fileName, name: file.name, type: file.type };
+  });
+}
+
+function getSignedUrl(path) {
+  return fetch(STORAGE_URL + '/object/sign/' + BUCKET_NAME + '/' + path, {
+    method: 'POST',
+    headers: {
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + ANON_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ expiresIn: 3600 })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    return STORAGE_URL + d.signedURL;
+  });
+}
+
+function renderAttachment(fileUrl, fileName, fileType) {
+  if (!fileUrl) return '';
+  var isImage = fileType && fileType.startsWith('image/');
+  if (isImage) {
+    return '<div style="margin-top:6px;"><img src="' + fileUrl + '" style="max-width:200px;max-height:150px;border-radius:8px;cursor:pointer;" onclick="window.open(this.src)" onerror="this.style.display='none'"/></div>';
+  }
+  return '<div style="margin-top:6px;"><a href="' + fileUrl + '" target="_blank" style="font-size:12px;color:#085041;text-decoration:underline;">📄 ' + esc(fileName || 'Attachment') + '</a></div>';
 }
 
 // ── AUTO-REFRESH ──
