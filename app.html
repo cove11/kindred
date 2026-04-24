@@ -2795,12 +2795,12 @@ function loadContactMessages() {
       var time = new Date(m.created_at).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       var div = document.createElement('div');
       div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-start' : 'flex-end') + ';';
-      var attach = m.file_url ? renderAttachment(STORAGE_URL + '/object/public/' + BUCKET_NAME + '/' + m.file_url, m.file_name, m.file_type) : '';
       div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + ' · ' + time + '</div>' +
-        '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
+        '<div class="msg-bubble" style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
         (isStaff ? 'background:#e1f5ee;color:#085041;border-bottom-left-radius:3px;' : 'background:#085041;color:#fff;border-bottom-right-radius:3px;') +
-        '">' + (m.message ? esc(m.message) : '') + attach + '</div>';
+        '">' + (m.message ? esc(m.message) : '') + '</div>';
       thread.appendChild(div);
+      if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, div.querySelector('.msg-bubble'));
     });
     thread.scrollTop = thread.scrollHeight;
   }).catch(function() {
@@ -3022,8 +3022,10 @@ function uploadFileToStorage(file, folder) {
   });
 }
 
-function getSignedUrl(path) {
-  return fetch(STORAGE_URL + '/object/sign/' + BUCKET_NAME + '/' + path, {
+// getSignedUrl defined below with renderAttachment
+
+function getSignedUrl(filePath) {
+  return fetch(STORAGE_URL + '/object/sign/' + BUCKET_NAME + '/' + filePath, {
     method: 'POST',
     headers: {
       'apikey': ANON_KEY,
@@ -3031,18 +3033,27 @@ function getSignedUrl(path) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ expiresIn: 3600 })
-  }).then(function(r) { return r.json(); }).then(function(d) {
+  }).then(function(r) {
+    if (!r.ok) throw new Error('Could not get signed URL');
+    return r.json();
+  }).then(function(d) {
     return STORAGE_URL + d.signedURL;
   });
 }
 
-function renderAttachment(fileUrl, fileName, fileType) {
-  if (!fileUrl) return '';
+function renderAttachment(filePath, fileName, fileType, containerEl) {
+  if (!filePath || !containerEl) return;
   var isImage = fileType && fileType.startsWith('image/');
-  if (isImage) {
-    return '<div style="margin-top:6px;"><img src="' + fileUrl + '" style="max-width:200px;max-height:150px;border-radius:8px;cursor:pointer;" onclick="window.open(this.src)" onerror="this.style.display=&quot;none&quot;"/></div>';
-  }
-  return '<div style="margin-top:6px;"><a href="' + fileUrl + '" target="_blank" style="font-size:12px;color:#085041;text-decoration:underline;">📄 ' + esc(fileName || 'Attachment') + '</a></div>';
+  // Get a signed URL first, then render
+  getSignedUrl(filePath).then(function(signedUrl) {
+    if (isImage) {
+      containerEl.innerHTML += '<div style="margin-top:6px;"><img src="' + signedUrl + '" style="max-width:200px;max-height:150px;border-radius:8px;cursor:pointer;" onclick="window.open(this.src)"/></div>';
+    } else {
+      containerEl.innerHTML += '<div style="margin-top:6px;"><a href="' + signedUrl + '" target="_blank" style="font-size:12px;color:#085041;text-decoration:underline;">📄 ' + esc(fileName || 'Attachment') + '</a></div>';
+    }
+  }).catch(function() {
+    containerEl.innerHTML += '<div style="margin-top:6px;font-size:12px;color:#aaa;">📎 ' + esc(fileName || 'Attachment') + ' (could not load)</div>';
+  });
 }
 
 // ── AUTO-REFRESH ──
