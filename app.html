@@ -2798,7 +2798,7 @@ function loadContactMessages() {
       div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + ' · ' + time + '</div>' +
         '<div class="msg-bubble" style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
         (isStaff ? 'background:#e1f5ee;color:#085041;border-bottom-left-radius:3px;' : 'background:#085041;color:#fff;border-bottom-right-radius:3px;') +
-        '">' + (m.message ? esc(m.message) : '') + '</div>';
+        '">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>';
       thread.appendChild(div);
       if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, div.querySelector('.msg-bubble'));
     });
