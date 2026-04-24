@@ -470,7 +470,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div class="field" style="margin-top:12px;"><label>Personal note <span style="font-weight:400;color:#aaa;font-size:11px;">optional — appears above summary</span></label><textarea id="nurse-note" placeholder="e.g. Margaret was in good spirits and sends her love." style="min-height:48px;"></textarea></div>
       <div class="btn-row">
         <button class="btn btn-green" id="btn-send" onclick="sendReview()" style="display:none;">Approve and send to family</button>
-        <button class="btn btn-green" id="btn-submit-draft" onclick="submitDraftForApproval()" style="display:none;">Submit for manager approval</button>
+        <button class="btn btn-green" id="btn-submit-draft" onclick="submitDraftForApproval()" style="display:none;">Send to family</button>
         <button class="btn" onclick="showNurseTab('review')" style="display:none;"></button>
       </div>
       <div id="send-confirm" style="display:none;margin-top:10px;background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;">Review sent successfully. The family have been notified.</div>
@@ -758,29 +758,43 @@ function showNurseTab(name) {
 }
 
 function submitDraftForApproval() {
-  // For nurses — just saves the current draft (already saved) and shows confirmation
+  // All staff (managers and senior staff) can now approve and send directly
   var btn = document.getElementById('btn-submit-draft');
-  if (btn) { btn.disabled = true; btn.textContent = 'Submitted ✓'; }
-  // Update draft with latest text from edit box
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
   var text = document.getElementById('summary-edit').value || localStorage.getItem('k_draft_summary') || '';
+  var confirm = document.getElementById('send-confirm');
+
   if (window._currentDraftId && text) {
+    // Send directly to family — no manager gate needed
     supaPost('reviews?id=eq.' + window._currentDraftId, {
       content: text,
       nurse_name: currentUser.name,
-      review_type: getReviewType()
-    }, 'PATCH');
+      review_type: getReviewType(),
+      status: 'sent',
+      approved_by: currentUser.name,
+      approved_at: new Date().toISOString()
+    }, 'PATCH').then(function() {
+      if (confirm) {
+        confirm.textContent = 'Review sent to the family by ' + currentUser.name + '.';
+        confirm.style.display = 'block';
+      }
+      if (btn) { btn.textContent = 'Sent ✓'; }
+      setTimeout(function() {
+        loadWardDrafts();
+        loadNursePendingDrafts();
+      }, 800);
+    }).catch(function() {
+      if (btn) { btn.disabled = false; btn.textContent = 'Send to family'; }
+      alert('Could not send. Please try again.');
+    });
+  } else {
+    // No draft ID — just move to approve tab to complete
+    if (confirm) {
+      confirm.textContent = 'Please use the Review & approve tab to send.';
+      confirm.style.display = 'block';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Send to family'; }
   }
-  var confirm = document.getElementById('send-confirm');
-  if (confirm) {
-    confirm.textContent = 'Draft submitted. A manager will review and approve before the family sees it.';
-    confirm.style.display = 'block';
-  }
-  // Refresh Overview so new draft appears/disappears correctly
-  setTimeout(function() {
-    loadWardDrafts();
-    loadNursePendingDrafts();
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit for manager approval'; }
-  }, 800);
 }
 
 function loadWardDrafts() {
@@ -808,7 +822,7 @@ function loadWardDrafts() {
         div.innerHTML = '<div class="card-body" style="padding:9px 14px;">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;">' +
           '<div><div style="font-size:13px;font-weight:500;">' + esc(resName) + ' — ' + esc(fmtReviewType(d.review_type)) + '</div>' +
-          '<div style="font-size:11px;color:#aaa;">Written by ' + esc(d.nurse_name || 'Staff') + (isOwn ? ' (you)' : '') + ' · ' + dateStr + ' · Awaiting manager approval</div></div>' +
+          '<div style="font-size:11px;color:#aaa;">Written by ' + esc(d.nurse_name || 'Staff') + (isOwn ? ' (you)' : '') + ' · ' + dateStr + '</div>' + '<div style="font-size:11px;color:#f59e0b;margin-top:1px;">⏳ Awaiting review — any senior staff member can send</div></div>' +
           '<span class="tag tag-amber" style="font-size:11px;">Pending</span></div></div>';
         list.appendChild(div);
       });
@@ -960,7 +974,7 @@ function loadEscalatedConcerns() {
 }
 
 function loadManagerPendingCount() {
-  if (!currentUser.is_manager || !currentUser.care_home_id) return;
+  if (!currentUser || !currentUser.care_home_id) return;
   // Get all family IDs for this care home
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
     if (!families || families.length === 0) return;
@@ -1547,7 +1561,7 @@ function renderReviews(reviews) {
       ? '<span class="tag tag-amber" style="font-size:11px;">⏳ Pending approval</span>'
       : '<span style="font-size:12px;color:#5dcaa5;">Tap to read ›</span>';
     var bodyContent = isDraft
-      ? '<p style="font-size:12px;color:#888;">This review has been written and is awaiting manager approval before it reaches you.</p>'
+      ? '<p style="font-size:12px;color:#888;">This review has been written and is awaiting approval before it reaches you.</p>'
       : cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('');
     var headClick = isDraft ? '' : ' style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'span:last-child\').textContent=b.style.display===\'none\'?\'Tap to read ›\':\'Close\'"';
     div.innerHTML = '<div class="card-head"' + headClick + '><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span>' + statusBadge + '</div><div class="card-body" style="' + (isDraft ? '' : 'display:none;') + '"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + bodyContent + '</div>';
@@ -1788,7 +1802,7 @@ function sendReview() {
   btn.textContent = 'Sending...';
 
   if (!selectedResident) {
-    alert('Please select a resident first from the My residents tab.');
+    alert('Please select a resident first from the Residents tab.');
     btn.disabled = false;
     btn.textContent = 'Approve and send to family';
     return;
@@ -1828,7 +1842,8 @@ function _doSendReview(btn) {
   if (window._currentDraftId) {
     savePromise = supaPost('reviews?id=eq.' + window._currentDraftId, {
       content: summaryText, nurse_note: nurseNote, status: 'sent',
-      review_type: getReviewType(), nurse_name: currentUser.name
+      review_type: getReviewType(), nurse_name: currentUser.name,
+      approved_by: currentUser.name, approved_at: new Date().toISOString()
     }, 'PATCH');
   } else {
     savePromise = supaPost('reviews', review);
@@ -1957,7 +1972,7 @@ function initNursePortal() {
   var approveTabs = document.querySelectorAll('#nurse-app .tab');
   approveTabs.forEach(function(t) {
     if (t.textContent.includes('Review & approve') || t.textContent.includes('My drafts')) {
-      t.textContent = isManager ? 'Review & approve' : 'My drafts';
+      t.textContent = 'Review & approve';
     }
   });
 
@@ -2410,7 +2425,7 @@ function openResidentProfile(fam, residentName, familyName) {
         (r.content || '').split('\n').filter(function(l){return l.trim();}).forEach(function(para){
           html += '<p style="font-size:13px;margin-bottom:6px;">' + esc(para) + '</p>';
         });
-        html += '<p style="font-size:11px;color:#aaa;margin-top:8px;">Written by ' + esc(r.nurse_name || 'Care team') + ' · Approved by manager · ' + new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '</p>';
+        html += '<p style="font-size:11px;color:#aaa;margin-top:8px;">Written by ' + esc(r.nurse_name || 'Care team') + ' · Sent by ' + esc(r.approved_by || r.nurse_name || 'Care team') + ' · ' + new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '</p>';
         html += '<div style="margin-top:8px;"><button class="btn" style="font-size:11px;padding:4px 10px;" data-review-id="' + r.id + '" data-family-id="' + r.family_id + '" onclick="recallReview(this)">Revise this review</button></div>';
         html += '</div></div>';
       });
@@ -2569,6 +2584,8 @@ function recallReview(btn) {
       family_id: original.family_id,
       content: original.content,
       nurse_name: currentUser.name,
+      revised_by: currentUser.name,
+      revised_at: new Date().toISOString(),
       care_home: original.care_home,
       resident_name: original.resident_name,
       review_type: original.review_type,
@@ -2651,6 +2668,8 @@ function loadSent() {
           '</div>' +
           '<div class="card-body" style="display:none;">' +
           '<div class="row"><span class="row-label">Written by</span><span class="row-value">' + esc(r.nurse_name || 'Care team') + '</span></div>' +
+          '<div class="row"><span class="row-label">Sent by</span><span class="row-value">' + esc(r.approved_by || r.nurse_name || 'Care team') + '</span></div>' +
+          (r.revised_by ? '<div class="row"><span class="row-label">Revised by</span><span class="row-value">' + esc(r.revised_by) + '</span></div>' : '') +
           '<div class="row"><span class="row-label">Type</span><span class="row-value">' + esc(reviewType) + '</span></div>' +
           '<div style="margin-top:10px;">' +
           (r.content || '').split('\n').filter(function(l){return l.trim();}).map(function(p){ return '<p style="font-size:13px;margin-bottom:6px;">' + esc(p) + '</p>'; }).join('') +
