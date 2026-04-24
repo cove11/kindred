@@ -147,6 +147,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     </svg>
     <span class="brand-name">Kindred</span>
     <span id="header-subtitle" style="font-size:12px;color:#aaa;font-weight:400;"></span>
+    <button id="refresh-btn" onclick="manualRefresh()" title="Refresh" style="background:none;border:none;cursor:pointer;padding:4px 8px;margin-left:6px;color:#aaa;font-size:18px;line-height:1;">↻</button>
   </div>
   <div class="header-right">
     <span class="user-name" id="header-user"></span>
@@ -647,6 +648,7 @@ window.addEventListener('load', function() {
     try { initPills(); } catch(e) { console.log('initPills error:', e); }
     try { initNursePortal(); } catch(e) { console.log('initNursePortal error:', e); }
     try { loadNursePortal(); } catch(e) { console.log('loadNursePortal error:', e); }
+    startAutoRefresh();
   } else {
     var resLast = currentUser.resident_name ? currentUser.resident_name.split(' ').pop() : '';
     document.getElementById('header-subtitle').textContent = resLast ? '· ' + resLast + ' family' : '· Family space';
@@ -657,6 +659,7 @@ window.addEventListener('load', function() {
     }
     initFamilyApp();
     initPills();
+    startAutoRefresh();
   }
 });
 
@@ -715,6 +718,7 @@ function initFamilyApp() {
 
 // ── SIGN OUT ──
 function signOut() {
+  stopAutoRefresh();
   localStorage.removeItem('kindred_user');
   localStorage.removeItem('supa_token');
   window.location.replace('index.html');
@@ -2745,6 +2749,51 @@ function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric
   </div>
 </div>
 <style>#confirm-modal{display:none;}#confirm-modal.open{display:flex;}</style>
+
+<script>
+// ── AUTO-REFRESH ──
+var _refreshInterval = null;
+
+function manualRefresh() {
+  var btn = document.getElementById('refresh-btn');
+  if (btn) { btn.style.color = '#5dcaa5'; }
+  refreshCurrentTab();
+  if (btn) setTimeout(function() { btn.style.color = '#aaa'; }, 800);
+}
+
+function refreshCurrentTab() {
+  if (!currentUser) return;
+  if (currentUser.role === 'family') {
+    loadMessages(); loadVisits(); loadConcerns(); loadReviews();
+    return;
+  }
+  loadNursePortal();
+  var activePanel = document.querySelector('#nurse-app .panel.active');
+  if (activePanel) {
+    var name = activePanel.id.replace('ntab-', '');
+    if (name === 'residents') loadResidents();
+    else if (name === 'sent') loadSent();
+    else if (name === 'staff') loadStaff();
+    else if (name === 'team') loadTeam();
+  }
+}
+
+function startAutoRefresh() {
+  if (_refreshInterval) clearInterval(_refreshInterval);
+  _refreshInterval = setInterval(function() {
+    if (currentUser) refreshCurrentTab();
+  }, 60000);
+}
+
+function stopAutoRefresh() {
+  if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) { stopAutoRefresh(); }
+  else if (typeof currentUser !== 'undefined' && currentUser) { startAutoRefresh(); refreshCurrentTab(); }
+});
+</script>
 
 </body>
 </html>
