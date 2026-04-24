@@ -2155,7 +2155,7 @@ function loadNursePortal() {
     setTimeout(loadManagerPendingCount, 1200); // show pending count for managers
     var careHomeName = currentUser.care_home || 'Your care home';
     safeSetText('nurse-care-home-name', careHomeName);
-    safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Nurse');
+    safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Senior staff');
 
     if (!currentUser.care_home_id) {
       // Account not fully set up - show message in overview
