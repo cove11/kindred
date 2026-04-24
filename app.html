@@ -168,6 +168,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <button class="tab" onclick="showTab('timeline')">Timeline</button>
       <button class="tab" onclick="showTab('load')">Load sharing</button>
       <button class="tab" onclick="showTab('card')">Emergency card</button>
+      <button class="tab" onclick="showTab('contact')">Contact care home</button>
     </div>
 
     <!-- HOME -->
@@ -328,6 +329,17 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <button class="btn btn-green" onclick="window.print()">Print card</button>
       </div>
     </div>
+
+    <!-- CONTACT CARE HOME -->
+    <div class="panel" id="tab-contact">
+      <div class="info-green info">Send a message directly to the care home team. They will reply here — no emails needed.</div>
+      <div id="contact-thread" style="margin-bottom:12px;min-height:80px;max-height:400px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <textarea id="contact-input" placeholder="Write a message to the care home..." rows="3" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+        <button class="btn btn-green" onclick="sendContactMessage()" style="padding:10px 16px;flex-shrink:0;">Send</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -343,6 +355,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <button class="tab" onclick="showNurseTab('sent')">Sent</button>
       <button class="tab" id="tab-staff-btn" style="display:none;" onclick="showNurseTab('staff')">Staff</button>
       <button class="tab" id="tab-team-btn" onclick="showNurseTab('team')">Our team</button>
+      <button class="tab" id="tab-inbox-btn" onclick="showNurseTab('inbox')">Family inbox</button>
     </div>
 
     <!-- OVERVIEW -->
@@ -576,6 +589,12 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div id="team-list"><div class="empty" style="color:#aaa;">Loading...</div></div>
     </div>
 
+    <!-- FAMILY INBOX (staff side) -->
+    <div class="panel" id="ntab-inbox">
+      <div class="info-green info">Messages sent to you by families. Reply directly — all senior staff can see and respond.</div>
+      <div id="inbox-list"><div class="empty" style="color:#aaa;">Loading...</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -738,12 +757,13 @@ function showTab(name) {
   if (name === 'reviews') loadReviews();
   if (name === 'messages') loadMessages();
   if (name === 'card') initEmergencyCard();
+  if (name === 'contact') loadContactMessages();
   if (name === 'concerns') loadConcerns();
 }
 
 function showNurseTab(name) {
   document.querySelectorAll('#nurse-app .tab').forEach(function(t, i) {
-    var tabs = ['overview','residents','add-resident','review','approve','sent','staff','team'];
+    var tabs = ['overview','residents','add-resident','review','approve','sent','staff','team','inbox'];
     t.classList.toggle('active', tabs[i] === name);
   });
   document.querySelectorAll('#nurse-app .panel').forEach(function(p) {
@@ -751,6 +771,7 @@ function showNurseTab(name) {
   });
   if (name === 'staff') loadStaff();
   if (name === 'team') loadTeam();
+  if (name === 'inbox') loadInbox();
   if (name === 'residents') loadResidents();
   if (name === 'review' || name === 'approve') autoSelectResident();
   if (name === 'approve') loadDraftForApprove();
@@ -2751,6 +2772,162 @@ function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric
 <style>#confirm-modal{display:none;}#confirm-modal.open{display:flex;}</style>
 
 <script>
+// ── FAMILY CONTACT MESSAGES ──
+function loadContactMessages() {
+  var thread = document.getElementById('contact-thread');
+  if (!thread || !currentUser.family_id) return;
+  thread.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px 0;">Loading...</div>';
+  supaFetch('family_contact_messages?family_id=eq.' + currentUser.family_id + '&order=created_at.asc').then(function(msgs) {
+    if (!msgs || msgs.length === 0) {
+      thread.innerHTML = '<div class="empty">No messages yet. Send your first message to the care home team.</div>';
+      return;
+    }
+    thread.innerHTML = '';
+    msgs.forEach(function(m) {
+      var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
+      var time = new Date(m.created_at).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      var div = document.createElement('div');
+      div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-start' : 'flex-end') + ';';
+      div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + ' · ' + time + '</div>' +
+        '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
+        (isStaff ? 'background:#e1f5ee;color:#085041;border-bottom-left-radius:3px;' : 'background:#085041;color:#fff;border-bottom-right-radius:3px;') +
+        '">' + esc(m.message) + '</div>';
+      thread.appendChild(div);
+    });
+    thread.scrollTop = thread.scrollHeight;
+  }).catch(function() {
+    thread.innerHTML = '<div class="empty">Could not load messages.</div>';
+  });
+}
+
+function sendContactMessage() {
+  var input = document.getElementById('contact-input');
+  var msg = input ? input.value.trim() : '';
+  if (!msg) return;
+  if (!currentUser.family_id || !currentUser.care_home_id) return;
+  input.disabled = true;
+  supaPost('family_contact_messages', {
+    family_id: currentUser.family_id,
+    care_home_id: currentUser.care_home_id,
+    resident_name: currentUser.resident_name,
+    sender_name: currentUser.name,
+    sender_role: 'family',
+    message: msg
+  }).then(function() {
+    input.value = '';
+    input.disabled = false;
+    loadContactMessages();
+  }).catch(function() {
+    input.disabled = false;
+    alert('Could not send. Please try again.');
+  });
+}
+
+// ── FAMILY INBOX (staff side) ──
+function loadInbox() {
+  var list = document.getElementById('inbox-list');
+  if (!list || !currentUser || !currentUser.care_home_id) return;
+  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading...</div>';
+  // Get all family IDs for this care home
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
+    if (!families || families.length === 0) { list.innerHTML = '<div class="empty">No family messages yet.</div>'; return; }
+    var famIds = families.map(function(f){return f.id;}).join(',');
+    var resMap = {};
+    families.forEach(function(f){resMap[f.id]=f.resident_name;});
+    supaFetch('family_contact_messages?family_id=in.(' + famIds + ')&order=created_at.desc').then(function(msgs) {
+      if (!msgs || msgs.length === 0) { list.innerHTML = '<div class="empty">No messages from families yet.</div>'; return; }
+      // Group by family_id
+      var groups = {};
+      msgs.forEach(function(m) {
+        if (!groups[m.family_id]) groups[m.family_id] = [];
+        groups[m.family_id].push(m);
+      });
+      list.innerHTML = '';
+      Object.keys(groups).forEach(function(fid) {
+        var thread = groups[fid];
+        var latest = thread[0];
+        var resName = resMap[fid] || latest.resident_name || 'Resident';
+        var unread = thread.some(function(m){return m.sender_role==='family' && !m.replied_by;});
+        var div = document.createElement('div');
+        div.className = 'card';
+        div.style.cssText = 'margin-bottom:8px;border-left:3px solid ' + (unread ? '#f59e0b' : '#e2e8f0') + ';cursor:pointer;';
+        div.innerHTML = '<div class="card-body" style="padding:10px 14px;" onclick="openInboxThread('' + fid + '','' + esc(resName) + '')">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<div style="font-size:13px;font-weight:600;">' + esc(resName) + ' family</div>' +
+          (unread ? '<span class="tag tag-amber" style="font-size:11px;">Needs reply</span>' : '<span class="tag" style="background:#dcfce7;color:#166534;font-size:11px;">Up to date</span>') +
+          '</div>' +
+          '<div style="font-size:12px;color:#666;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(latest.sender_name) + ': ' + esc(latest.message.substring(0,80)) + (latest.message.length>80?'...':'') + '</div>' +
+          '<div style="font-size:11px;color:#aaa;margin-top:2px;">' + new Date(latest.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+          '</div>';
+        list.appendChild(div);
+      });
+    });
+  }).catch(function(){list.innerHTML='<div class="empty">Could not load messages.</div>';});
+}
+
+function openInboxThread(familyId, resName) {
+  // Show thread panel overlaying the inbox
+  var list = document.getElementById('inbox-list');
+  list.innerHTML =
+    '<div style="margin-bottom:10px;">' +
+    '<button class="btn" style="font-size:12px;" onclick="loadInbox()">← Back to inbox</button>' +
+    '<span style="font-size:14px;font-weight:600;margin-left:10px;">' + esc(resName) + ' family</span>' +
+    '</div>' +
+    '<div id="inbox-thread" style="margin-bottom:12px;max-height:350px;overflow-y:auto;"></div>' +
+    '<div style="display:flex;gap:8px;align-items:flex-end;">' +
+    '<textarea id="inbox-reply-input" placeholder="Reply to this family..." rows="3" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>' +
+    '<button class="btn btn-green" onclick="sendInboxReply('' + familyId + '')" style="padding:10px 16px;flex-shrink:0;">Reply</button>' +
+    '</div>';
+
+  // Load thread messages
+  supaFetch('family_contact_messages?family_id=eq.' + familyId + '&order=created_at.asc').then(function(msgs) {
+    var thread = document.getElementById('inbox-thread');
+    if (!thread) return;
+    thread.innerHTML = '';
+    msgs.forEach(function(m) {
+      var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
+      var time = new Date(m.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      var div = document.createElement('div');
+      div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-end' : 'flex-start') + ';';
+      div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + (isStaff ? ' (staff)' : '') + ' · ' + time + '</div>' +
+        '<div style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
+        (isStaff ? 'background:#085041;color:#fff;border-bottom-right-radius:3px;' : 'background:#f1f5f9;color:#1e293b;border-bottom-left-radius:3px;') +
+        '">' + esc(m.message) + '</div>';
+      thread.appendChild(div);
+    });
+    thread.scrollTop = thread.scrollHeight;
+  });
+}
+
+function sendInboxReply(familyId) {
+  var input = document.getElementById('inbox-reply-input');
+  var msg = input ? input.value.trim() : '';
+  if (!msg) return;
+  if (!currentUser.care_home_id) return;
+  // Find resident name from family
+  supaFetch('families?id=eq.' + familyId + '&select=resident_name,care_home_id').then(function(fams) {
+    var fam = fams && fams[0] ? fams[0] : {};
+    input.disabled = true;
+    supaPost('family_contact_messages', {
+      family_id: familyId,
+      care_home_id: currentUser.care_home_id,
+      resident_name: fam.resident_name || '',
+      sender_name: currentUser.name,
+      sender_role: currentUser.is_manager ? 'manager' : 'staff',
+      message: msg,
+      replied_by: currentUser.name,
+      replied_at: new Date().toISOString()
+    }).then(function() {
+      input.value = '';
+      input.disabled = false;
+      openInboxThread(familyId, fam.resident_name || 'Family');
+    }).catch(function(){
+      input.disabled = false;
+      alert('Could not send reply. Please try again.');
+    });
+  });
+}
+
 // ── AUTO-REFRESH ──
 var _refreshInterval = null;
 
@@ -2765,6 +2942,7 @@ function refreshCurrentTab() {
   if (!currentUser) return;
   if (currentUser.role === 'family') {
     loadMessages(); loadVisits(); loadConcerns(); loadReviews();
+    var activeFam = document.querySelector('#family-app .panel.active'); if (activeFam && activeFam.id === 'tab-contact') loadContactMessages();
     return;
   }
   loadNursePortal();
@@ -2775,6 +2953,7 @@ function refreshCurrentTab() {
     else if (name === 'sent') loadSent();
     else if (name === 'staff') loadStaff();
     else if (name === 'team') loadTeam();
+    else if (name === 'inbox') loadInbox();
   }
 }
 
