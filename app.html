@@ -3086,7 +3086,8 @@ function loadInbox() {
         var isResolved = latest_msg && latest_msg.sender_role === 'resolved';
         var unread = !isResolved && latest_msg && (latest_msg.sender_role === 'family');
         var timeStr = new Date(latest.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-        var previewText = (latest.message || '📎 Attachment').substring(0, 70) + ((latest.message||'').length > 70 ? '...' : '');
+        var rawPreview = latest.sender_role === 'resolved' ? '✓ Conversation resolved' : (latest.message || '📎 Attachment');
+        var previewText = rawPreview.substring(0, 70) + (rawPreview.length > 70 ? '...' : '');
         var div = document.createElement('div');
         div.className = 'inbox-thread-card ' + (isResolved ? 'resolved' : unread ? 'unread' : 'replied');
         div.onclick = function() { openInboxThread(fid, resName); };
