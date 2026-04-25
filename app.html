@@ -2990,8 +2990,7 @@ function sendContactMessage() {
     resident_name: currentUser.resident_name,
     sender_name: currentUser.name,
     sender_role: 'family',
-    message: msg || '',
-    reopened: true
+    message: msg || ''
   };
   var uploadPromise = file
     ? uploadFileToStorage(file, 'messages').then(function(f) {
