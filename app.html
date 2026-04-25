@@ -80,6 +80,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .btn-dark:hover{background:#333;}
 .btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
 
+/* MESSAGING */
+.msg-thread{display:flex;flex-direction:column;gap:10px;padding:12px 0;min-height:120px;max-height:460px;overflow-y:auto;}
+.msg-row{display:flex;flex-direction:column;}
+.msg-row.from-me{align-items:flex-end;}
+.msg-row.from-them{align-items:flex-start;}
+.msg-meta{font-size:10px;color:#aaa;margin-bottom:3px;letter-spacing:0.02em;}
+.msg-bubble{max-width:78%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.55;word-break:break-word;}
+.msg-row.from-me .msg-bubble{background:#1a1a18;color:#fff;border-bottom-right-radius:3px;}
+.msg-row.from-them .msg-bubble{background:#fff;color:#1a1a18;border:0.5px solid rgba(0,0,0,0.1);border-bottom-left-radius:3px;}
+.msg-status{font-size:10px;color:#aaa;margin-top:3px;text-align:right;}
+.msg-composer{display:flex;gap:8px;align-items:flex-end;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.08);}
+.msg-composer textarea{flex:1;padding:10px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:none;min-height:44px;max-height:120px;background:#fff;}
+.msg-composer textarea:focus{outline:none;border-color:#5dcaa5;}
+.msg-send-btn{background:#1a1a18;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;}
+.msg-send-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.inbox-thread-list{display:flex;flex-direction:column;gap:8px;}
+.inbox-thread-card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:12px 14px;cursor:pointer;transition:background 0.1s;}
+.inbox-thread-card:hover{background:#faf9f7;}
+.inbox-thread-card.unread{border-left:3px solid #f59e0b;}
+.inbox-thread-card.replied{border-left:3px solid #5dcaa5;}
+.inbox-thread-card.resolved{border-left:3px solid #ddd;opacity:0.75;}
+.inbox-name{font-size:13px;font-weight:600;color:#1a1a18;}
+.inbox-preview{font-size:12px;color:#666;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inbox-time{font-size:11px;color:#aaa;flex-shrink:0;}
+.inbox-badge{font-size:10px;font-weight:700;background:#f59e0b;color:#fff;border-radius:99px;padding:2px 7px;flex-shrink:0;}
+.sidebar-unread{display:inline-block;background:#ef4444;color:#fff;border-radius:99px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;vertical-align:middle;line-height:1.4;}
+.msg-date-divider{text-align:center;font-size:10px;color:#aaa;margin:6px 0;letter-spacing:0.05em;}
+.msg-typing{font-size:12px;color:#aaa;font-style:italic;padding:4px 0;}
+
 /* FORM */
 .field{margin-bottom:12px;}
 .field label{display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px;}
@@ -383,19 +412,15 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- CONTACT CARE HOME -->
     <div class="panel" id="tab-contact">
-      <div class="info-green info">Send a message directly to the care home team. They will reply here — no emails needed.</div>
-      <div id="contact-thread" style="margin-bottom:12px;min-height:80px;max-height:400px;overflow-y:auto;"></div>
-      <div style="display:flex;gap:8px;align-items:flex-end;">
-        <textarea id="contact-input" placeholder="Write a message to the care home..." rows="3" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-          <label class="btn" style="padding:8px 12px;cursor:pointer;font-size:12px;margin:0;" title="Attach photo or PDF">
-            📎
-            <input type="file" id="contact-file" accept="image/*,.pdf" style="display:none;" onchange="previewContactFile(this)"/>
-          </label>
-          <button class="btn btn-green" onclick="sendContactMessage()" style="padding:8px 12px;">Send</button>
-        </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:600;color:#1a1a18;">Messages</div>
+        <div style="font-size:12px;color:#888;margin-top:2px;">Your conversation with the care home team. All senior staff can see and reply.</div>
       </div>
-      <div id="contact-file-preview" style="display:none;font-size:12px;color:#085041;margin-top:6px;padding:6px 10px;background:#e1f5ee;border-radius:8px;"></div>
+      <div class="msg-thread" id="contact-thread"></div>
+      <div class="msg-composer">
+        <textarea id="contact-input" placeholder="Write a message..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendContactMessage();}"></textarea>
+        <button class="msg-send-btn" onclick="sendContactMessage()" id="contact-send-btn">Send</button>
+      </div>
     </div>
 
     </div> <!-- end .main-content -->
@@ -438,7 +463,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       </button>
       <button class="sidebar-item" id="tab-inbox-btn" onclick="showNurseTab('inbox')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Family inbox
+        Family inbox<span id="inbox-sidebar-badge" style="display:none;" class="sidebar-unread">!</span>
       </button>
       <button class="sidebar-item" id="tab-staff-btn" style="display:none;" onclick="showNurseTab('staff')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
@@ -682,8 +707,31 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- FAMILY INBOX (staff side) -->
     <div class="panel" id="ntab-inbox">
-      <div class="info-green info">Messages sent to you by families. Reply directly — all senior staff can see and respond.</div>
-      <div id="inbox-list"><div class="empty" style="color:#aaa;">Loading...</div></div>
+      <div id="inbox-list-view">
+        <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#1a1a18;">Family messages</div>
+            <div style="font-size:12px;color:#888;margin-top:2px;">All senior staff can see and reply to every thread.</div>
+          </div>
+          <span id="inbox-unread-total" style="display:none;" class="tag tag-amber">Loading...</span>
+        </div>
+        <div class="inbox-thread-list" id="inbox-list"></div>
+      </div>
+      <div id="inbox-thread-view" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid rgba(0,0,0,0.08);">
+          <button class="btn" style="font-size:12px;padding:6px 12px;" onclick="closeInboxThread()">← Back</button>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;" id="inbox-thread-title"></div>
+            <div style="font-size:11px;color:#888;" id="inbox-thread-subtitle">Visible to all senior staff</div>
+          </div>
+          <button class="btn" id="resolve-thread-btn" onclick="resolveThread()" style="font-size:12px;padding:6px 12px;white-space:nowrap;">✓ Mark resolved</button>
+        </div>
+        <div class="msg-thread" id="inbox-thread"></div>
+        <div class="msg-composer">
+          <textarea id="inbox-reply-input" placeholder="Reply to this family..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendInboxReply();}"></textarea>
+          <button class="msg-send-btn" onclick="sendInboxReply()" id="inbox-send-btn">Send</button>
+        </div>
+      </div>
     </div>
 
     </div> <!-- end .main-content -->
@@ -2264,6 +2312,24 @@ var selectedResident = null;
 function loadNursePortal() {
   try {
     autoSelectResident(); // auto-load resident on sign-in
+    // Check for unread messages and update badge
+    setTimeout(function() {
+      if (currentUser && currentUser.care_home_id) {
+        supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id').then(function(fams) {
+          if (!fams || !fams.length) return;
+          var ids = fams.map(function(f){return f.id;}).join(',');
+          supaFetch('family_contact_messages?family_id=in.(' + ids + ')&sender_role=eq.family&order=created_at.desc&limit=50').then(function(msgs) {
+            if (!msgs) return;
+            // Count threads where last message is from family
+            var latest = {};
+            msgs.forEach(function(m) { if (!latest[m.family_id]) latest[m.family_id] = m; });
+            var count = Object.values(latest).filter(function(m){return m.sender_role === 'family';}).length;
+            var badge = document.getElementById('inbox-sidebar-badge');
+            if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-block' : 'none'; }
+          });
+        });
+      }
+    }, 1500);
     setTimeout(loadWardDrafts, 800); // show all in-progress drafts to all staff
     setTimeout(loadEscalatedConcerns, 1400); // show escalated family concerns to managers
     setTimeout(loadNursePendingDrafts, 1000); // show nurse's own pending drafts
@@ -2870,24 +2936,37 @@ function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric
 function loadContactMessages() {
   var thread = document.getElementById('contact-thread');
   if (!thread || !currentUser.family_id) return;
-  thread.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px 0;">Loading...</div>';
+  thread.innerHTML = '<div class="msg-typing">Loading messages...</div>';
   supaFetch('family_contact_messages?family_id=eq.' + currentUser.family_id + '&order=created_at.asc').then(function(msgs) {
+    thread.innerHTML = '';
     if (!msgs || msgs.length === 0) {
-      thread.innerHTML = '<div class="empty">No messages yet. Send your first message to the care home team.</div>';
+      thread.innerHTML = '<div class="empty" style="text-align:center;padding:30px 0;">No messages yet.<br><span style="font-size:12px;color:#aaa;">Send your first message below — the care team will reply here.</span></div>';
       return;
     }
-    thread.innerHTML = '';
+    var lastDate = '';
     msgs.forEach(function(m) {
+      if (m.sender_role === 'resolved') return; // skip system messages
       var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
-      var time = new Date(m.created_at).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      var div = document.createElement('div');
-      div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-start' : 'flex-end') + ';';
-      div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + ' · ' + time + '</div>' +
-        '<div class="msg-bubble" style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
-        (isStaff ? 'background:#e1f5ee;color:#085041;border-bottom-left-radius:3px;' : 'background:#085041;color:#fff;border-bottom-right-radius:3px;') +
-        '">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>';
-      thread.appendChild(div);
-      if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, div.querySelector('.msg-bubble'));
+      var fromMe = !isStaff;
+      var msgDate = new Date(m.created_at);
+      var dateStr = msgDate.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long'});
+      if (dateStr !== lastDate) {
+        var div = document.createElement('div');
+        div.className = 'msg-date-divider';
+        div.textContent = dateStr;
+        thread.appendChild(div);
+        lastDate = dateStr;
+      }
+      var time = msgDate.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+      var row = document.createElement('div');
+      row.className = 'msg-row ' + (fromMe ? 'from-me' : 'from-them');
+      var senderLabel = isStaff ? esc(m.sender_name) + ' · ' + esc(m.care_home || 'Care team') : '';
+      row.innerHTML =
+        (isStaff ? '<div class="msg-meta">' + senderLabel + '</div>' : '') +
+        '<div class="msg-bubble">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>' +
+        '<div class="msg-status">' + time + (fromMe ? ' · Sent' : '') + '</div>';
+      thread.appendChild(row);
+      if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, row.querySelector('.msg-bubble'));
     });
     thread.scrollTop = thread.scrollHeight;
   }).catch(function() {
@@ -2902,14 +2981,17 @@ function sendContactMessage() {
   var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
   if (!msg && !file) return;
   if (!currentUser.family_id || !currentUser.care_home_id) return;
+  var sendBtn = document.getElementById('contact-send-btn');
   if (input) input.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
   var msgData = {
     family_id: currentUser.family_id,
     care_home_id: currentUser.care_home_id,
     resident_name: currentUser.resident_name,
     sender_name: currentUser.name,
     sender_role: 'family',
-    message: msg || ''
+    message: msg || '',
+    reopened: true
   };
   var uploadPromise = file
     ? uploadFileToStorage(file, 'messages').then(function(f) {
@@ -2921,22 +3003,53 @@ function sendContactMessage() {
   uploadPromise.then(function() {
     return supaPost('family_contact_messages', msgData);
   }).then(function() {
-    if (input) { input.value = ''; input.disabled = false; }
-    if (fileInput) fileInput.value = '';
-    var preview = document.getElementById('contact-file-preview');
-    if (preview) preview.style.display = 'none';
+    if (input) { input.value = ''; input.disabled = false; input.style.height = 'auto'; }
+    if (sendBtn) sendBtn.disabled = false;
     loadContactMessages();
   }).catch(function() {
     if (input) input.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
     alert('Could not send. Please try again.');
   });
 }
 
 // ── FAMILY INBOX (staff side) ──
+function closeInboxThread() {
+  document.getElementById('inbox-list-view').style.display = '';
+  document.getElementById('inbox-thread-view').style.display = 'none';
+  window._currentInboxFamilyId = null;
+  loadInbox();
+}
+
+function resolveThread() {
+  var familyId = window._currentInboxFamilyId;
+  if (!familyId) return;
+  var btn = document.getElementById('resolve-thread-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Resolving...'; }
+  // Insert a system message marking it resolved
+  supaPost('family_contact_messages', {
+    family_id: familyId,
+    care_home_id: currentUser.care_home_id,
+    sender_name: currentUser.name,
+    sender_role: 'resolved',
+    message: '__resolved__',
+    resident_name: window._currentInboxResName || ''
+  }).then(function() {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Mark resolved'; }
+    closeInboxThread();
+  }).catch(function() {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Mark resolved'; }
+  });
+}
+
 function loadInbox() {
+  var listView = document.getElementById('inbox-list-view');
+  var threadView = document.getElementById('inbox-thread-view');
+  if (listView) listView.style.display = '';
+  if (threadView) threadView.style.display = 'none';
   var list = document.getElementById('inbox-list');
   if (!list || !currentUser || !currentUser.care_home_id) return;
-  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading...</div>';
+  list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px 0;">Loading...</div>';
   // Get all family IDs for this care home
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
     if (!families || families.length === 0) { list.innerHTML = '<div class="empty">No family messages yet.</div>'; return; }
@@ -2952,23 +3065,42 @@ function loadInbox() {
         groups[m.family_id].push(m);
       });
       list.innerHTML = '';
+      // Update sidebar badge
+      var totalUnread = Object.values(groups).filter(function(t){return t[0] && t[0].sender_role === 'family';}).length;
+      // Exclude resolved threads from count
+      totalUnread = Object.values(groups).filter(function(t){
+        return t[0] && t[0].sender_role !== 'resolved' && t[0].sender_role === 'family';
+      }).length;
+      var badge = document.getElementById('inbox-sidebar-badge');
+      if (badge) { badge.textContent = totalUnread; badge.style.display = totalUnread > 0 ? 'inline-block' : 'none'; }
+      var totalBadge = document.getElementById('inbox-unread-total');
+      if (totalBadge) {
+        if (totalUnread > 0) { totalBadge.textContent = totalUnread + ' need' + (totalUnread===1?'s':'') + ' reply'; totalBadge.style.display = ''; }
+        else { totalBadge.style.display = 'none'; }
+      }
       Object.keys(groups).forEach(function(fid) {
         var thread = groups[fid];
         var latest = thread[0];
         var resName = resMap[fid] || latest.resident_name || 'Resident';
         // Badge logic: needs reply if the LATEST message is from family
         var latest_msg = thread[0]; // already ordered by created_at desc
-        var unread = latest_msg && (latest_msg.sender_role === 'family');
+        var isResolved = latest_msg && latest_msg.sender_role === 'resolved';
+        var unread = !isResolved && latest_msg && (latest_msg.sender_role === 'family');
+        var timeStr = new Date(latest.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        var previewText = (latest.message || '📎 Attachment').substring(0, 70) + ((latest.message||'').length > 70 ? '...' : '');
         var div = document.createElement('div');
-        div.className = 'card';
-        div.style.cssText = 'margin-bottom:8px;border-left:3px solid ' + (unread ? '#f59e0b' : '#e2e8f0') + ';cursor:pointer;';
-        div.innerHTML = '<div class="card-body" style="padding:10px 14px;" onclick="openInboxThread(\'' + fid + '\',\'' + esc(resName) + '\')">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div style="font-size:13px;font-weight:600;">' + esc(resName) + ' family</div>' +
-          (unread ? '<span class="tag tag-amber" style="font-size:11px;">Needs reply</span>' : '<span class="tag" style="background:#dcfce7;color:#166534;font-size:11px;">Up to date</span>') +
+        div.className = 'inbox-thread-card ' + (isResolved ? 'resolved' : unread ? 'unread' : 'replied');
+        div.onclick = function() { openInboxThread(fid, resName); };
+        div.innerHTML =
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+          '<div style="min-width:0;">' +
+          '<div class="inbox-name">' + esc(resName) + ' family</div>' +
+          '<div class="inbox-preview">' + esc(latest.sender_name) + ': ' + esc(previewText) + '</div>' +
           '</div>' +
-          '<div style="font-size:12px;color:#666;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(latest.sender_name) + ': ' + esc((latest.message||'📎 Attachment').substring(0,80)) + ((latest.message||'').length>80?'...':'') + '</div>' +
-          '<div style="font-size:11px;color:#aaa;margin-top:2px;">' + new Date(latest.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">' +
+          '<span class="inbox-time">' + timeStr + '</span>' +
+          (isResolved ? '<span class="tag" style="background:#f1f0ee;color:#888;font-size:10px;">Resolved</span>' : unread ? '<span class="inbox-badge">Reply needed</span>' : '<span class="tag" style="background:#dcfce7;color:#166534;font-size:10px;">Replied</span>') +
+          '</div>' +
           '</div>';
         list.appendChild(div);
       });
@@ -2977,42 +3109,80 @@ function loadInbox() {
 }
 
 function openInboxThread(familyId, resName) {
-  var list = document.getElementById('inbox-list');
-  // Store current thread context
   window._currentInboxFamilyId = familyId;
   window._currentInboxResName = resName;
-  list.innerHTML =
-    '<div style="margin-bottom:10px;">' +
-    '<button class="btn" style="font-size:12px;" onclick="loadInbox()">← Back to inbox</button>' +
-    '<span style="font-size:14px;font-weight:600;margin-left:10px;">' + esc(resName) + ' family</span>' +
-    '</div>' +
-    '<div id="inbox-thread" style="margin-bottom:12px;max-height:350px;overflow-y:auto;"></div>' +
-    '<div style="display:flex;gap:8px;align-items:flex-end;">' +
-    '<textarea id="inbox-reply-input" placeholder="Reply to this family..." rows="3" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>' +
-    '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">' +
-    '<label class="btn" style="padding:8px 12px;cursor:pointer;font-size:12px;margin:0;" title="Attach photo or PDF">📎<input type="file" id="inbox-file" accept="image/*,.pdf" style="display:none;" onchange="previewInboxFile(this)"/></label>' +
-    '<button class="btn btn-green" onclick="sendInboxReply()" style="padding:8px 12px;">Reply</button>' +
-    '</div>' +
-    '</div>';
 
-  // Load thread messages
+  // Show thread view, hide list
+  document.getElementById('inbox-list-view').style.display = 'none';
+  document.getElementById('inbox-thread-view').style.display = '';
+
+  var titleEl = document.getElementById('inbox-thread-title');
+  if (titleEl) titleEl.textContent = resName + ' family';
+
+  var thread = document.getElementById('inbox-thread');
+  if (!thread) return;
+  thread.innerHTML = '<div class="msg-typing">Loading...</div>';
+
   supaFetch('family_contact_messages?family_id=eq.' + familyId + '&order=created_at.asc').then(function(msgs) {
-    var thread = document.getElementById('inbox-thread');
-    if (!thread) return;
     thread.innerHTML = '';
+    if (!msgs || msgs.length === 0) {
+      thread.innerHTML = '<div class="empty" style="text-align:center;padding:20px 0;">No messages yet in this thread.</div>';
+      return;
+    }
+    var lastDate = '';
+    var isThreadResolved = msgs.length > 0 && msgs[msgs.length-1].sender_role === 'resolved';
     msgs.forEach(function(m) {
+      // Show resolved banner instead of system message
+      if (m.sender_role === 'resolved' && m.message === '__resolved__') {
+        var resolvedDiv = document.createElement('div');
+        resolvedDiv.className = 'msg-date-divider';
+        var resolvedTime = new Date(m.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        resolvedDiv.innerHTML = '✓ Marked resolved by ' + esc(m.sender_name) + ' · ' + resolvedTime;
+        resolvedDiv.style.cssText = 'color:#5dcaa5;background:#f0fdf4;border-radius:6px;padding:4px 10px;';
+        thread.appendChild(resolvedDiv);
+        return;
+      }
       var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
-      var time = new Date(m.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      var div = document.createElement('div');
-      div.style.cssText = 'margin-bottom:10px;display:flex;flex-direction:column;align-items:' + (isStaff ? 'flex-end' : 'flex-start') + ';';
-      div.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:3px;">' + esc(m.sender_name) + (isStaff ? ' (staff)' : '') + ' · ' + time + '</div>' +
-        '<div class="msg-bubble" style="max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;' +
-        (isStaff ? 'background:#085041;color:#fff;border-bottom-right-radius:3px;' : 'background:#f1f5f9;color:#1e293b;border-bottom-left-radius:3px;') +
-        '">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>';
-      thread.appendChild(div);
-      if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, div.querySelector('.msg-bubble'));
+      var fromMe = isStaff; // staff perspective — their messages on right
+      var msgDate = new Date(m.created_at);
+      var dateStr = msgDate.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long'});
+      if (dateStr !== lastDate) {
+        var dd = document.createElement('div');
+        dd.className = 'msg-date-divider';
+        dd.textContent = dateStr;
+        thread.appendChild(dd);
+        lastDate = dateStr;
+      }
+      var time = msgDate.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+      var row = document.createElement('div');
+      row.className = 'msg-row ' + (fromMe ? 'from-me' : 'from-them');
+      var senderLabel = !fromMe ? esc(m.sender_name) : '';
+      row.innerHTML =
+        (!fromMe ? '<div class="msg-meta">' + senderLabel + '</div>' : '') +
+        '<div class="msg-bubble">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>' +
+        '<div class="msg-status">' + time + (fromMe ? ' · ' + esc(m.sender_name) : '') + '</div>';
+      thread.appendChild(row);
+      if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, row.querySelector('.msg-bubble'));
     });
+    // Show resolved button state
+    var resolveBtn = document.getElementById('resolve-thread-btn');
+    if (resolveBtn) {
+      if (isThreadResolved) {
+        resolveBtn.textContent = '✓ Resolved';
+        resolveBtn.style.background = '#f0fdf4';
+        resolveBtn.style.color = '#166534';
+        resolveBtn.style.borderColor = '#5dcaa5';
+      } else {
+        resolveBtn.textContent = '✓ Mark resolved';
+        resolveBtn.style.background = '';
+        resolveBtn.style.color = '';
+        resolveBtn.style.borderColor = '';
+      }
+    }
     thread.scrollTop = thread.scrollHeight;
+    // Focus reply box
+    var input = document.getElementById('inbox-reply-input');
+    if (input) setTimeout(function(){ input.focus(); }, 100);
   });
 }
 
