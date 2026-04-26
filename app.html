@@ -60,7 +60,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .sidebar-item.active svg{opacity:1;}
 .sidebar-spacer{flex:1;}
 .sidebar-foot{padding:12px 14px;border-top:0.5px solid rgba(0,0,0,0.08);font-size:11px;color:#aaa;}
-.main-content{flex:1;padding:16px;min-width:0;max-width:680px;}
+.main-content{flex:1;padding:16px;min-width:0;max-width:680px;overflow-y:auto;}
 @media(max-width:600px){
   .app-shell{flex-direction:column;}
   .sidebar{width:100%;height:auto;position:relative;top:0;flex-direction:row;flex-wrap:wrap;padding:6px;border-right:none;border-bottom:0.5px solid rgba(0,0,0,0.1);}
@@ -778,7 +778,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <button class="tl-filter" data-type="review" onclick="filterTimeline('review')">Reviews</button>
         <button class="tl-filter" data-type="message" onclick="filterTimeline('message')">Messages</button>
       </div>
-      <div id="timeline-list"><div class="empty" style="padding:30px 0;text-align:center;color:#aaa;">Select a resident to view their timeline.</div></div>
+      <div id="timeline-list"></div>
     </div>
 
     </div> <!-- end .main-content -->
