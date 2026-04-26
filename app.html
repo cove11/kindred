@@ -400,7 +400,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- TIMELINE -->
     <div class="panel" id="tab-timeline">
       <div class="sh">Shared timeline</div>
-      <div id="timeline-list" style="max-height:calc(100vh - 280px);overflow-y:auto;padding-right:4px;"></div>
+      
     </div>
 
     <!-- LOAD SHARING -->
@@ -763,6 +763,343 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- TIMELINE PANEL -->
     <div class="panel" id="ntab-timeline">
+      <div style="margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Resident timeline</div>
+        <div style="font-size:12px;color:#888;">Complete history of reviews and messages for each resident.</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:10px;font-weight:800;color:#8a7060;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:6px;">Select resident</label>
+        <select id="timeline-resident-selector" onchange="loadTimeline(this.value)" style="width:100%;max-width:320px;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#faf7f3;font-family:inherit;color:#1a1a18;">
+          <option value="">-- Choose a resident --</option>
+        </select>
+      </div>
+      <div id="timeline-filters" style="display:none;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="tl-filter active" data-type="all" onclick="filterTimeline('all')">All</button>
+        <button class="tl-filter" data-type="review" onclick="filterTimeline('review')">Reviews</button>
+        <button class="tl-filter" data-type="message" onclick="filterTimeline('message')">Messages</button>
+      </div>
+      <div id="timeline-list" style="padding-bottom:20px;"></div>
+    </div>
+
+    </div>
+
+    </div> <!-- end .main-content -->
+  </div> <!-- end .app-shell -->
+</div> <!-- end #family-app -->
+
+<!-- NURSE APP -->
+<div id="nurse-app" style="display:none;">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-section">Main</div>
+      <button class="sidebar-item active" onclick="showNurseTab('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Overview
+      </button>
+      <button class="sidebar-item" onclick="showNurseTab('residents')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Residents
+      </button>
+      <button class="sidebar-item" onclick="showNurseTab('review')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Enter review
+      </button>
+      <button class="sidebar-item" onclick="showNurseTab('approve')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Review &amp; approve
+      </button>
+      <button class="sidebar-item" onclick="showNurseTab('sent')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Sent
+      </button>
+      <button class="sidebar-item" onclick="showNurseTab('timeline')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="8 8 3 12 8 16"/><polyline points="16 8 21 12 16 16"/></svg>
+        Resident timeline
+      </button>
+      <div class="sidebar-section">Admin</div>
+      <button class="sidebar-item" onclick="showNurseTab('add-resident')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Add resident
+      </button>
+      <button class="sidebar-item" id="tab-team-btn" onclick="showNurseTab('team')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Our team
+      </button>
+      <button class="sidebar-item" id="tab-inbox-btn" onclick="showNurseTab('inbox')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Family inbox<span id="inbox-sidebar-badge" style="display:none;" class="sidebar-unread">!</span>
+      </button>
+      <button class="sidebar-item" id="tab-staff-btn" style="display:none;" onclick="showNurseTab('staff')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Staff
+      </button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-foot" id="nurse-sidebar-info"></div>
+    </div>
+    <div class="main-content">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="ntab-overview">
+      <div class="sh">Ward at a glance</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="card" style="margin-bottom:0;text-align:center;padding:12px;"><div style="font-size:22px;font-weight:700;" id="stat-residents">—</div><div style="font-size:11px;color:#aaa;">Residents</div></div>
+        <div style="background:#faeeda;border:0.5px solid #ef9f27;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#633806;" id="stat-reviews-due">—</div><div style="font-size:11px;color:#854f0b;">Reviews due</div></div>
+        <div style="background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:700;color:#085041;" id="stat-families">—</div><div style="font-size:11px;color:#085041;">Families active</div></div>
+      </div>
+      <!-- All staff: ward drafts in progress -->
+      <div id="ward-drafts-section" style="display:none;margin-bottom:14px;">
+        <div class="sh" style="margin-bottom:6px;">📋 Reviews in progress</div>
+        <div id="ward-drafts-list"><div class="empty" style="font-size:13px;">No reviews in progress.</div></div>
+      </div>
+      <!-- Manager: drafts awaiting approval -->
+      <div id="manager-pending-section" style="display:none;margin-bottom:14px;">
+        <div class="sh" style="margin-bottom:6px;">⏳ Awaiting your approval</div>
+        <div id="manager-pending-list"><div class="empty" style="font-size:13px;">No drafts waiting.</div></div>
+      </div>
+      <div class="sh">Quick actions</div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="showNurseTab('residents')">View residents</button>
+        <button class="btn" onclick="showNurseTab('review')">New review</button>
+      </div>
+      <!-- Pending drafts notice (nurses only) -->
+      <div id="nurse-pending-section" style="display:none;margin-top:14px;">
+        <div class="sh">Your pending drafts</div>
+        <div id="nurse-pending-list"><div class="empty" style="font-size:13px;">No drafts pending approval.</div></div>
+      </div>
+      <div class="sh" style="margin-top:14px;">Your care home</div>
+      <div class="card">
+        <div class="card-body" style="padding:9px 14px;">
+          <div class="row"><span class="row-label">Care home</span><span class="row-value" id="nurse-care-home-name">Loading...</span></div>
+          <div class="row"><span class="row-label">Your role</span><span class="row-value" id="overview-role">Senior staff</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESIDENTS -->
+    <div class="panel" id="ntab-residents">
+      <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+        <input type="text" id="resident-search" placeholder="Search residents..." oninput="filterResidents()" style="flex:1;padding:7px 11px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;"/>
+        <select id="resident-filter-status" onchange="filterResidents()" style="padding:7px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#fff;">
+          <option value="">All residents</option>
+          <option value="overdue">Overdue</option>
+          <option value="due-soon">Due soon</option>
+          <option value="up-to-date">Up to date</option>
+        </select>
+      </div>
+      <div id="residents-list"><div class="empty">Loading residents...</div></div>
+    </div>
+
+    <!-- REVIEW FORM -->
+    <div class="panel" id="ntab-review">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;">Select resident</label>
+        <select id="resident-selector" style="width:100%;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;background:#faf9f7;margin-top:4px;" onchange="onResidentSelect(this.value)">
+          <option value="">Loading residents...</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;">Review type</label>
+        <select id="review-type-selector" style="width:100%;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;background:#faf9f7;margin-top:4px;" onchange="onReviewTypeChange(this.value)">
+          <option value="6-month review">6-month review (scheduled)</option>
+          <option value="health-change">Notable health change / decline</option>
+          <option value="medication-change">Medication change</option>
+          <option value="other">Other update</option>
+        </select>
+      </div>
+      <div class="info-amber info" id="review-type-info">Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.</div>
+      <div class="sh">Clinical assessment</div>
+      <div class="field"><label>Overall wellbeing</label>
+        <div class="pills" id="pg-w"><div class="pill on" data-v="Well">Well</div><div class="pill" data-v="Very well">Very well</div><div class="pill" data-v="Some concerns">Some concerns</div><div class="pill" data-v="Deteriorating">Deteriorating</div></div>
+        <input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe in your own words..."/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="field"><label>Mobility</label><div class="pills" id="pg-m"><div class="pill on" data-v="Independent">Independent</div><div class="pill" data-v="Assisted">Assisted</div><div class="pill" data-v="Wheelchair">Wheelchair</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+        <div class="field"><label>Appetite</label><div class="pills" id="pg-a"><div class="pill on" data-v="Good">Good</div><div class="pill" data-v="Variable">Variable</div><div class="pill" data-v="Poor">Poor</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="field"><label>Cognitive function</label><div class="pills" id="pg-c"><div class="pill on" data-v="Stable">Stable</div><div class="pill" data-v="Mild changes">Mild changes</div><div class="pill" data-v="Moderate decline">Moderate decline</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+        <div class="field"><label>Mood</label><div class="pills" id="pg-mo"><div class="pill on" data-v="Positive">Positive</div><div class="pill" data-v="Withdrawn">Withdrawn</div><div class="pill" data-v="Anxious">Anxious</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      </div>
+      <div class="field"><label>Falls — past 6 months</label><div class="pills" id="pg-f"><div class="pill on" data-v="None">None</div><div class="pill" data-v="1-2 minor">1-2 minor</div><div class="pill" data-v="3+ or serious">3+ or serious</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+        <div class="field"><label>Continence</label><div class="pills" id="pg-cont"><div class="pill on" data-v="Fully continent">Fully continent</div><div class="pill" data-v="Occasional incidents">Occasional incidents</div><div class="pill" data-v="Requires support">Requires support</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+        <div class="field"><label>Nutrition &amp; hydration</label><div class="pills" id="pg-nh"><div class="pill on" data-v="Good">Good</div><div class="pill" data-v="Adequate">Adequate</div><div class="pill" data-v="At risk">At risk</div></div><input type="text" style="margin-top:6px;font-size:12px;" placeholder="Or describe..."/></div>
+      </div>
+      <div class="sh">Clinical notes</div>
+      <div class="field"><label>Medication changes</label><textarea id="f-meds" placeholder="Any changes to medications..."></textarea></div>
+      <div class="field"><label>Observations</label><textarea id="f-obs" placeholder="What have you observed this period?"></textarea></div>
+      <div class="field"><label>Concerns and recommendations</label><textarea id="f-con" placeholder="Anything the family should discuss or action?"></textarea></div>
+      <div class="field"><label>Family present <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="f-pre" placeholder="e.g. Sarah Clarke (daughter)"/></div>
+      <div class="btn-row">
+        <button class="btn btn-green" id="btn-gen" onclick="generateSummary()">Generate family summary with Opus</button>
+      </div>
+      <div class="ai-block" id="nurse-preview" style="display:none;">
+        <div class="ai-head"><div><span class="gdot"></span><span style="font-size:12px;font-weight:500;color:#555;">Plain-English draft</span></div><span class="model-tag">claude-opus-4-6</span></div>
+        <div class="ai-body" id="nurse-preview-out"></div>
+        <div class="ai-foot"><button class="btn btn-green" style="font-size:12px;padding:5px 11px;" onclick="saveDraftAndApprove()">Review &amp; approve ›</button><button class="btn" style="font-size:12px;padding:5px 11px;" onclick="generateSummary()">Regenerate</button><span id="draft-saved-msg" style="font-size:11px;color:#5dcaa5;margin-left:8px;display:none;">✓ Draft saved</span></div>
+      </div>
+    </div>
+
+    <!-- APPROVE -->
+    <div class="panel" id="ntab-approve">
+      <!-- Resident banner -->
+      <div id="approve-resident-banner" style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#aaa;margin-bottom:2px;">Reviewing for</div>
+          <div style="font-size:15px;font-weight:600;color:#1a1a1a;" id="approve-resident-name">No resident selected</div>
+        </div>
+        <button class="btn" onclick="showNurseTab('review')" style="font-size:11px;padding:4px 10px;">← Back to form</button>
+      </div>
+      <div id="draft-pending-notice" style="display:none;background:#f0fdf4;border:0.5px solid #5dcaa5;border-radius:8px;padding:9px 13px;font-size:13px;color:#085041;margin-bottom:10px;">
+        <strong>Draft loaded.</strong> This review was saved by <span id="draft-nurse-name">a nurse</span> and is waiting for your approval.
+      </div>
+      <div id="approve-manager-info" class="info-amber info"><strong>Your responsibility.</strong> Read before sending. Edit any section. Nothing reaches the family until you approve it.</div>
+      <div id="approve-nurse-info" class="info-green info" style="display:none;"><strong>Draft saved.</strong> Your draft is saved. You can edit it below or send it directly to the family.</div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Editable summary</span><button class="btn" style="font-size:11px;padding:2px 8px;" onclick="toggleEdit()">Edit</button></div>
+        <div class="card-body" id="summary-show"><p style="color:#aaa;font-style:italic;">Generate a summary in the review form first.</p></div>
+        <textarea id="summary-edit" style="display:none;margin:12px;width:calc(100% - 24px);min-height:140px;"></textarea>
+        <div id="edit-btns" style="display:none;padding:0 12px 12px;"><button class="btn btn-green" style="font-size:12px;" onclick="saveEdit()">Save</button></div>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>Personal note <span style="font-weight:400;color:#aaa;font-size:11px;">optional — appears above summary</span></label><textarea id="nurse-note" placeholder="e.g. Margaret was in good spirits and sends her love." style="min-height:48px;"></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-green" id="btn-send" onclick="sendReview()" style="display:none;">Approve and send to family</button>
+        <button class="btn btn-green" id="btn-submit-draft" onclick="submitDraftForApproval()" style="display:none;">Send to family</button>
+        <button class="btn" onclick="showNurseTab('review')" style="display:none;"></button>
+      </div>
+      <div id="send-confirm" style="display:none;margin-top:10px;background:#e1f5ee;border:0.5px solid #5dcaa5;border-radius:8px;padding:10px 13px;font-size:13px;color:#085041;">Review sent successfully. The family have been notified.</div>
+    </div>
+
+    <!-- SENT -->
+    <div class="panel" id="ntab-sent">
+      <div id="sent-list"><div class="empty">No reviews sent yet.</div></div>
+    </div>
+
+    <!-- RESIDENT PROFILE -->
+    <div class="panel" id="ntab-profile">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <button onclick="showNurseTab('residents')" style="background:none;border:none;cursor:pointer;color:#5dcaa5;font-size:13px;padding:0;">← Back to residents</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-green" id="profile-edit-btn" onclick="enterEditMode()" style="font-size:12px;display:none;">Edit details</button>
+          <button class="btn" id="profile-delete-btn" onclick="deleteResident()" style="font-size:12px;color:#b91c1c;border-color:#fca5a5;display:none;">Delete resident</button>
+        </div>
+      </div>
+      <div id="profile-content"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- ADD RESIDENT -->
+    <div class="panel" id="ntab-add-resident">
+      <div class="info-green info">Add a resident to your care home. Once added you can generate a secure invite link to send to their primary family contact.</div>
+      
+      <div class="sh">Resident details</div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-body">
+          <div class="field"><label>Resident full name</label><input type="text" id="res-name" placeholder="e.g. Margaret Clarke"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>Building <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-building" placeholder="e.g. Maple Wing"/></div>
+            <div class="field"><label>Room number <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-room" placeholder="e.g. 14B"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>Date of birth <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="date" id="res-dob"/></div>
+            <div class="field"><label>Date admitted <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="date" id="res-admitted"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>NHS number <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-nhs" placeholder="e.g. 943 476 5919"/></div>
+            <div class="field"><label>GP name <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-gp" placeholder="e.g. Dr Sarah Jones"/></div>
+          </div>
+          <div class="field"><label>Allergies <span style="font-weight:400;color:#aaa;font-size:11px;">optional</span></label><input type="text" id="res-allergies" placeholder="e.g. Penicillin, latex"/></div>
+          <div class="field"><label>Care type</label>
+            <div class="pills" id="res-care-type">
+              <div class="pill on" data-v="residential">Residential</div>
+              <div class="pill" data-v="nursing">Nursing</div>
+            </div>
+          </div>
+          <div class="field"><label>Funding</label>
+            <div class="pills" id="res-funding">
+              <div class="pill on" data-v="private">Private</div>
+              <div class="pill" data-v="fully_funded">Fully funded</div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="addResident()">Add resident</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="resident-added-panel" style="display:none;" class="card">
+        <div class="card-body">
+          <div class="info-green info" style="margin-bottom:10px;"><strong>Resident added!</strong> Send this invite link to the primary family contact. They click it, create an account, and are automatically connected to this resident.</div>
+          <div class="invite-link" id="family-invite-link"></div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="copyFamilyInvite()" style="font-size:12px;">Copy invite link</button>
+            <button class="btn" onclick="addAnother()" style="font-size:12px;">Add another resident</button>
+          </div>
+          <div id="family-invite-copied" style="display:none;font-size:12px;color:#085041;margin-top:6px;">Copied!</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- STAFF MANAGEMENT (care home admin only) -->
+    <div class="panel" id="ntab-staff">
+      <div class="info-green info">Invite senior staff to Kindred. Each team member gets a personal invite link — deactivate them instantly if they leave.</div>
+      
+      <div class="sh">Invite a senior staff member</div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-body">
+          <div class="field"><label>Senior staff name</label><input type="text" id="invite-nurse-name" placeholder="e.g. Sarah Nguyen"/></div>
+          <div class="field"><label>Email address</label><input type="email" id="invite-nurse-email" placeholder="staff@carehome.co.uk"/></div>
+          <div class="btn-row">
+            <button class="btn btn-green" onclick="inviteNurse()">Send invite</button>
+          </div>
+          <div id="invite-result" style="display:none;margin-top:10px;font-size:13px;color:#085041;padding:8px 10px;background:#e1f5ee;border-radius:8px;"></div>
+        </div>
+      </div>
+
+      <div class="sh" style="margin-top:14px;">Active staff</div>
+      <div style="margin-bottom:8px;">
+        <input type="text" id="staff-search" placeholder="Search staff by name or email..." oninput="filterStaff()" style="width:100%;padding:7px 11px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;box-sizing:border-box;"/>
+      </div>
+      <div id="staff-list"><div class="empty">No senior staff invited yet.</div></div>
+    </div>
+
+    <!-- TEAM DIRECTORY (all staff) -->
+    <div class="panel" id="ntab-team">
+      <div class="info-green info">Everyone at your care home who has access to Kindred.</div>
+      <div id="team-list"><div class="empty" style="color:#aaa;">Loading...</div></div>
+    </div>
+
+    <!-- FAMILY INBOX (staff side) -->
+    <div class="panel" id="ntab-inbox">
+      <div id="inbox-list-view">
+        <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#1a1a18;">Family messages</div>
+            <div style="font-size:12px;color:#888;margin-top:2px;">All senior staff can see and reply to every thread.</div>
+          </div>
+          <span id="inbox-unread-total" style="display:none;" class="tag tag-amber">Loading...</span>
+        </div>
+        <div class="inbox-thread-list" id="inbox-list"></div>
+      </div>
+      <div id="inbox-thread-view" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid rgba(0,0,0,0.08);">
+          <button class="btn" style="font-size:12px;padding:6px 12px;" onclick="closeInboxThread()">← Back</button>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;" id="inbox-thread-title"></div>
+            <div style="font-size:11px;color:#888;" id="inbox-thread-subtitle">Visible to all senior staff</div>
+          </div>
+          <button class="btn" id="resolve-thread-btn" onclick="resolveThread()" style="font-size:12px;padding:6px 12px;white-space:nowrap;">✓ Mark resolved</button>
+        </div>
+        <div class="msg-thread" id="inbox-thread"></div>
+        <div class="msg-composer">
+          <textarea id="inbox-reply-input" placeholder="Reply to this family..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendInboxReply();}"></textarea>
+          <button class="msg-send-btn" onclick="sendInboxReply()" id="inbox-send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE PANEL -->
+    <div class="panel" id="ntab-timeline">
       <div style="margin-bottom:16px;">
         <div style="font-size:15px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Resident timeline</div>
         <div style="font-size:12px;color:#888;">A complete history of reviews, updates and messages for each resident.</div>
@@ -778,7 +1115,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <button class="tl-filter" data-type="review" onclick="filterTimeline('review')">Reviews</button>
         <button class="tl-filter" data-type="message" onclick="filterTimeline('message')">Messages</button>
       </div>
-      <div id="timeline-list" style="max-height:calc(100vh - 280px);overflow-y:auto;padding-right:4px;"></div>
+      
     </div>
 
     </div> <!-- end .main-content -->
@@ -1787,7 +2124,7 @@ function renderReviews(reviews) {
   });
 
   // Update timeline — reviews + escalated concerns
-  var tl = document.getElementById('timeline-list');
+  var tl = document.getElementById('family-timeline-list');
   tl.innerHTML = '';
 
   // Build combined timeline items
@@ -3087,7 +3424,7 @@ function filterTimeline(type) {
 }
 
 function renderTimeline(items) {
-  var list = document.getElementById('timeline-list');
+  var panel = document.getElementById('ntab-timeline'); var list = panel ? panel.querySelector('#timeline-list') : document.getElementById('timeline-list');
   if (!list) return;
   // Force panel visible
   var panel = document.getElementById('ntab-timeline');
@@ -3131,7 +3468,7 @@ function toggleTlItem(idx, headEl) {
 }
 
 function loadTimeline(familyId) {
-  var list = document.getElementById('timeline-list');
+  var panel = document.getElementById('ntab-timeline'); var list = panel ? panel.querySelector('#timeline-list') : document.getElementById('timeline-list');
   var filters = document.getElementById('timeline-filters');
   if (!familyId) {
     if (list) list.innerHTML = '<div class="empty" style="padding:30px 0;text-align:center;color:#aaa;">Select a resident to view their timeline.</div>';
