@@ -1262,7 +1262,10 @@ function loadNursePendingDrafts() {
 }
 
 function autoSelectResident() {
-  if (!currentUser || !currentUser.care_home_id) return;
+  if (!currentUser || !currentUser.care_home_id) {
+    setTimeout(autoSelectResident, 400);
+    return;
+  }
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name&order=resident_name.asc').then(function(families) {
     if (!families || families.length === 0) return;
     // Populate dropdown
@@ -2358,7 +2361,7 @@ var selectedResident = null;
 
 function loadNursePortal() {
   try {
-    autoSelectResident(); // auto-load resident on sign-in
+    setTimeout(autoSelectResident, 800); // auto-load resident after JWT settles
     // Check for unread messages and update badge
     setTimeout(function() { refreshInboxBadge(); }, 1500);
     // Auto-refresh badge every 60 seconds
@@ -3052,7 +3055,10 @@ function sendContactMessage() {
 // ── FAMILY INBOX (staff side) ──
 // ── TIMELINE ──
 function initTimelineSelector() {
-  if (!currentUser || !currentUser.care_home_id) return;
+  if (!currentUser || !currentUser.care_home_id) {
+    setTimeout(initTimelineSelector, 300);
+    return;
+  }
   var sel = document.getElementById('timeline-resident-selector');
   if (!sel) return;
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc').then(function(fams) {
