@@ -2360,23 +2360,9 @@ function loadNursePortal() {
   try {
     autoSelectResident(); // auto-load resident on sign-in
     // Check for unread messages and update badge
-    setTimeout(function() {
-      if (currentUser && currentUser.care_home_id) {
-        supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id').then(function(fams) {
-          if (!fams || !fams.length) return;
-          var ids = fams.map(function(f){return f.id;}).join(',');
-          supaFetch('family_contact_messages?family_id=in.(' + ids + ')&sender_role=eq.family&order=created_at.desc&limit=50').then(function(msgs) {
-            if (!msgs) return;
-            // Count threads where last message is from family
-            var latest = {};
-            msgs.forEach(function(m) { if (!latest[m.family_id]) latest[m.family_id] = m; });
-            var count = Object.values(latest).filter(function(m){return m.sender_role === 'family';}).length;
-            var badge = document.getElementById('inbox-sidebar-badge');
-            if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-block' : 'none'; }
-          });
-        });
-      }
-    }, 1500);
+    setTimeout(function() { refreshInboxBadge(); }, 1500);
+    // Auto-refresh badge every 60 seconds
+    setInterval(function() { refreshInboxBadge(); }, 60000);
     setTimeout(loadWardDrafts, 800); // show all in-progress drafts to all staff
     setTimeout(loadEscalatedConcerns, 1400); // show escalated family concerns to managers
     setTimeout(loadNursePendingDrafts, 1000); // show nurse's own pending drafts
@@ -2932,8 +2918,12 @@ function safeSetText(id, text) {
 }
 
 // ── SUPABASE REST ──
+function getSupaToken() {
+  return localStorage.getItem('supa_token') || SUPA_KEY;
+}
+
 function supaFetch(endpoint, method, body) {
-  var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  var token = getSupaToken();
   method = method || 'GET';
   return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
@@ -3088,11 +3078,11 @@ function renderTimeline(items) {
   var list = document.getElementById('timeline-list');
   if (!list) return;
   var filtered = _tlFilter === 'all' ? items : items.filter(function(i) { return i.type === _tlFilter; });
+  list.innerHTML = '';
   if (!filtered.length) {
-    list.innerHTML = '<div class="empty" style="padding:20px 0;text-align:center;">No items for this filter.</div>';
+    list.innerHTML = '<div class="empty" style="padding:20px 0;text-align:center;color:#aaa;">No items for this filter.</div>';
     return;
   }
-  list.innerHTML = '';
   filtered.forEach(function(item, idx) {
     var iconClass = item.type === 'review' ? 'review' : item.type === 'message' ? 'message' : item.reviewType && item.reviewType.includes('medication') ? 'medication' : item.reviewType && item.reviewType.includes('health') ? 'health' : 'review';
     var iconEmoji = item.type === 'review' ? '📋' : item.type === 'message' ? '💬' : '📋';
@@ -3184,6 +3174,22 @@ function loadTimeline(familyId) {
     renderTimeline(items);
   }).catch(function() {
     if (list) list.innerHTML = '<div class="empty">Could not load timeline.</div>';
+  });
+}
+
+function refreshInboxBadge() {
+  if (!currentUser || !currentUser.care_home_id) return;
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id').then(function(fams) {
+    if (!fams || !fams.length) return;
+    var ids = fams.map(function(f){return f.id;}).join(',');
+    supaFetch('family_contact_messages?family_id=in.(' + ids + ')&sender_role=eq.family&order=created_at.desc&limit=50').then(function(msgs) {
+      if (!msgs) return;
+      var latest = {};
+      msgs.forEach(function(m) { if (!latest[m.family_id]) latest[m.family_id] = m; });
+      var count = Object.values(latest).filter(function(m){return m.sender_role === 'family';}).length;
+      var badge = document.getElementById('inbox-sidebar-badge');
+      if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-block' : 'none'; }
+    });
   });
 }
 
