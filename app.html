@@ -400,7 +400,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- TIMELINE -->
     <div class="panel" id="tab-timeline">
       <div class="sh">Shared timeline</div>
-      <div id="timeline-list"><div class="empty">Your shared timeline will build up here over time.<br>Care reviews and family updates appear here.</div></div>
+      <div id="timeline-list" style="max-height:calc(100vh - 280px);overflow-y:auto;padding-right:4px;"></div>
     </div>
 
     <!-- LOAD SHARING -->
@@ -778,7 +778,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <button class="tl-filter" data-type="review" onclick="filterTimeline('review')">Reviews</button>
         <button class="tl-filter" data-type="message" onclick="filterTimeline('message')">Messages</button>
       </div>
-      <div id="timeline-list" style="max-height:calc(100vh - 280px);overflow-y:auto;"></div>
+      <div id="timeline-list" style="max-height:calc(100vh - 280px);overflow-y:auto;padding-right:4px;"></div>
     </div>
 
     </div> <!-- end .main-content -->
@@ -3089,6 +3089,9 @@ function filterTimeline(type) {
 function renderTimeline(items) {
   var list = document.getElementById('timeline-list');
   if (!list) return;
+  // Force panel visible
+  var panel = document.getElementById('ntab-timeline');
+  if (panel && !panel.classList.contains('active')) panel.classList.add('active');
   var filtered = _tlFilter === 'all' ? items : items.filter(function(i) { return i.type === _tlFilter; });
   list.innerHTML = '';
   if (!filtered.length) {
