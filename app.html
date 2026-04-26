@@ -27,14 +27,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .panel{display:none;}
 .panel.active{display:block;}
 
+/* TIMELINE */
+.tl-filter{background:#faf7f3;border:0.5px solid rgba(0,0,0,0.15);border-radius:20px;padding:5px 13px;font-size:11px;font-weight:600;color:#7a6858;cursor:pointer;font-family:inherit;}
+.tl-filter.active{background:#3d2010;color:#fff;border-color:#3d2010;}
+.tl-item{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;margin-bottom:8px;overflow:hidden;}
+.tl-item-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;}
+.tl-item-head:hover{background:#faf7f3;}
+.tl-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;}
+.tl-icon.review{background:#e6f7f0;color:#0f6e56;}
+.tl-icon.message{background:#fef3cc;color:#8a6400;}
+.tl-icon.medication{background:#fdf0e8;color:#c05830;}
+.tl-icon.health{background:#fee2e2;color:#991b1b;}
+.tl-meta{flex:1;}
+.tl-title{font-size:13px;font-weight:600;color:#1a1a18;}
+.tl-sub{font-size:11px;color:#aaa;margin-top:1px;}
+.tl-date{font-size:11px;color:#aaa;flex-shrink:0;}
+.tl-chevron{font-size:11px;color:#aaa;flex-shrink:0;transition:transform 0.2s;}
+.tl-chevron.open{transform:rotate(90deg);}
+.tl-body{display:none;padding:0 14px 14px;border-top:0.5px solid rgba(0,0,0,0.06);}
+.tl-body.open{display:block;}
+.tl-content{font-size:13px;color:#444;line-height:1.6;padding-top:10px;}
+.tl-close-btn{margin-top:10px;font-size:11px;font-weight:600;color:#888;cursor:pointer;border:none;background:none;font-family:inherit;padding:0;}
+
 /* SIDEBAR LAYOUT */
 .app-shell{display:flex;min-height:calc(100vh - 49px);}
-.sidebar{width:200px;flex-shrink:0;background:#fff;border-right:0.5px solid rgba(0,0,0,0.1);display:flex;flex-direction:column;position:sticky;top:49px;height:calc(100vh - 49px);overflow-y:auto;}
-.sidebar-section{padding:14px 12px 4px;font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#888;}
-.sidebar-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:12px;font-weight:500;color:#888;cursor:pointer;border:none;background:transparent;font-family:inherit;width:100%;text-align:left;border-left:2.5px solid transparent;transition:all 0.1s;}
-.sidebar-item:hover{color:#1a1a18;background:#faf9f7;}
-.sidebar-item.active{color:#1a1a18;background:#f0ede8;border-left-color:#1a1a18;font-weight:600;}
-.sidebar-item svg{width:14px;height:14px;flex-shrink:0;opacity:0.5;}
+.sidebar{width:210px;flex-shrink:0;background:#faf7f3;border-right:0.5px solid rgba(0,0,0,0.1);display:flex;flex-direction:column;position:sticky;top:49px;height:calc(100vh - 49px);overflow-y:auto;}
+.sidebar-section{padding:14px 12px 4px;font-size:9px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#8a7060;}
+.sidebar-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:12px;font-weight:500;color:#7a6858;cursor:pointer;border:none;background:transparent;font-family:inherit;width:100%;text-align:left;border-left:2.5px solid transparent;transition:all 0.1s;}
+.sidebar-item:hover{color:#3d2010;background:#f0e8dc;}
+.sidebar-item.active{color:#3d2010;background:#f0e8dc;border-left-color:#c05830;font-weight:700;}
+.sidebar-item svg{width:14px;height:14px;flex-shrink:0;opacity:0.6;}
 .sidebar-item.active svg{opacity:1;}
 .sidebar-spacer{flex:1;}
 .sidebar-foot{padding:12px 14px;border-top:0.5px solid rgba(0,0,0,0.08);font-size:11px;color:#aaa;}
@@ -453,6 +475,10 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         Sent
       </button>
+      <button class="sidebar-item" onclick="showNurseTab('timeline')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="8 8 3 12 8 16"/><polyline points="16 8 21 12 16 16"/></svg>
+        Resident timeline
+      </button>
       <div class="sidebar-section">Admin</div>
       <button class="sidebar-item" onclick="showNurseTab('add-resident')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
@@ -733,6 +759,26 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
           <button class="msg-send-btn" onclick="sendInboxReply()" id="inbox-send-btn">Send</button>
         </div>
       </div>
+    </div>
+
+    <!-- TIMELINE PANEL -->
+    <div class="panel" id="ntab-timeline">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Resident timeline</div>
+        <div style="font-size:12px;color:#888;">A complete history of reviews, updates and messages for each resident.</div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;font-weight:700;color:#8a7060;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:6px;">Select resident</label>
+        <select id="timeline-resident-selector" onchange="loadTimeline(this.value)" style="width:100%;max-width:320px;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;background:#faf7f3;font-family:inherit;">
+          <option value="">-- Choose a resident --</option>
+        </select>
+      </div>
+      <div style="display:none;gap:6px;margin-bottom:14px;flex-wrap:wrap;" id="timeline-filters">
+        <button class="tl-filter active" data-type="all" onclick="filterTimeline('all')">All</button>
+        <button class="tl-filter" data-type="review" onclick="filterTimeline('review')">Reviews</button>
+        <button class="tl-filter" data-type="message" onclick="filterTimeline('message')">Messages</button>
+      </div>
+      <div id="timeline-list"><div class="empty" style="padding:30px 0;text-align:center;color:#aaa;">Select a resident to view their timeline.</div></div>
     </div>
 
     </div> <!-- end .main-content -->
@@ -3014,6 +3060,134 @@ function sendContactMessage() {
 }
 
 // ── FAMILY INBOX (staff side) ──
+// ── TIMELINE ──
+function initTimelineSelector() {
+  if (!currentUser || !currentUser.care_home_id) return;
+  var sel = document.getElementById('timeline-resident-selector');
+  if (!sel) return;
+  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc').then(function(fams) {
+    if (!fams || !fams.length) return;
+    sel.innerHTML = '<option value="">-- Choose a resident --</option>' + fams.map(function(f) {
+      return '<option value="' + f.id + '">' + esc(f.resident_name) + '</option>';
+    }).join('');
+  });
+}
+
+var _tlAllItems = [];
+var _tlFilter = 'all';
+
+function filterTimeline(type) {
+  _tlFilter = type;
+  document.querySelectorAll('.tl-filter').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.type === type);
+  });
+  renderTimeline(_tlAllItems);
+}
+
+function renderTimeline(items) {
+  var list = document.getElementById('timeline-list');
+  if (!list) return;
+  var filtered = _tlFilter === 'all' ? items : items.filter(function(i) { return i.type === _tlFilter; });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty" style="padding:20px 0;text-align:center;">No items for this filter.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  filtered.forEach(function(item, idx) {
+    var iconClass = item.type === 'review' ? 'review' : item.type === 'message' ? 'message' : item.reviewType && item.reviewType.includes('medication') ? 'medication' : item.reviewType && item.reviewType.includes('health') ? 'health' : 'review';
+    var iconEmoji = item.type === 'review' ? '📋' : item.type === 'message' ? '💬' : '📋';
+    var div = document.createElement('div');
+    div.className = 'tl-item';
+    div.innerHTML =
+      '<div class="tl-item-head" onclick="toggleTlItem(' + idx + ', this)">' +
+        '<div class="tl-icon ' + iconClass + '">' + iconEmoji + '</div>' +
+        '<div class="tl-meta">' +
+          '<div class="tl-title">' + esc(item.title) + '</div>' +
+          '<div class="tl-sub">' + esc(item.sub) + '</div>' +
+        '</div>' +
+        '<div class="tl-date">' + esc(item.date) + '</div>' +
+        '<div class="tl-chevron" id="tl-chev-' + idx + '">›</div>' +
+      '</div>' +
+      '<div class="tl-body" id="tl-body-' + idx + '">' +
+        '<div class="tl-content">' + esc(item.content) + '</div>' +
+        '<button class="tl-close-btn" onclick="toggleTlItem(' + idx + ', null)">↑ Close</button>' +
+      '</div>';
+    list.appendChild(div);
+  });
+}
+
+function toggleTlItem(idx, headEl) {
+  var body = document.getElementById('tl-body-' + idx);
+  var chev = document.getElementById('tl-chev-' + idx);
+  if (!body) return;
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+function loadTimeline(familyId) {
+  var list = document.getElementById('timeline-list');
+  var filters = document.getElementById('timeline-filters');
+  if (!familyId) {
+    if (list) list.innerHTML = '<div class="empty" style="padding:30px 0;text-align:center;color:#aaa;">Select a resident to view their timeline.</div>';
+    if (filters) filters.style.display = 'none';
+    return;
+  }
+  if (list) list.innerHTML = '<div style="padding:20px 0;color:#aaa;font-size:13px;">Loading...</div>';
+  if (filters) filters.style.display = 'flex';
+  Promise.all([
+    supaFetch('reviews?family_id=eq.' + familyId + '&status=eq.sent&select=*&order=created_at.desc'),
+    supaFetch('family_contact_messages?family_id=eq.' + familyId + '&select=*&order=created_at.desc')
+  ]).then(function(results) {
+    var reviews = results[0] || [];
+    var messages = results[1] || [];
+    var items = [];
+    reviews.forEach(function(r) {
+      var d = new Date(r.created_at);
+      var typeLabel = r.review_type || '6-month review';
+      items.push({
+        type: 'review',
+        reviewType: r.review_type || '',
+        title: typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1),
+        sub: 'Sent by ' + (r.nurse_name || 'Care team'),
+        date: d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
+        content: r.content || '',
+        ts: d.getTime()
+      });
+    });
+    var threadMap = {};
+    messages.forEach(function(m) {
+      if (m.sender_role === 'resolved') return;
+      var key = m.created_at.substring(0, 10);
+      if (!threadMap[key]) threadMap[key] = [];
+      threadMap[key].push(m);
+    });
+    Object.keys(threadMap).forEach(function(day) {
+      var msgs = threadMap[day];
+      var first = msgs[msgs.length - 1];
+      var d = new Date(first.created_at);
+      var preview = msgs.map(function(m) { return (m.sender_name || 'Unknown') + ': ' + (m.message || ''); }).join('
+');
+      items.push({
+        type: 'message',
+        reviewType: '',
+        title: 'Family conversation',
+        sub: msgs.length + ' message' + (msgs.length > 1 ? 's' : '') + ' — ' + msgs.map(function(m){ return m.sender_name; }).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(', '),
+        date: d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
+        content: preview,
+        ts: d.getTime()
+      });
+    });
+    items.sort(function(a, b) { return b.ts - a.ts; });
+    _tlAllItems = items;
+    _tlFilter = 'all';
+    document.querySelectorAll('.tl-filter').forEach(function(b) { b.classList.toggle('active', b.dataset.type === 'all'); });
+    renderTimeline(items);
+  }).catch(function() {
+    if (list) list.innerHTML = '<div class="empty">Could not load timeline.</div>';
+  });
+}
+
 function closeInboxThread() {
   document.getElementById('inbox-list-view').style.display = '';
   document.getElementById('inbox-thread-view').style.display = 'none';
