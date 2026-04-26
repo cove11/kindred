@@ -3166,8 +3166,7 @@ function loadTimeline(familyId) {
       var msgs = threadMap[day];
       var first = msgs[msgs.length - 1];
       var d = new Date(first.created_at);
-      var preview = msgs.map(function(m) { return (m.sender_name || 'Unknown') + ': ' + (m.message || ''); }).join('
-');
+      var preview = msgs.map(function(m) { return (m.sender_name || 'Unknown') + ': ' + (m.message || ''); }).join(' | ');
       items.push({
         type: 'message',
         reviewType: '',
