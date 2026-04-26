@@ -965,6 +965,7 @@ function showNurseTab(name) {
   if (name === 'review' || name === 'approve') autoSelectResident();
   if (name === 'approve') loadDraftForApprove();
   if (name === 'sent') loadSent();
+  if (name === 'timeline') loadTimelineResidents();
   // Profile tab doesn't appear in tab bar — hide all tab highlights when showing it
   if (name === 'profile') {
     document.querySelectorAll('#nurse-app .tab').forEach(function(t) { t.classList.remove('active'); });
@@ -1262,11 +1263,11 @@ function loadNursePendingDrafts() {
 }
 
 function autoSelectResident() {
-  if (!currentUser || !currentUser.care_home_id) {
-    setTimeout(autoSelectResident, 400);
-    return;
-  }
-  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name&order=resident_name.asc').then(function(families) {
+  if (!currentUser || !currentUser.care_home_id) { setTimeout(autoSelectResident, 400); return; }
+  var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  fetch(SUPA_URL + '/rest/v1/families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc', {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  }).then(function(r) { return r.json(); }).then(function(families) {
     if (!families || families.length === 0) return;
     // Populate dropdown
     var sel = document.getElementById('resident-selector');
@@ -3055,18 +3056,23 @@ function sendContactMessage() {
 // ── FAMILY INBOX (staff side) ──
 // ── TIMELINE ──
 function initTimelineSelector() {
-  if (!currentUser || !currentUser.care_home_id) {
-    setTimeout(initTimelineSelector, 300);
-    return;
-  }
+  loadTimelineResidents();
+}
+
+function loadTimelineResidents() {
   var sel = document.getElementById('timeline-resident-selector');
   if (!sel) return;
-  supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc').then(function(fams) {
-    if (!fams || !fams.length) return;
+  if (!currentUser || !currentUser.care_home_id) { setTimeout(loadTimelineResidents, 500); return; }
+  if (sel.options.length > 1) return; // already populated
+  var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  fetch(SUPA_URL + '/rest/v1/families?care_home_id=eq.' + currentUser.care_home_id + '&select=id,resident_name&order=resident_name.asc', {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  }).then(function(r) { return r.json(); }).then(function(fams) {
+    if (!fams || !fams.length || fams.error) { setTimeout(loadTimelineResidents, 500); return; }
     sel.innerHTML = '<option value="">-- Choose a resident --</option>' + fams.map(function(f) {
       return '<option value="' + f.id + '">' + esc(f.resident_name) + '</option>';
     }).join('');
-  });
+  }).catch(function() { setTimeout(loadTimelineResidents, 500); });
 }
 
 var _tlAllItems = [];
