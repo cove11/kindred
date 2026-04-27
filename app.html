@@ -4427,15 +4427,17 @@ function confirmEscalate() {
 
 // ── MOBILE SIDEBAR ──
 function openMobileSidebar() {
-  // Determine which app is active
   var isFamily = document.getElementById('family-app').style.display !== 'none';
   var prefix = isFamily ? 'family' : 'nurse';
   var sidebar = document.getElementById(prefix + '-sidebar');
   var overlay = document.getElementById(prefix + '-sidebar-overlay');
-  var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
-  if (sidebar) sidebar.classList.add('mobile-open');
+  if (sidebar) {
+    sidebar.classList.add('mobile-open');
+    sidebar.style.left = '0';
+    var closeBtn = sidebar.querySelector('.sidebar-close-btn');
+    if (closeBtn) closeBtn.style.display = 'flex';
+  }
   if (overlay) overlay.classList.add('show');
-  if (closeBtn) closeBtn.style.display = 'flex';
 }
 
 function closeMobileSidebar(prefix) {
@@ -4446,22 +4448,64 @@ function closeMobileSidebar(prefix) {
   }
   var sidebar = document.getElementById(prefix + '-sidebar');
   var overlay = document.getElementById(prefix + '-sidebar-overlay');
-  var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
-  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (sidebar) {
+    sidebar.classList.remove('mobile-open');
+    if (window.innerWidth <= 768) sidebar.style.left = '-260px';
+    var closeBtn = sidebar.querySelector('.sidebar-close-btn');
+    if (closeBtn) closeBtn.style.display = 'none';
+  }
   if (overlay) overlay.classList.remove('show');
-  if (closeBtn) closeBtn.style.display = 'none';
 }
 
 // Show/hide hamburger based on screen width
 function updateMobileUI() {
-  var isMobile = window.innerWidth <= 640;
+  var isMobile = window.innerWidth <= 768;
+  
+  // Hamburger button
   var btn = document.getElementById('mobile-menu-btn');
   if (btn) btn.style.display = isMobile ? 'flex' : 'none';
-  // Hide header-subtitle and date on mobile
+  
+  // Header subtitle and date
   var sub = document.getElementById('header-subtitle');
   var hd = document.getElementById('header-date');
   if (sub) sub.style.display = isMobile ? 'none' : '';
   if (hd) hd.style.display = isMobile ? 'none' : '';
+  
+  // Apply mobile sidebar styles directly (CSS specificity workaround)
+  ['family-sidebar','nurse-sidebar'].forEach(function(id) {
+    var sb = document.getElementById(id);
+    if (!sb) return;
+    if (isMobile) {
+      if (!sb.classList.contains('mobile-open')) {
+        sb.style.position = 'fixed';
+        sb.style.top = '0';
+        sb.style.left = '-260px';
+        sb.style.width = '245px';
+        sb.style.height = '100vh';
+        sb.style.zIndex = '1000';
+        sb.style.overflowY = 'auto';
+        sb.style.transition = 'left 0.26s cubic-bezier(0.4,0,0.2,1)';
+        sb.style.boxShadow = '4px 0 24px rgba(0,0,0,0.18)';
+        sb.style.borderRight = 'none';
+      }
+      var closeBtn = sb.querySelector('.sidebar-close-btn');
+      if (closeBtn) closeBtn.style.display = 'flex';
+    } else {
+      // Restore desktop styles
+      sb.style.position = '';
+      sb.style.top = '';
+      sb.style.left = '';
+      sb.style.width = '';
+      sb.style.height = '';
+      sb.style.zIndex = '';
+      sb.style.overflowY = '';
+      sb.style.transition = '';
+      sb.style.boxShadow = '';
+      sb.style.borderRight = '';
+      var closeBtn = sb.querySelector('.sidebar-close-btn');
+      if (closeBtn) closeBtn.style.display = 'none';
+    }
+  });
 }
 window.addEventListener('resize', updateMobileUI);
 window.addEventListener('load', updateMobileUI);
