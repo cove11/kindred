@@ -1144,7 +1144,7 @@ function showNurseTab(name) {
   if (name === 'approve') loadDraftForApprove();
   if (name === 'sent') loadSent();
   if (name === 'timeline') {
-    var sel = document.getElementById('tl-resident-select');
+    var sel = document.getElementById('timeline-resident-selector');
     // Only populate dropdown if it's empty (first time)
     if (!sel || sel.options.length <= 1) {
       loadTimelineResidents();
@@ -3310,14 +3310,14 @@ function sendContactMessage() {
 // ── FAMILY INBOX (staff side) ──
 // ── TIMELINE ──
 function initTimelineSelector() {
-  var sel = document.getElementById('tl-resident-select');
+  var sel = document.getElementById('timeline-resident-selector');
   if (!sel || sel.options.length <= 1) {
     loadTimelineResidents();
   }
 }
 
 function loadTimelineResidents() {
-  var savedVal = (document.getElementById('tl-resident-select') || {}).value || '';
+  var savedVal = (document.getElementById('timeline-resident-selector') || {}).value || '';
   var sel = document.getElementById('timeline-resident-selector');
   if (!sel) return;
   if (!currentUser || !currentUser.care_home_id) { setTimeout(loadTimelineResidents, 500); return; }
