@@ -3370,9 +3370,30 @@ function loadContactMessages() {
       thread.innerHTML = '<div class="empty" style="text-align:center;padding:30px 0;">No messages yet.<br><span style="font-size:12px;color:#aaa;">Send your first message below — the care team will reply here.</span></div>';
       return;
     }
+    // Check if thread is resolved (last system message is resolved, not reopened)
+    var threadStatus = 'open';
+    msgs.forEach(function(m) {
+      if (m.sender_role === 'resolved') threadStatus = 'resolved';
+      if (m.sender_role === 'reopened') threadStatus = 'open';
+    });
+
+    // Show resolved banner if applicable
+    if (threadStatus === 'resolved') {
+      var banner = document.createElement('div');
+      banner.style.cssText = 'background:#f0fdf4;border:0.5px solid #86efac;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:12px;';
+      banner.innerHTML = '<span style="font-size:16px;">✅</span><div><div style="font-size:12px;font-weight:600;color:#166534;">This conversation has been resolved</div><div style="font-size:11px;color:#4ade80;margin-top:1px;">The care team has marked your message as dealt with. You can still send a new message below.</div></div>';
+      thread.appendChild(banner);
+    }
+
+    // Show composer or grey it out based on status
+    var composer = document.getElementById('contact-send-btn');
+    if (composer) {
+      composer.textContent = threadStatus === 'resolved' ? 'Send new message' : 'Send';
+    }
+
     var lastDate = '';
     msgs.forEach(function(m) {
-      if (m.sender_role === 'resolved') return; // skip system messages
+      if (m.sender_role === 'resolved' || m.sender_role === 'reopened') return; // skip system messages
       var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
       var fromMe = !isStaff;
       var msgDate = new Date(m.created_at);
@@ -3388,10 +3409,12 @@ function loadContactMessages() {
       var row = document.createElement('div');
       row.className = 'msg-row ' + (fromMe ? 'from-me' : 'from-them');
       var senderLabel = isStaff ? esc(m.sender_name) + ' · ' + esc(m.care_home || 'Care team') : '';
+      var familyLabel = !isStaff && m.sender_name ? esc(m.sender_name) : 'You';
       row.innerHTML =
         (isStaff ? '<div class="msg-meta">' + senderLabel + '</div>' : '') +
+        (!isStaff ? '<div class="msg-meta" style="text-align:right;color:#888;">' + familyLabel + '</div>' : '') +
         '<div class="msg-bubble">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>' +
-        '<div class="msg-status">' + time + (fromMe ? ' · Sent' : '') + '</div>';
+        '<div class="msg-status">' + time + '</div>';
       thread.appendChild(row);
       if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, row.querySelector('.msg-bubble'));
     });
@@ -3402,6 +3425,27 @@ function loadContactMessages() {
 }
 
 function sendContactMessage() {
+  // Auto-reopen thread if it was resolved (family is sending a new message)
+  supaFetch('family_contact_messages?family_id=eq.' + currentUser.family_id + '&sender_role=eq.resolved&order=created_at.desc&limit=1').then(function(rows) {
+    if (rows && rows.length > 0) {
+      // Check if reopened after last resolve
+      supaFetch('family_contact_messages?family_id=eq.' + currentUser.family_id + '&sender_role=eq.reopened&order=created_at.desc&limit=1').then(function(reopens) {
+        var lastResolve = rows[0].created_at;
+        var lastReopen = reopens && reopens[0] ? reopens[0].created_at : null;
+        if (!lastReopen || lastReopen < lastResolve) {
+          // Reopen it
+          supaPost('family_contact_messages', {
+            family_id: currentUser.family_id,
+            care_home_id: currentUser.care_home_id,
+            sender_name: currentUser.name,
+            sender_role: 'reopened',
+            message: '__reopened__',
+            resident_name: currentUser.resident_name || ''
+          }).catch(function(){});
+        }
+      });
+    }
+  }).catch(function(){});
   var input = document.getElementById('contact-input');
   var fileInput = document.getElementById('contact-file');
   var msg = input ? input.value.trim() : '';
@@ -3617,6 +3661,7 @@ function resolveThread() {
   }).then(function() {
     if (btn) { btn.disabled = false; btn.textContent = '✓ Mark resolved'; }
     closeInboxThread();
+    loadInbox();
   }).catch(function() {
     if (btn) { btn.disabled = false; btn.textContent = '✓ Mark resolved'; }
   });
@@ -3737,11 +3782,13 @@ function openInboxThread(familyId, resName) {
       var time = msgDate.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
       var row = document.createElement('div');
       row.className = 'msg-row ' + (fromMe ? 'from-me' : 'from-them');
-      var senderLabel = !fromMe ? esc(m.sender_name) : '';
+      var senderLabel = !fromMe ? esc(m.sender_name || 'Family member') : '';
+      var staffLabel = fromMe ? esc(m.sender_name || currentUser.name) : '';
       row.innerHTML =
-        (!fromMe ? '<div class="msg-meta">' + senderLabel + '</div>' : '') +
+        (!fromMe ? '<div class="msg-meta">' + senderLabel + ' · Family</div>' : '') +
+        (fromMe ? '<div class="msg-meta" style="text-align:right;">' + staffLabel + '</div>' : '') +
         '<div class="msg-bubble">' + (m.message && m.message !== 'undefined' ? esc(m.message) : '') + '</div>' +
-        '<div class="msg-status">' + time + (fromMe ? ' · ' + esc(m.sender_name) : '') + '</div>';
+        '<div class="msg-status">' + time + '</div>';
       thread.appendChild(row);
       if (m.file_url) renderAttachment(m.file_url, m.file_name, m.file_type, row.querySelector('.msg-bubble'));
     });
