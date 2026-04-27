@@ -177,8 +177,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .nurse-color{color:#085041;}
 
 /* PILLS */
-.pills{display:flex;gap:5px;flex-wrap:wrap;}
-.pill{font-size:12px;padding:4px 10px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;color:#555;background:#fff;user-select:none;}
+.pills{display:flex!important;gap:5px;flex-wrap:wrap;}
+.pill{display:inline-flex!important;align-items:center;font-size:12px;padding:4px 10px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;color:#555;background:#fff;user-select:none;}
 .pill:hover{border-color:rgba(0,0,0,0.3);}
 .pill.on{background:#e6f1fb;border-color:#378add;color:#0c447c;font-weight:500;}
 
@@ -662,6 +662,14 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
           <option value="6-month review">6-month review (scheduled)</option>
           <option value="health-change">Notable health change / decline</option>
           <option value="medication-change">Medication change</option>
+          <option value="incident-report">Incident report (fall / accident)</option>
+          <option value="hospital-admission">Hospital admission</option>
+          <option value="hospital-discharge">Hospital discharge / return home</option>
+          <option value="infection-illness">Infection / illness update</option>
+          <option value="skin-wound">Skin integrity / wound care</option>
+          <option value="social-activities">Social &amp; activities update</option>
+          <option value="behaviour-wellbeing">Behaviour &amp; wellbeing note</option>
+          <option value="end-of-life">End of life update</option>
           <option value="other">Other update</option>
         </select>
       </div>
