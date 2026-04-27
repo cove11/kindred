@@ -2043,9 +2043,13 @@ function buildConcernEl(c) {
     escalateBtn.className = 'btn';
     escalateBtn.style.cssText = 'font-size:11px;padding:4px 10px;color:#b91c1c;border-color:#fca5a5;';
     escalateBtn.textContent = 'Escalate to manager';
-    escalateBtn.addEventListener('click', (function(id) {
-      return function() { escalateConcern(id, div); };
-    })(c.id));
+    escalateBtn.addEventListener('click', (function(id, d) {
+      return function() {
+        // Confirmation before escalating
+        if (!confirm('Are you sure you want to escalate this concern to the care home manager?\n\nThey will be notified and will follow up with you directly.')) return;
+        escalateConcern(id, d);
+      };
+    })(c.id, div));
     foot.appendChild(escalateBtn);
     div.appendChild(foot);
   }
