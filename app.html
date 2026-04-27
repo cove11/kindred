@@ -206,6 +206,24 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .checkin-opt{font-size:12px;padding:6px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;background:#fff;font-family:inherit;}
 .checkin-opt:hover{border-color:rgba(0,0,0,0.3);}
 .checkin-opt.selected{background:#e1f5ee;border-color:#5dcaa5;color:#085041;}
+
+/* ESCALATE CONFIRMATION SHEET */
+#escalate-sheet-overlay {
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;
+  align-items:flex-end;justify-content:center;
+}
+#escalate-sheet-overlay.show {
+  display:flex;
+}
+#escalate-sheet {
+  background:#fff;border-radius:18px 18px 0 0;padding:24px 20px 32px;width:100%;max-width:520px;
+  box-shadow:0 -4px 32px rgba(0,0,0,0.15);
+  animation:slideUp 0.22s ease;
+}
+@keyframes slideUp {
+  from { transform:translateY(100%); }
+  to { transform:translateY(0); }
+}
 </style>
 </head>
 <body>
@@ -2044,11 +2062,7 @@ function buildConcernEl(c) {
     escalateBtn.style.cssText = 'font-size:11px;padding:4px 10px;color:#b91c1c;border-color:#fca5a5;';
     escalateBtn.textContent = 'Escalate to manager';
     escalateBtn.addEventListener('click', (function(id, d) {
-      return function() {
-        // Confirmation before escalating
-        if (!confirm('Are you sure you want to escalate this concern to the care home manager?\n\nThey will be notified and will follow up with you directly.')) return;
-        escalateConcern(id, d);
-      };
+      return function() { showEscalateConfirm(id, d); };
     })(c.id, div));
     foot.appendChild(escalateBtn);
     div.appendChild(foot);
@@ -4337,7 +4351,43 @@ function renderFamilyTimeline(type) {
   });
 }
 
+
+// ── ESCALATE CONFIRMATION SHEET ──
+var _escalatePendingId = null;
+var _escalatePendingDiv = null;
+
+function showEscalateConfirm(id, div) {
+  _escalatePendingId = id;
+  _escalatePendingDiv = div;
+  var overlay = document.getElementById('escalate-sheet-overlay');
+  if (overlay) overlay.classList.add('show');
+}
+
+function hideEscalateConfirm() {
+  _escalatePendingId = null;
+  _escalatePendingDiv = null;
+  var overlay = document.getElementById('escalate-sheet-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function confirmEscalate() {
+  if (!_escalatePendingId) return;
+  hideEscalateConfirm();
+  escalateConcern(_escalatePendingId, _escalatePendingDiv);
+}
+
 </script>
 
+
+<!-- ESCALATE CONFIRMATION SHEET -->
+<div id="escalate-sheet-overlay" onclick="if(event.target===this)hideEscalateConfirm()">
+  <div id="escalate-sheet">
+    <div style="width:36px;height:4px;background:#e0d8d0;border-radius:2px;margin:0 auto 20px;"></div>
+    <div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:8px;">Escalate to manager?</div>
+    <div style="font-size:14px;color:#666;line-height:1.6;margin-bottom:24px;">The care home manager will be notified and will follow up with you directly. This cannot be undone.</div>
+    <button id="escalate-confirm-btn" onclick="confirmEscalate()" style="width:100%;background:#b91c1c;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px;">Yes, escalate to manager</button>
+    <button onclick="hideEscalateConfirm()" style="width:100%;background:#f5f0e8;color:#1a1a18;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
+  </div>
+</div>
 </body>
 </html>
