@@ -1143,7 +1143,13 @@ function showNurseTab(name) {
   if (name === 'review' || name === 'approve') autoSelectResident();
   if (name === 'approve') loadDraftForApprove();
   if (name === 'sent') loadSent();
-  if (name === 'timeline') loadTimelineResidents();
+  if (name === 'timeline') {
+    var sel = document.getElementById('tl-resident-select');
+    // Only populate dropdown if it's empty (first time)
+    if (!sel || sel.options.length <= 1) {
+      loadTimelineResidents();
+    }
+  }
   // Profile tab doesn't appear in tab bar — hide all tab highlights when showing it
   if (name === 'profile') {
     document.querySelectorAll('#nurse-app .tab').forEach(function(t) { t.classList.remove('active'); });
@@ -3304,7 +3310,10 @@ function sendContactMessage() {
 // ── FAMILY INBOX (staff side) ──
 // ── TIMELINE ──
 function initTimelineSelector() {
-  loadTimelineResidents();
+  var sel = document.getElementById('tl-resident-select');
+  if (!sel || sel.options.length <= 1) {
+    loadTimelineResidents();
+  }
 }
 
 function loadTimelineResidents() {
