@@ -4132,8 +4132,8 @@ function loadFamilyTimeline() {
         var msgs = threads[day];
         var d = new Date(day);
         var dateStr = d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
-        var msgCount = realMsgs.length;
         var realMsgs = msgs.filter(function(m){ return m.message && m.message !== '__resolved__' && m.message !== '__reopened__'; });
+        var msgCount = realMsgs.length;
         var _seen = {}; var participants = realMsgs.map(function(m){ return m.sender_name||'Unknown'; }).filter(function(n){ return _seen[n]?false:(_seen[n]=true); }).join(', ');
         var preview = msgs.filter(function(m){ return m.message && m.message !== '__resolved__' && m.message !== '__reopened__'; }).map(function(m){ return esc(m.sender_name||'Unknown') + ': ' + esc((m.message||'').substring(0,80)); }).join('<br>');
         if (!realMsgs.length) return;
