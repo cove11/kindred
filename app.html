@@ -221,6 +221,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     </svg>
     <span class="brand-name">Kindred</span>
     <span id="header-subtitle" style="font-size:12px;color:#aaa;font-weight:400;"></span>
+    <span id="header-date" style="font-size:11px;color:#aaa;margin-left:6px;font-weight:400;"></span>
     <button id="refresh-btn" onclick="manualRefresh()" title="Refresh" style="background:none;border:none;cursor:pointer;padding:4px 8px;margin-left:6px;color:#aaa;font-size:18px;line-height:1;">↻</button>
   </div>
   <div class="header-right">
@@ -1213,7 +1214,9 @@ window.addEventListener('load', function() {
   
   if (currentUser.role === 'nurse' || currentUser.role === 'manager') {
     var careHomeName = currentUser.care_home || 'Nurse portal';
-    document.getElementById('header-subtitle').textContent = '· ' + careHomeName;
+    document.getElementById('header-subtitle').textContent = '\u00b7 ' + careHomeName + ' \u2014 Manager';
+    var _hd = document.getElementById('header-date');
+    if (_hd) _hd.textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
     document.getElementById('nurse-app').style.display = 'block';
     try { initPills(); } catch(e) { console.log('initPills error:', e); }
     try { initNursePortal(); } catch(e) { console.log('initNursePortal error:', e); }
@@ -2125,7 +2128,7 @@ function renderReviews(reviews) {
   var latest = reviews[0];
   // Set AI advisor context
   window._advisorCtx = reviews.slice(0,5).map(function(r){
-    return (r.review_type||'review')+' ('+r.date+'): '+(r.content||'').substring(0,300);
+    return (r.review_type||'review')+' ('+r.date+'): '+stripMarkdown(r.content||'').substring(0,300);
   }).join('\n\n');
   // Show advisor section
   var adv = document.getElementById('ai-advisor-section');
@@ -3932,7 +3935,27 @@ function generateWellbeingSummary(reviews) {
   if (window._wellbeingCache) { card.innerHTML = window._wellbeingCache; return; }
   if (window._wellbeingBusy) return;
   window._wellbeingBusy = true;
-  card.innerHTML = '<div class="card"><div class="card-body"><p style="font-size:13px;color:#aaa;">✨ Preparing wellbeing summary...</p></div></div>';
+  card.innerHTML = '<div class="card"><div class="card-body"><p style="font-size:13px;color:#aaa;">\u2728 Preparing wellbeing summary...</p></div></div>';
+  // Check Supabase for a summary generated this calendar month — only regenerate monthly
+  var thisMonth = new Date().toISOString().substring(0,7);
+  if (currentUser && currentUser.family_id) {
+    supaFetch('families?id=eq.' + currentUser.family_id + '&select=wellbeing_summary,wellbeing_generated_at').then(function(rows) {
+      if (rows && rows[0] && rows[0].wellbeing_summary && rows[0].wellbeing_generated_at && rows[0].wellbeing_generated_at.substring(0,7) === thisMonth) {
+        var html = _buildWellbeingHtml(rows[0].wellbeing_summary, new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}), reviews.slice(0,6).length);
+        window._wellbeingCache = html; card.innerHTML = html; window._wellbeingBusy = false; return;
+      }
+      _doGenerateWellbeing(reviews, card, sh);
+    }).catch(function(){ _doGenerateWellbeing(reviews, card, sh); });
+  } else {
+    _doGenerateWellbeing(reviews, card, sh);
+  }
+}
+
+function _buildWellbeingHtml(txt, mo, count) {
+  return '<div class="card"><div class="card-head" style="background:linear-gradient(135deg,#f0e8dc,#faf7f3);"><span class="card-title" style="display:flex;align-items:center;gap:6px;"><span>\u2728</span>Wellbeing overview \u00b7 '+mo+'</span></div><div class="card-body"><p style="font-size:13px;line-height:1.7;color:#3d2010;">'+esc(txt)+'</p><p style="font-size:11px;color:#aaa;margin-top:8px;">Based on '+count+' recent review'+(count>1?'s':'')+' \u00b7 Updated automatically</p></div></div>';
+}
+
+function _doGenerateWellbeing(reviews, card, sh) {
   var name = (currentUser && currentUser.resident_name) || 'your loved one';
   var ctx = reviews.slice(0,6).map(function(r,i){
     return (i+1)+'. '+(r.review_type||'review')+' ('+(r.date||'')+'): '+(r.content||'').substring(0,350);
@@ -3952,6 +3975,13 @@ function generateWellbeingSummary(reviews) {
     window._wellbeingCache = html;
     card.innerHTML = html;
     window._wellbeingBusy = false;
+    // Persist to Supabase so we don't regenerate until next month
+    if (currentUser && currentUser.family_id) {
+      supaPost('families?id=eq.' + currentUser.family_id, {
+        wellbeing_summary: txt,
+        wellbeing_generated_at: new Date().toISOString()
+      }, 'PATCH').catch(function(){});
+    }
   }).catch(function(){card.style.display='none';if(sh)sh.style.display='none';window._wellbeingBusy=false;});
 }
 
