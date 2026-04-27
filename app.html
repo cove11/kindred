@@ -3445,11 +3445,18 @@ function refreshInboxBadge() {
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&select=id').then(function(fams) {
     if (!fams || !fams.length) return;
     var ids = fams.map(function(f){return f.id;}).join(',');
-    supaFetch('family_contact_messages?family_id=in.(' + ids + ')&sender_role=eq.family&order=created_at.desc&limit=50').then(function(msgs) {
+    // Fetch ALL messages (not just family ones) to find the latest per thread
+    supaFetch('family_contact_messages?family_id=in.(' + ids + ')&order=created_at.desc&limit=200').then(function(msgs) {
       if (!msgs) return;
+      // Group by family_id, keep only the latest per thread
       var latest = {};
-      msgs.forEach(function(m) { if (!latest[m.family_id]) latest[m.family_id] = m; });
-      var count = Object.values(latest).filter(function(m){return m.sender_role === 'family';}).length;
+      msgs.forEach(function(m) {
+        if (!latest[m.family_id]) latest[m.family_id] = m;
+      });
+      // Count threads where the latest message is from family (not resolved/reopened/staff)
+      var count = Object.values(latest).filter(function(m){
+        return m.sender_role === 'family';
+      }).length;
       var badge = document.getElementById('inbox-sidebar-badge');
       if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-block' : 'none'; }
     });
