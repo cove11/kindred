@@ -231,6 +231,9 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 <!-- HEADER -->
 <div class="header">
   <div class="header-brand">
+    <button class="mobile-menu-btn" id="mobile-menu-btn" style="display:none;" onclick="openMobileSidebar()" aria-label="Open menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a18" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
       <circle cx="14" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
       <circle cx="22" cy="22" r="9" fill="none" stroke="#5DCAA5" stroke-width="2"/>
@@ -250,8 +253,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
 <!-- FAMILY APP -->
 <div id="family-app" style="display:none;">
+  <div id="family-sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar('family')"></div>
   <div class="app-shell">
-    <div class="sidebar">
+    <div id="family-sidebar" class="sidebar">
+      <button class="sidebar-close-btn" style="display:none;" onclick="closeMobileSidebar('family')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Close menu
+      </button>
       <div class="sidebar-section">Your space</div>
       <button class="sidebar-item active" onclick="showTab('home')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -507,8 +515,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
 <!-- NURSE APP -->
 <div id="nurse-app" style="display:none;">
+  <div id="nurse-sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar('nurse')"></div>
   <div class="app-shell">
-    <div class="sidebar">
+    <div id="nurse-sidebar" class="sidebar">
+      <button class="sidebar-close-btn" style="display:none;" onclick="closeMobileSidebar('nurse')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Close menu
+      </button>
       <div class="sidebar-section">Main</div>
       <button class="sidebar-item active" onclick="showNurseTab('overview')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -844,8 +857,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
 <!-- NURSE APP -->
 <div id="nurse-app" style="display:none;">
+  <div id="nurse-sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar('nurse')"></div>
   <div class="app-shell">
-    <div class="sidebar">
+    <div id="nurse-sidebar" class="sidebar">
+      <button class="sidebar-close-btn" style="display:none;" onclick="closeMobileSidebar('nurse')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Close menu
+      </button>
       <div class="sidebar-section">Main</div>
       <button class="sidebar-item active" onclick="showNurseTab('overview')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -1326,6 +1344,7 @@ function signOut() {
 
 // ── TABS ──
 function showTab(name) {
+  closeMobileSidebar('family');
   document.querySelectorAll('#family-app .sidebar-item').forEach(function(t) {
     t.classList.remove('active');
     if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + name + "'")) {
@@ -1358,6 +1377,7 @@ function showTab(name) {
 }
 
 function showNurseTab(name) {
+  closeMobileSidebar('nurse');
   document.querySelectorAll('#nurse-app .tab').forEach(function(t, i) {
     var tabs = ['overview','residents','add-resident','review','approve','sent','staff','team','inbox'];
     t.classList.toggle('active', tabs[i] === name);
@@ -4375,6 +4395,49 @@ function confirmEscalate() {
   hideEscalateConfirm();
   escalateConcern(_escalatePendingId, _escalatePendingDiv);
 }
+
+
+// ── MOBILE SIDEBAR ──
+function openMobileSidebar() {
+  // Determine which app is active
+  var isFamily = document.getElementById('family-app').style.display !== 'none';
+  var prefix = isFamily ? 'family' : 'nurse';
+  var sidebar = document.getElementById(prefix + '-sidebar');
+  var overlay = document.getElementById(prefix + '-sidebar-overlay');
+  var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
+  if (sidebar) sidebar.classList.add('mobile-open');
+  if (overlay) overlay.classList.add('show');
+  if (closeBtn) closeBtn.style.display = 'flex';
+}
+
+function closeMobileSidebar(prefix) {
+  if (!prefix) {
+    closeMobileSidebar('family');
+    closeMobileSidebar('nurse');
+    return;
+  }
+  var sidebar = document.getElementById(prefix + '-sidebar');
+  var overlay = document.getElementById(prefix + '-sidebar-overlay');
+  var closeBtn = sidebar ? sidebar.querySelector('.sidebar-close-btn') : null;
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (overlay) overlay.classList.remove('show');
+  if (closeBtn) closeBtn.style.display = 'none';
+}
+
+// Show/hide hamburger based on screen width
+function updateMobileUI() {
+  var isMobile = window.innerWidth <= 640;
+  var btn = document.getElementById('mobile-menu-btn');
+  if (btn) btn.style.display = isMobile ? 'flex' : 'none';
+  // Hide header-subtitle and date on mobile
+  var sub = document.getElementById('header-subtitle');
+  var hd = document.getElementById('header-date');
+  if (sub) sub.style.display = isMobile ? 'none' : '';
+  if (hd) hd.style.display = isMobile ? 'none' : '';
+}
+window.addEventListener('resize', updateMobileUI);
+window.addEventListener('load', updateMobileUI);
+document.addEventListener('DOMContentLoaded', updateMobileUI);
 
 </script>
 
