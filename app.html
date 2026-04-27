@@ -229,12 +229,15 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
   #header-subtitle,#header-date{display:none;}
   .app-shell{position:relative;}
   .sidebar{
-    position:fixed!important;top:0;left:-260px!important;width:245px;height:100vh;z-index:1000;
+    position:fixed!important;top:0!important;left:-260px!important;width:245px!important;
+    height:100vh!important;z-index:1000!important;
     box-shadow:4px 0 24px rgba(0,0,0,0.18);
     transition:left 0.26s cubic-bezier(0.4,0,0.2,1);
-    overflow-y:auto;padding-top:0;
+    overflow-y:auto!important;padding-top:0!important;
+    border-right:none!important;
   }
   .sidebar.mobile-open{left:0!important;}
+  .app-shell{flex-direction:row!important;}
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:999;}
   .sidebar-overlay.show{display:block;}
   .mobile-menu-btn{display:flex!important;}
