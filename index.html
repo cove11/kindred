@@ -1,4 +1,34 @@
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js">
+function showForgotPassword() {
+  ['pane-in','pane-up','pane-reset'].forEach(function(id){ var el=document.getElementById(id); if(el) el.className='hidden'; });
+  var pf = document.getElementById('pane-forgot'); if(pf) pf.className='';
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('form-title').textContent = 'Reset your password';
+  document.getElementById('form-sub').textContent = "We'll send a reset link to your email.";
+  clearMsg();
+}
+
+function doForgotPassword() {
+  var email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showMsg('err','Please enter your email address.'); return; }
+  if (!sb) { showMsg('err','Connection error. Please try again.'); return; }
+  setLoading('btn-forgot', true, 'Send reset link');
+  sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/index.html'
+  }).then(function(r) {
+    setLoading('btn-forgot', false, 'Send reset link');
+    if (r.error) { showMsg('err', r.error.message); }
+    else {
+      showMsg('ok', 'Reset link sent! Check your email inbox. The link will take you back here to set a new password.');
+      document.getElementById('forgot-email').value = '';
+    }
+  }).catch(function(){
+    setLoading('btn-forgot', false, 'Send reset link');
+    showMsg('err','Something went wrong. Please try again.');
+  });
+}
+
+</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,6 +104,19 @@ h2{font-size:22px;font-weight:600;margin-bottom:6px;}
     <div class="field"><label>Email</label><input type="email" id="si-email" placeholder="you@example.com" autocomplete="email"/></div>
     <div class="field"><label>Password</label><input type="password" id="si-pass" placeholder="Your password" autocomplete="current-password"/></div>
     <button class="btn btn-dark" id="btn-signin" onclick="doSignIn()">Sign in</button>
+    <div style="text-align:center;margin-top:12px;">
+      <button onclick="showForgotPassword()" style="background:none;border:none;font-size:13px;color:#888;cursor:pointer;font-family:inherit;text-decoration:underline;">Forgot password?</button>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div id="pane-forgot" class="hidden">
+    <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.6;">Enter the email address you signed up with and we'll send you a password reset link.</p>
+    <div class="field"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"/></div>
+    <button class="btn btn-dark" id="btn-forgot" onclick="doForgotPassword()">Send reset link</button>
+    <div style="text-align:center;margin-top:12px;">
+      <button onclick="showPane('in')" style="background:none;border:none;font-size:13px;color:#888;cursor:pointer;font-family:inherit;text-decoration:underline;">Back to sign in</button>
+    </div>
   </div>
 
   <!-- SIGN UP -->
