@@ -4102,7 +4102,7 @@ function loadFamilyTimeline() {
     // Family messages (contact with care home)
     fetch(SUPA_URL + '/rest/v1/family_contact_messages?family_id=eq.' + famId + '&select=*&order=created_at.desc&limit=50', { headers: headers }).then(function(r){ return r.json(); }),
     // Escalated concerns
-    fetch(SUPA_URL + '/rest/v1/family_concerns?family_id=eq.' + famId + '&status=in.(escalated,responded)&select=*&order=created_at.desc', { headers: headers }).then(function(r){ return r.json(); })
+    fetch(SUPA_URL + '/rest/v1/family_concerns?family_id=eq.' + famId + '&select=*&order=created_at.desc&limit=20', { headers: headers }).then(function(r){ return r.json(); })
   ]).then(function(results) {
     var reviews = results[0] || [];
     var messages = results[1] || [];
@@ -4136,7 +4136,7 @@ function loadFamilyTimeline() {
         var dateStr = d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
         var msgCount = realMsgs.length;
         var realMsgs = msgs.filter(function(m){ return m.message && m.message !== '__resolved__' && m.message !== '__reopened__'; });
-        var participants = [...new Set(realMsgs.map(function(m){ return m.sender_name || 'Unknown'; }))].join(', ');
+        var _seen = {}; var participants = realMsgs.map(function(m){ return m.sender_name||'Unknown'; }).filter(function(n){ return _seen[n]?false:(_seen[n]=true); }).join(', ');
         var preview = msgs.filter(function(m){ return m.message && m.message !== '__resolved__' && m.message !== '__reopened__'; }).map(function(m){ return esc(m.sender_name||'Unknown') + ': ' + esc((m.message||'').substring(0,80)); }).join('<br>');
         if (!realMsgs.length) return;
         _familyTlItems.push({
@@ -4175,9 +4175,10 @@ function loadFamilyTimeline() {
     }
 
     renderFamilyTimeline('all');
-  }).catch(function() {
+  }).catch(function(err) {
+    console.log('Timeline error:', err && err.message ? err.message : String(err));
     var list = document.getElementById('family-timeline-list');
-    if (list) list.innerHTML = '<div class="empty">Could not load timeline. Check your connection.</div>';
+    if (list) list.innerHTML = '<div class="empty">Could not load timeline.</div>';
   });
 }
 
