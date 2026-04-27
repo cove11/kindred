@@ -923,6 +923,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
 <script>
 
+// ── INJECT PILL STYLES (ensure they always apply) ──
+(function(){
+  var s = document.createElement('style');
+  s.textContent = '.pills{display:flex!important;gap:5px;flex-wrap:wrap;}.pill{display:inline-flex!important;align-items:center;font-size:12px;padding:4px 10px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;color:#555;background:#fff;user-select:none;}.pill:hover{border-color:rgba(0,0,0,0.3);}.pill.on{background:#e6f1fb!important;border-color:#378add!important;color:#0c447c!important;font-weight:500;}';
+  document.head.appendChild(s);
+})();
+
 // ── CONFIRMATION MODAL ──
 function kindredConfirm(message, onYes, title) {
   var modal = document.getElementById('confirm-modal');
