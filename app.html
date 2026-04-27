@@ -61,15 +61,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .sidebar-spacer{flex:1;}
 .sidebar-foot{padding:12px 14px;border-top:0.5px solid rgba(0,0,0,0.08);font-size:11px;color:#aaa;}
 .main-content{flex:1;padding:16px;min-width:0;max-width:680px;}
-@media(max-width:600px){
-  .app-shell{flex-direction:column;}
-  .sidebar{width:100%;height:auto;position:relative;top:0;flex-direction:row;flex-wrap:wrap;padding:6px;border-right:none;border-bottom:0.5px solid rgba(0,0,0,0.1);}
-  .sidebar-section{display:none;}
-  .sidebar-item{padding:7px 10px;border-left:none;border-bottom:2px solid transparent;font-size:11px;}
-  .sidebar-item.active{border-left:none;border-bottom-color:#1a1a18;background:#f0ede8;}
-  .sidebar-spacer,.sidebar-foot{display:none;}
-  .main-content{padding:12px;height:auto;}
-}
+
 
 /* CARDS */
 .card{background:#fff;border:0.5px solid rgba(0,0,0,0.11);border-radius:10px;overflow:hidden;margin-bottom:10px;}
@@ -223,6 +215,39 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 @keyframes slideUp {
   from { transform:translateY(100%); }
   to { transform:translateY(0); }
+}
+
+/* ── RESPONSIVE: TABLET (769px-1024px) ── */
+@media(min-width:769px) and (max-width:1024px){
+  .sidebar{width:190px;}
+  .main-content{padding:14px;}
+}
+
+/* ── RESPONSIVE: MOBILE & TABLET (≤768px) ── */
+@media(max-width:768px){
+  .header{padding:0 10px;}
+  #header-subtitle,#header-date{display:none;}
+  .app-shell{position:relative;}
+  .sidebar{
+    position:fixed!important;top:0;left:-260px!important;width:245px;height:100vh;z-index:1000;
+    box-shadow:4px 0 24px rgba(0,0,0,0.18);
+    transition:left 0.26s cubic-bezier(0.4,0,0.2,1);
+    overflow-y:auto;padding-top:0;
+  }
+  .sidebar.mobile-open{left:0!important;}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:999;}
+  .sidebar-overlay.show{display:block;}
+  .mobile-menu-btn{display:flex!important;}
+  .sidebar-close-btn{display:flex!important;}
+  .main-content{padding:14px 12px;width:100%;max-width:100%;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .pills{flex-wrap:wrap;}
+  .btn-row{flex-wrap:wrap;}
+  #advisor-thread{max-height:220px;}
+  .msg-thread{max-height:320px;}
+  .msg-bubble{max-width:85%;}
+  .card-body p{font-size:13px;}
+  #wellbeing-summary-card .card-body p{font-size:12px;line-height:1.6;}
 }
 </style>
 </head>
