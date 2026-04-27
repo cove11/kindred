@@ -3362,7 +3362,7 @@ function renderTimeline(items) {
         '<div class="tl-chevron" id="tl-chev-' + idx + '">›</div>' +
       '</div>' +
       '<div class="tl-body" id="tl-body-' + idx + '">' +
-        '<div class="tl-content">' + esc(item.content) + '</div>' +
+        (item.rawMsgs ? buildMsgBubbles(item.rawMsgs) : '<div class="tl-content">' + esc(item.content) + '</div>') +
         '<button class="tl-close-btn" onclick="toggleTlItem(' + idx + ', null)">↑ Close</button>' +
       '</div>';
     list.appendChild(div);
@@ -3410,7 +3410,7 @@ function loadTimeline(familyId) {
     });
     var threadMap = {};
     messages.forEach(function(m) {
-      if (m.sender_role === 'resolved') return;
+      if (m.sender_role === 'resolved' || m.sender_role === 'reopened') return;
       var key = m.created_at.substring(0, 10);
       if (!threadMap[key]) threadMap[key] = [];
       threadMap[key].push(m);
@@ -3419,14 +3419,15 @@ function loadTimeline(familyId) {
       var msgs = threadMap[day];
       var first = msgs[msgs.length - 1];
       var d = new Date(first.created_at);
-      var preview = msgs.map(function(m) { return (m.sender_name || 'Unknown') + ': ' + (m.message || ''); }).join(' | ');
+      var participants = msgs.map(function(m){ return m.sender_name; }).filter(function(v,i,a){ return v && a.indexOf(v)===i; }).join(', ');
       items.push({
         type: 'message',
         reviewType: '',
         title: 'Family conversation',
-        sub: msgs.length + ' message' + (msgs.length > 1 ? 's' : '') + ' — ' + msgs.map(function(m){ return m.sender_name; }).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(', '),
+        sub: msgs.length + ' message' + (msgs.length > 1 ? 's' : '') + ' \u2014 ' + participants,
         date: d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
-        content: preview,
+        content: '',
+        rawMsgs: msgs,
         ts: d.getTime()
       });
     });
@@ -4299,6 +4300,27 @@ function renderInboxList() {
       '</div>';
     list.appendChild(div);
   });
+}
+
+
+function buildMsgBubbles(msgs) {
+  if (!msgs || !msgs.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">No messages.</div>';
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;padding:4px 0;">';
+  msgs.slice().reverse().forEach(function(m) {
+    var isStaff = m.sender_role === 'staff' || m.sender_role === 'manager';
+    var align = isStaff ? 'flex-start' : 'flex-end';
+    var bg = isStaff ? '#f0f0f0' : '#1a1a18';
+    var color = isStaff ? '#1a1a18' : '#fff';
+    var radius = isStaff ? '14px 14px 14px 3px' : '14px 14px 3px 14px';
+    var time = new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    var senderLabel = isStaff ? esc(m.sender_name||'Care team') + ' · Care team' : esc(m.sender_name||'Family');
+    html += '<div style="display:flex;flex-direction:column;align-items:' + align + ';">';
+    html += '<div style="font-size:10px;color:#aaa;margin-bottom:2px;">' + senderLabel + ' · ' + time + '</div>';
+    html += '<div style="background:' + bg + ';color:' + color + ';padding:8px 12px;border-radius:' + radius + ';font-size:13px;max-width:85%;line-height:1.5;word-break:break-word;">' + esc(m.message||'') + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
 }
 
 </script>
