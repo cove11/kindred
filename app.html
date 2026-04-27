@@ -427,8 +427,17 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- TIMELINE -->
     <div class="panel" id="tab-timeline">
-      <div class="sh">Shared timeline</div>
-      
+      <div style="margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;color:#1a1a18;margin-bottom:3px;">Shared timeline</div>
+        <div style="font-size:12px;color:#888;">Every care review, message and update — all in one place.</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;" id="family-tl-filters">
+        <button class="tl-filter active" data-type="all" onclick="filterFamilyTimeline('all')">All</button>
+        <button class="tl-filter" data-type="review" onclick="filterFamilyTimeline('review')">Reviews</button>
+        <button class="tl-filter" data-type="message" onclick="filterFamilyTimeline('message')">Messages</button>
+        <button class="tl-filter" data-type="concern" onclick="filterFamilyTimeline('concern')">Concerns</button>
+      </div>
+      <div id="family-timeline-list" style="padding-bottom:20px;"></div>
     </div>
 
     <!-- LOAD SHARING -->
@@ -1311,6 +1320,7 @@ function showTab(name) {
   // Scroll to top of content when switching tabs
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'reviews') loadReviews();
+  if (name === 'timeline') loadFamilyTimeline();
   if (name === 'messages') loadMessages();
   if (name === 'card') initEmergencyCard();
   if (name === 'contact') loadContactMessages();
@@ -4060,6 +4070,166 @@ function sendAdvisorQuestion() {
   }).catch(function(){
     aEl.textContent = 'Something went wrong. Please try again.';
     if(btn) btn.disabled = false;
+  });
+}
+
+
+// ── FAMILY TIMELINE ──
+var _familyTlItems = [];
+
+function loadFamilyTimeline() {
+  if (!currentUser || !currentUser.family_id) return;
+  var list = document.getElementById('family-timeline-list');
+  if (!list) return;
+  list.innerHTML = '<div class="empty" style="color:#aaa;">Loading timeline...</div>';
+  _familyTlItems = [];
+
+  var famId = currentUser.family_id;
+  var token = localStorage.getItem('supa_token') || SUPA_KEY;
+  var headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token };
+
+  Promise.all([
+    // Care reviews
+    fetch(SUPA_URL + '/rest/v1/reviews?family_id=eq.' + famId + '&status=eq.sent&select=*&order=created_at.desc', { headers: headers }).then(function(r){ return r.json(); }),
+    // Family messages (contact with care home)
+    fetch(SUPA_URL + '/rest/v1/family_contact_messages?family_id=eq.' + famId + '&select=*&order=created_at.desc&limit=50', { headers: headers }).then(function(r){ return r.json(); }),
+    // Escalated concerns
+    fetch(SUPA_URL + '/rest/v1/family_concerns?family_id=eq.' + famId + '&status=in.(escalated,responded)&select=*&order=created_at.desc', { headers: headers }).then(function(r){ return r.json(); })
+  ]).then(function(results) {
+    var reviews = results[0] || [];
+    var messages = results[1] || [];
+    var concerns = results[2] || [];
+
+    // Build combined items array
+    reviews.forEach(function(r) {
+      _familyTlItems.push({
+        type: 'review',
+        ts: new Date(r.created_at).getTime(),
+        date: new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
+        title: fmtReviewType(r.review_type || '6-month review'),
+        subtitle: 'Written by ' + esc(r.nurse_name || 'Care team'),
+        content: stripMarkdown(r.content || ''),
+        raw: r
+      });
+    });
+
+    // Group messages by thread (group into sessions by day)
+    if (messages.length > 0) {
+      // Find unique thread dates
+      var threads = {};
+      messages.forEach(function(m) {
+        var day = m.created_at.substring(0,10);
+        if (!threads[day]) threads[day] = [];
+        threads[day].push(m);
+      });
+      Object.keys(threads).sort().reverse().forEach(function(day) {
+        var msgs = threads[day];
+        var d = new Date(day);
+        var dateStr = d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+        var participants = [...new Set(msgs.map(function(m){ return m.sender_name || 'Unknown'; }))].join(', ');
+        var preview = msgs.map(function(m){ return esc(m.sender_name||'Unknown') + ': ' + esc((m.message||'').substring(0,60)); }).join('<br>');
+        _familyTlItems.push({
+          type: 'message',
+          ts: new Date(msgs[0].created_at).getTime(),
+          date: dateStr,
+          title: 'Family conversation',
+          subtitle: msgs.length + ' message' + (msgs.length !== 1 ? 's' : '') + ' — ' + participants,
+          content: preview,
+          raw: msgs
+        });
+      });
+    }
+
+    concerns.forEach(function(c) {
+      var responded = c.status === 'responded';
+      _familyTlItems.push({
+        type: 'concern',
+        ts: new Date(c.escalated_at || c.created_at).getTime(),
+        date: new Date(c.escalated_at || c.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}),
+        title: 'Concern — ' + esc(c.type || 'General'),
+        subtitle: responded ? 'Manager responded' : 'Escalated to manager',
+        content: esc(c.content || ''),
+        managerResponse: c.manager_response || '',
+        responded: responded,
+        raw: c
+      });
+    });
+
+    // Sort by date descending
+    _familyTlItems.sort(function(a, b) { return b.ts - a.ts; });
+
+    if (_familyTlItems.length === 0) {
+      list.innerHTML = '<div class="empty">No timeline items yet.<br>Care reviews and messages will appear here.</div>';
+      return;
+    }
+
+    renderFamilyTimeline('all');
+  }).catch(function() {
+    var list = document.getElementById('family-timeline-list');
+    if (list) list.innerHTML = '<div class="empty">Could not load timeline. Check your connection.</div>';
+  });
+}
+
+function filterFamilyTimeline(type) {
+  document.querySelectorAll('#family-tl-filters .tl-filter').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.type === type);
+  });
+  renderFamilyTimeline(type);
+}
+
+function renderFamilyTimeline(type) {
+  var list = document.getElementById('family-timeline-list');
+  if (!list) return;
+  var filtered = type === 'all' ? _familyTlItems : _familyTlItems.filter(function(i){ return i.type === type; });
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty">No items for this filter.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  filtered.forEach(function(item, idx) {
+    var isLast = idx === filtered.length - 1;
+    var div = document.createElement('div');
+    div.className = 'tl-item';
+    div.style.cssText = 'background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;margin-bottom:8px;overflow:hidden;';
+
+    // Icon and colour per type
+    var iconBg, iconEmoji, borderColor;
+    if (item.type === 'review') {
+      iconBg = '#e6f7f0'; iconEmoji = '\uD83D\uDCCB'; borderColor = 'transparent';
+    } else if (item.type === 'message') {
+      iconBg = '#fef3cc'; iconEmoji = '\uD83D\uDCAC'; borderColor = 'transparent';
+    } else {
+      iconBg = item.responded ? '#dcfce7' : '#fee2e2';
+      iconEmoji = '\u26A0';
+      borderColor = item.responded ? '#5dcaa5' : '#ef4444';
+    }
+    if (borderColor !== 'transparent') div.style.borderLeft = '3px solid ' + borderColor;
+
+    var headHtml = '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.tl-chevron').style.transform=this.nextElementSibling.style.display==='block'?'rotate(90deg)':'';">' +
+      '<div style="width:32px;height:32px;border-radius:50%;background:'+iconBg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">'+iconEmoji+'</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:600;color:#1a1a18;">'+item.title+'</div>' +
+        '<div style="font-size:11px;color:#aaa;margin-top:1px;">'+item.subtitle+' · '+item.date+'</div>' +
+      '</div>' +
+      '<span class="tl-chevron" style="font-size:12px;color:#aaa;transition:transform 0.2s;">›</span>' +
+    '</div>';
+
+    var bodyHtml = '<div style="display:none;padding:0 14px 14px;border-top:0.5px solid rgba(0,0,0,0.06);">';
+    if (item.type === 'review') {
+      var paras = item.content.split('\n').filter(function(l){ return l.trim(); });
+      bodyHtml += paras.map(function(p){ return '<p style="font-size:13px;color:#444;line-height:1.65;margin-bottom:6px;">'+esc(p)+'</p>'; }).join('');
+    } else if (item.type === 'message') {
+      bodyHtml += '<div style="font-size:13px;color:#444;line-height:1.8;">' + item.content + '</div>';
+    } else {
+      bodyHtml += '<p style="font-size:13px;color:#444;line-height:1.65;margin-bottom:8px;">' + item.content + '</p>';
+      if (item.managerResponse) {
+        bodyHtml += '<div style="padding:8px 10px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#085041;border:0.5px solid #5dcaa5;"><strong>Manager response:</strong> ' + esc(item.managerResponse) + '</div>';
+      }
+    }
+    bodyHtml += '</div>';
+
+    div.innerHTML = headHtml + bodyHtml;
+    list.appendChild(div);
   });
 }
 
