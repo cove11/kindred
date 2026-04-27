@@ -435,7 +435,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <button class="tl-filter active" data-type="all" onclick="filterFamilyTimeline('all')">All</button>
         <button class="tl-filter" data-type="review" onclick="filterFamilyTimeline('review')">Reviews</button>
         <button class="tl-filter" data-type="message" onclick="filterFamilyTimeline('message')">Messages</button>
-        <button class="tl-filter" data-type="concern" onclick="filterFamilyTimeline('concern')">Concerns</button>
+        
       </div>
       <div id="family-timeline-list" style="padding-bottom:20px;"></div>
     </div>
@@ -4099,14 +4099,12 @@ function loadFamilyTimeline() {
   Promise.all([
     // Care reviews
     fetch(SUPA_URL + '/rest/v1/reviews?family_id=eq.' + famId + '&status=eq.sent&select=*&order=created_at.desc', { headers: headers }).then(function(r){ return r.json(); }),
-    // Family messages (contact with care home)
-    fetch(SUPA_URL + '/rest/v1/family_contact_messages?family_id=eq.' + famId + '&select=*&order=created_at.desc&limit=50', { headers: headers }).then(function(r){ return r.json(); }),
-    // Escalated concerns
-    fetch(SUPA_URL + '/rest/v1/family_concerns?family_id=eq.' + famId + '&select=*&order=created_at.desc&limit=20', { headers: headers }).then(function(r){ return r.json(); })
+    // Family messages
+    fetch(SUPA_URL + '/rest/v1/family_contact_messages?family_id=eq.' + famId + '&select=*&order=created_at.desc&limit=50', { headers: headers }).then(function(r){ return r.json(); })
   ]).then(function(results) {
     var reviews = Array.isArray(results[0]) ? results[0] : [];
     var messages = Array.isArray(results[1]) ? results[1] : [];
-    var concerns = Array.isArray(results[2]) ? results[2] : [];
+    var concerns = [];
 
     // Build combined items array
     reviews.forEach(function(r) {
