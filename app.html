@@ -27,6 +27,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .panel{display:none;}
 .panel.active{display:block;}
 
+/* INBOX FILTER TABS */
+.inbox-filter-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;}
+.inbox-filter-btn:hover{border-color:rgba(0,0,0,0.3);background:#f7f5f0;}
+.inbox-filter-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18;}
+
 /* TIMELINE */
 .tl-filter{background:#faf7f3;border:0.5px solid rgba(0,0,0,0.15);border-radius:20px;padding:5px 13px;font-size:11px;font-weight:600;color:#7a6858;cursor:pointer;font-family:inherit;}
 .tl-filter.active{background:#3d2010;color:#fff;border-color:#3d2010;}
@@ -181,6 +186,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .pill{display:inline-flex!important;align-items:center;font-size:12px;padding:4px 10px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;color:#555;background:#fff;user-select:none;}
 .pill:hover{border-color:rgba(0,0,0,0.3);}
 .pill.on{background:#e6f1fb;border-color:#378add;color:#0c447c;font-weight:500;}
+
+/* INBOX FILTER TABS */
+.inbox-filter-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;}
+.inbox-filter-btn:hover{border-color:rgba(0,0,0,0.3);background:#f7f5f0;}
+.inbox-filter-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18;}
 
 /* TIMELINE */
 .tl-item{display:flex;gap:11px;margin-bottom:0;}
@@ -849,12 +859,23 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- FAMILY INBOX (staff side) -->
     <div class="panel" id="ntab-inbox">
       <div id="inbox-list-view">
-        <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-size:15px;font-weight:600;color:#1a1a18;">Family messages</div>
-            <div style="font-size:12px;color:#888;margin-top:2px;">All senior staff can see and reply to every thread.</div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div>
+              <div style="font-size:15px;font-weight:600;color:#1a1a18;">Family messages</div>
+              <div style="font-size:12px;color:#888;margin-top:2px;">All senior staff can see and reply to every thread.</div>
+            </div>
+            <span id="inbox-unread-total" style="display:none;" class="tag tag-amber">Loading...</span>
           </div>
-          <span id="inbox-unread-total" style="display:none;" class="tag tag-amber">Loading...</span>
+          <!-- Filter tabs -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;" id="inbox-filter-tabs">
+            <button class="inbox-filter-btn active" data-filter="all" onclick="setInboxFilter('all')">All</button>
+            <button class="inbox-filter-btn" data-filter="needs-reply" onclick="setInboxFilter('needs-reply')">
+              Needs reply <span id="inbox-needs-reply-count" style="display:none;background:#ef4444;color:#fff;border-radius:99px;font-size:10px;padding:1px 5px;margin-left:3px;"></span>
+            </button>
+            <button class="inbox-filter-btn" data-filter="replied" onclick="setInboxFilter('replied')">Awaiting family</button>
+            <button class="inbox-filter-btn" data-filter="resolved" onclick="setInboxFilter('resolved')">Resolved</button>
+          </div>
         </div>
         <div class="inbox-thread-list" id="inbox-list"></div>
       </div>
@@ -3500,33 +3521,44 @@ function loadInbox() {
         if (totalUnread > 0) { totalBadge.textContent = totalUnread + ' need' + (totalUnread===1?'s':'') + ' reply'; totalBadge.style.display = ''; }
         else { totalBadge.style.display = 'none'; }
       }
+      // Build items array for filtering + sort: needs-reply first, then replied, then resolved
+      window._inboxItems = [];
       Object.keys(groups).forEach(function(fid) {
         var thread = groups[fid];
         var latest = thread[0];
         var resName = resMap[fid] || latest.resident_name || 'Resident';
-        // Badge logic: needs reply if the LATEST message is from family
-        var latest_msg = thread[0]; // already ordered by created_at desc
+        var latest_msg = thread[0];
         var isResolved = latest_msg && latest_msg.sender_role === 'resolved';
+        // Check if reopened after resolve
+        var lastRealMsg = thread.find(function(m){ return m.sender_role !== 'resolved' && m.sender_role !== 'reopened'; });
         var unread = !isResolved && latest_msg && (latest_msg.sender_role === 'family');
+        var filterType = isResolved ? 'resolved' : unread ? 'needs-reply' : 'replied';
         var timeStr = new Date(latest.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-        var rawPreview = latest.sender_role === 'resolved' ? '✓ Conversation resolved' : (latest.message || '📎 Attachment');
-        var previewText = rawPreview.substring(0, 70) + (rawPreview.length > 70 ? '...' : '');
-        var div = document.createElement('div');
-        div.className = 'inbox-thread-card ' + (isResolved ? 'resolved' : unread ? 'unread' : 'replied');
-        div.onclick = function() { openInboxThread(fid, resName); };
-        div.innerHTML =
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
-          '<div style="min-width:0;">' +
-          '<div class="inbox-name">' + esc(resName) + ' family</div>' +
-          '<div class="inbox-preview">' + esc(latest.sender_name) + ': ' + esc(previewText) + '</div>' +
-          '</div>' +
-          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">' +
-          '<span class="inbox-time">' + timeStr + '</span>' +
-          (isResolved ? '<span class="tag" style="background:#f1f0ee;color:#888;font-size:10px;">Resolved</span>' : unread ? '<span class="inbox-badge">Reply needed</span>' : '<span class="tag" style="background:#dcfce7;color:#166534;font-size:10px;">Replied</span>') +
-          '</div>' +
-          '</div>';
-        list.appendChild(div);
+        var rawPreview = isResolved ? '\u2713 Conversation resolved' : (latest.message && latest.message !== '__resolved__' && latest.message !== '__reopened__' ? latest.message : lastRealMsg ? lastRealMsg.message : '');
+        var previewText = esc(rawPreview.substring(0, 70) + (rawPreview.length > 70 ? '...' : ''));
+        var senderName = isResolved ? (latest.sender_name || 'Care team') : (latest.sender_name || 'Family');
+        window._inboxItems.push({
+          fid: fid, resName: resName, filterType: filterType,
+          isResolved: isResolved, unread: unread,
+          timeStr: timeStr, previewText: previewText, senderName: senderName,
+          ts: new Date(latest.created_at).getTime()
+        });
       });
+
+      // Sort: needs-reply first, then replied, then resolved; within each group newest first
+      var order = {'needs-reply':0,'replied':1,'resolved':2};
+      window._inboxItems.sort(function(a,b){
+        if (order[a.filterType] !== order[b.filterType]) return order[a.filterType] - order[b.filterType];
+        return b.ts - a.ts;
+      });
+
+      // Update needs-reply count badge
+      var needsCount = window._inboxItems.filter(function(i){return i.filterType==='needs-reply';}).length;
+      var nrc = document.getElementById('inbox-needs-reply-count');
+      if (nrc) { if(needsCount>0){nrc.textContent=needsCount;nrc.style.display='';}else{nrc.style.display='none';} }
+
+      // Render with current filter
+      renderInboxList();
     });
   }).catch(function(){list.innerHTML='<div class="empty">Could not load messages.</div>';});
 }
@@ -4216,6 +4248,56 @@ function updateMobileUI() {
 window.addEventListener('resize', updateMobileUI);
 window.addEventListener('load', updateMobileUI);
 document.addEventListener('DOMContentLoaded', updateMobileUI);
+
+
+// ── INBOX FILTER ──
+window._inboxFilter = 'all';
+
+function setInboxFilter(filter) {
+  window._inboxFilter = filter;
+  document.querySelectorAll('.inbox-filter-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.filter === filter);
+  });
+  renderInboxList();
+}
+
+function renderInboxList() {
+  var list = document.getElementById('inbox-list');
+  if (!list) return;
+  var items = (window._inboxItems || []).filter(function(i){
+    return window._inboxFilter === 'all' || i.filterType === window._inboxFilter;
+  });
+  list.innerHTML = '';
+  if (items.length === 0) {
+    var labels = {'needs-reply':'No threads needing a reply.','replied':'No threads awaiting family response.','resolved':'No resolved threads yet.','all':'No family messages yet.'};
+    list.innerHTML = '<div class="empty">' + (labels[window._inboxFilter]||'No messages.') + '</div>';
+    return;
+  }
+  items.forEach(function(item) {
+    var div = document.createElement('div');
+    div.className = 'inbox-thread-card ' + (item.isResolved ? 'resolved' : item.unread ? 'unread' : 'replied');
+    div.onclick = (function(fid, rn){ return function(){ openInboxThread(fid, rn); }; })(item.fid, item.resName);
+
+    var badge = item.isResolved
+      ? '<span class="tag" style="background:#f1f0ee;color:#888;font-size:10px;">Resolved</span>'
+      : item.unread
+        ? '<span class="inbox-badge" style="background:#ef4444;color:#fff;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap;">Reply needed</span>'
+        : '<span class="tag" style="background:#dcfce7;color:#166534;font-size:10px;">Replied</span>';
+
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+      '<div style="min-width:0;">' +
+      '<div class="inbox-name">' + esc(item.resName) + ' family</div>' +
+      '<div class="inbox-preview">' + esc(item.senderName) + ': ' + item.previewText + '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">' +
+      '<span class="inbox-time">' + item.timeStr + '</span>' +
+      badge +
+      '</div>' +
+      '</div>';
+    list.appendChild(div);
+  });
+}
 
 </script>
 
