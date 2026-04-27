@@ -1,33 +1,4 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js">
-function showForgotPassword() {
-  ['pane-in','pane-up','pane-reset'].forEach(function(id){ var el=document.getElementById(id); if(el) el.className='hidden'; });
-  var pf = document.getElementById('pane-forgot'); if(pf) pf.className='';
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-  document.getElementById('form-title').textContent = 'Reset your password';
-  document.getElementById('form-sub').textContent = "We'll send a reset link to your email.";
-  clearMsg();
-}
-
-function doForgotPassword() {
-  var email = document.getElementById('forgot-email').value.trim();
-  if (!email) { showMsg('err','Please enter your email address.'); return; }
-  if (!sb) { showMsg('err','Connection error. Please try again.'); return; }
-  setLoading('btn-forgot', true, 'Send reset link');
-  sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/index.html'
-  }).then(function(r) {
-    setLoading('btn-forgot', false, 'Send reset link');
-    if (r.error) { showMsg('err', r.error.message); }
-    else {
-      showMsg('ok', 'Reset link sent! Check your email inbox. The link will take you back here to set a new password.');
-      document.getElementById('forgot-email').value = '';
-    }
-  }).catch(function(){
-    setLoading('btn-forgot', false, 'Send reset link');
-    showMsg('err','Something went wrong. Please try again.');
-  });
-}
-
 </script>
 <!DOCTYPE html>
 <html lang="en">
@@ -735,6 +706,64 @@ document.addEventListener('keydown', function(e) {
   if (!document.getElementById('pane-in').classList.contains('hidden')) doSignIn();
   else if (!document.getElementById('pane-up').classList.contains('hidden')) doSignUp();
 });
+
+function showForgotPassword() {
+  ['pane-in','pane-up','pane-reset'].forEach(function(id){ var el=document.getElementById(id); if(el) el.className='hidden'; });
+  var pf = document.getElementById('pane-forgot'); if(pf) pf.className='';
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('form-title').textContent = 'Reset your password';
+  document.getElementById('form-sub').textContent = "We'll send a reset link to your email.";
+  clearMsg();
+}
+
+function doForgotPassword() {
+  var email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showMsg('err','Please enter your email address.'); return; }
+  if (!sb) { showMsg('err','Connection error. Please try again.'); return; }
+  setLoading('btn-forgot', true, 'Send reset link');
+  sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/index.html'
+  }).then(function(r) {
+    setLoading('btn-forgot', false, 'Send reset link');
+    if (r.error) { showMsg('err', r.error.message); }
+    else {
+      showMsg('ok', 'Reset link sent! Check your email inbox. The link will take you back here to set a new password.');
+      document.getElementById('forgot-email').value = '';
+    }
+  }).catch(function(){
+    setLoading('btn-forgot', false, 'Send reset link');
+    showMsg('err','Something went wrong. Please try again.');
+  });
+}
 </script>
 </body>
 </html>
+
+function showForgotPassword() {
+  ['pane-in','pane-up','pane-reset'].forEach(function(id){ var el=document.getElementById(id); if(el) el.className='hidden'; });
+  var pf = document.getElementById('pane-forgot'); if(pf) pf.className='';
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('form-title').textContent = 'Reset your password';
+  document.getElementById('form-sub').textContent = "We'll send a reset link to your email.";
+  clearMsg();
+}
+
+function doForgotPassword() {
+  var email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showMsg('err','Please enter your email address.'); return; }
+  if (!sb) { showMsg('err','Connection error. Please try again.'); return; }
+  setLoading('btn-forgot', true, 'Send reset link');
+  sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/index.html'
+  }).then(function(r) {
+    setLoading('btn-forgot', false, 'Send reset link');
+    if (r.error) { showMsg('err', r.error.message); }
+    else {
+      showMsg('ok', 'Reset link sent! Check your email inbox. The link will take you back here to set a new password.');
+      document.getElementById('forgot-email').value = '';
+    }
+  }).catch(function(){
+    setLoading('btn-forgot', false, 'Send reset link');
+    showMsg('err','Something went wrong. Please try again.');
+  });
+}
