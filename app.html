@@ -896,7 +896,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 <!-- NURSE APP -->
 
 <!-- LOG MODAL -->
-<div class="modal" id="log-modal">
+<div class="modal" id="log-modal" style="display:none;">
   <div class="modal-box">
     <div class="modal-title">What did you do?</div>
     <div class="modal-sub">Tap to log — saves to the load sharing tracker</div>
@@ -1858,7 +1858,7 @@ function showLogModal() {
   if (document.getElementById('nurse-app').style.display !== 'none') return; // nurse portal active
   document.getElementById('log-modal').classList.add('open'); 
 }
-function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
+function closeLogModal() { document.getElementById('log-modal').style.display = 'none'; }
 
 function logActivity(btn, type, desc) {
   var note = document.getElementById('log-note').value.trim() || desc;
@@ -4206,7 +4206,7 @@ document.addEventListener('DOMContentLoaded', updateMobileUI);
 
 
 <!-- ESCALATE CONFIRMATION SHEET -->
-<div id="escalate-sheet-overlay" onclick="if(event.target===this)hideEscalateConfirm()">
+<div id="escalate-sheet-overlay" style="display:none;" onclick="if(event.target===this)hideEscalateConfirm()">
   <div id="escalate-sheet">
     <div style="width:36px;height:4px;background:#e0d8d0;border-radius:2px;margin:0 auto 20px;"></div>
     <div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:8px;">Escalate to manager?</div>
