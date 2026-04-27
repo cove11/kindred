@@ -3508,19 +3508,7 @@ function loadInbox() {
         groups[m.family_id].push(m);
       });
       list.innerHTML = '';
-      // Update sidebar badge
-      var totalUnread = Object.values(groups).filter(function(t){return t[0] && t[0].sender_role === 'family';}).length;
-      // Exclude resolved threads from count
-      totalUnread = Object.values(groups).filter(function(t){
-        return t[0] && t[0].sender_role !== 'resolved' && t[0].sender_role === 'family';
-      }).length;
-      var badge = document.getElementById('inbox-sidebar-badge');
-      if (badge) { badge.textContent = totalUnread; badge.style.display = totalUnread > 0 ? 'inline-block' : 'none'; }
-      var totalBadge = document.getElementById('inbox-unread-total');
-      if (totalBadge) {
-        if (totalUnread > 0) { totalBadge.textContent = totalUnread + ' need' + (totalUnread===1?'s':'') + ' reply'; totalBadge.style.display = ''; }
-        else { totalBadge.style.display = 'none'; }
-      }
+      // Badge counts ONLY threads needing a reply (computed after _inboxItems built below)
       // Build items array for filtering + sort: needs-reply first, then replied, then resolved
       window._inboxItems = [];
       Object.keys(groups).forEach(function(fid) {
@@ -3552,10 +3540,17 @@ function loadInbox() {
         return b.ts - a.ts;
       });
 
-      // Update needs-reply count badge
+      // Update ALL badges from _inboxItems (only needs-reply counts)
       var needsCount = window._inboxItems.filter(function(i){return i.filterType==='needs-reply';}).length;
       var nrc = document.getElementById('inbox-needs-reply-count');
       if (nrc) { if(needsCount>0){nrc.textContent=needsCount;nrc.style.display='';}else{nrc.style.display='none';} }
+      var badge = document.getElementById('inbox-sidebar-badge');
+      if (badge) { badge.textContent = needsCount; badge.style.display = needsCount > 0 ? 'inline-block' : 'none'; }
+      var totalBadge = document.getElementById('inbox-unread-total');
+      if (totalBadge) {
+        if (needsCount > 0) { totalBadge.textContent = needsCount + ' need' + (needsCount===1?'s':'') + ' reply'; totalBadge.style.display = ''; }
+        else { totalBadge.style.display = 'none'; }
+      }
 
       // Render with current filter
       renderInboxList();
