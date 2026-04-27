@@ -3989,7 +3989,7 @@ function sendAdvisorQuestion() {
   if (window._advisorUsed >= window._advisorLimit && !window._advisorPaid) {
     var pw = document.createElement('div');
     pw.style.cssText = 'background:#faf7f3;border:1px dashed #d4c8b8;border-radius:10px;padding:16px;text-align:center;margin-top:8px;';
-    pw.innerHTML = '<div style="font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:4px;">Upgrade to continue</div><div style="font-size:12px;color:#888;margin-bottom:12px;">Your 3 free questions have been used.</div><button onclick="window._advisorPaid=true;_updateAdvisorCounter();this.closest('div').remove();" style="background:#1a1a18;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Unlock for £5.99/month</button>';
+    pw.innerHTML = '<div style="font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:4px;">Upgrade to continue</div><div style="font-size:12px;color:#888;margin-bottom:12px;">Your 3 free questions have been used.</div><button onclick="window._advisorPaid=true;_updateAdvisorCounter();this.parentElement.remove();" style="background:#1a1a18;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Unlock for £5.99/month</button>';
     thread.appendChild(pw);
     thread.scrollTop = thread.scrollHeight;
     return;
