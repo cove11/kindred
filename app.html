@@ -3346,47 +3346,56 @@ function filterTimeline(type) {
 }
 
 function renderTimeline(items) {
-  var panel = document.getElementById('ntab-timeline'); var list = panel ? panel.querySelector('#timeline-list') : document.getElementById('timeline-list');
-  if (!list) return;
-  // Force panel visible
   var panel = document.getElementById('ntab-timeline');
-  if (panel && !panel.classList.contains('active')) panel.classList.add('active');
+  var list = panel ? panel.querySelector('#timeline-list') : document.getElementById('timeline-list');
+  if (!list) return;
   var filtered = _tlFilter === 'all' ? items : items.filter(function(i) { return i.type === _tlFilter; });
   list.innerHTML = '';
   if (!filtered.length) {
     list.innerHTML = '<div class="empty" style="padding:20px 0;text-align:center;color:#aaa;">No items for this filter.</div>';
     return;
   }
-  filtered.forEach(function(item, idx) {
-    var iconClass = item.type === 'review' ? 'review' : item.type === 'message' ? 'message' : item.reviewType && item.reviewType.includes('medication') ? 'medication' : item.reviewType && item.reviewType.includes('health') ? 'health' : 'review';
+  filtered.forEach(function(item) {
+    // Use stable ID based on type+timestamp, not array index
+    var stableId = 'tl-' + item.type + '-' + item.ts;
     var iconEmoji = item.type === 'review' ? '📋' : item.type === 'message' ? '💬' : '📋';
     var div = document.createElement('div');
     div.className = 'tl-item';
     div.innerHTML =
-      '<div class="tl-item-head" onclick="toggleTlItem(' + idx + ', this)">' +
-        '<div class="tl-icon ' + iconClass + '">' + iconEmoji + '</div>' +
+      '<div class="tl-item-head" onclick="toggleTlItem(\'' + stableId + '\', this)">' +
+        '<div class="tl-icon ' + item.type + '">' + iconEmoji + '</div>' +
         '<div class="tl-meta">' +
           '<div class="tl-title">' + esc(item.title) + '</div>' +
           '<div class="tl-sub">' + esc(item.sub) + '</div>' +
         '</div>' +
         '<div class="tl-date">' + esc(item.date) + '</div>' +
-        '<div class="tl-chevron" id="tl-chev-' + idx + '">›</div>' +
+        '<div class="tl-chevron" id="tl-chev-' + stableId + '">\u203a</div>' +
       '</div>' +
-      '<div class="tl-body" id="tl-body-' + idx + '">' +
+      '<div class="tl-body" id="tl-body-' + stableId + '">' +
         (item.rawMsgs ? buildMsgBubbles(item.rawMsgs) : '<div class="tl-content">' + esc(item.content) + '</div>') +
-        '<button class="tl-close-btn" onclick="toggleTlItem(' + idx + ', null)">↑ Close</button>' +
+        '<button class="tl-close-btn" onclick="toggleTlItem(\'' + stableId + '\', null)">\u2191 Close</button>' +
       '</div>';
     list.appendChild(div);
   });
 }
 
-function toggleTlItem(idx, headEl) {
-  var body = document.getElementById('tl-body-' + idx);
-  var chev = document.getElementById('tl-chev-' + idx);
+function toggleTlItem(stableId, headEl) {
+  var body = document.getElementById('tl-body-' + stableId);
+  var chev = document.getElementById('tl-chev-' + stableId);
   if (!body) return;
   var isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  if (chev) chev.classList.toggle('open', !isOpen);
+  // Close all others first
+  document.querySelectorAll('#timeline-list .tl-body.open').forEach(function(b) {
+    b.classList.remove('open');
+  });
+  document.querySelectorAll('#timeline-list .tl-chevron.open').forEach(function(c) {
+    c.classList.remove('open');
+  });
+  // Toggle this one
+  if (!isOpen) {
+    body.classList.add('open');
+    if (chev) chev.classList.add('open');
+  }
 }
 
 function loadTimeline(familyId) {
