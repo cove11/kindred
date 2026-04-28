@@ -137,7 +137,7 @@ textarea{resize:vertical;min-height:66px;}
 textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
 /* SECTION HEADING */
-.sh{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#5a4a3a;margin-bottom:9px;
+.sh{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9a8a7a;margin-bottom:8px;
 .sh:first-child{margin-top:0;}
 
 /* INFO BOX */
@@ -683,7 +683,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
           <option value="other">Other update</option>
         </select>
       </div>
-      <div class="info-amber info" id="review-type-info">Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.</div>
+      <div id="review-type-info" style="font-size:12px;color:#888;margin-bottom:16px;line-height:1.5;"></div>
       <div class="sh">Clinical assessment</div>
       <div class="field"><label>Overall wellbeing</label>
         <div class="pills" id="pg-w"><div class="pill on" data-v="Well">Well</div><div class="pill" data-v="Very well">Very well</div><div class="pill" data-v="Some concerns">Some concerns</div><div class="pill" data-v="Deteriorating">Deteriorating</div></div>
@@ -1513,10 +1513,18 @@ function onReviewTypeChange(type) {
   var info = document.getElementById('review-type-info');
   if (!info) return;
   var messages = {
-    '6-month review': "Complete a resident's scheduled 6-month review. Opus will translate your clinical notes into plain English for the family.",
-    'health-change': "Document a notable change or decline in the resident's health. This will be shared with the family as an important update.",
-    'medication-change': "Record a change to the resident's medication. The family will be notified with a clear, plain-English explanation.",
-    'other': "Record any other clinical update or observation for the family."
+    '6-month review': 'Scheduled review — clinical notes translated into plain English for the family.',
+    'health-change': 'Record a notable change in health or condition, including observations and next steps.',
+    'medication-change': 'Document a medication change — what changed, why, and any monitoring required.',
+    'incident-report': 'Record a fall, accident or near-miss with details of what happened and actions taken.',
+    'hospital-admission': 'Document a hospital admission — reason, date, and relevant clinical details.',
+    'hospital-discharge': 'Record the resident returning from hospital and any care plan updates.',
+    'infection-illness': 'Document an infection or illness, treatment given and monitoring plan.',
+    'skin-wound': 'Record skin integrity concerns or wound care — site, grade, and treatment.',
+    'social-activities': 'Note engagement with activities, wellbeing and quality of life.',
+    'behaviour-wellbeing': 'Document a significant change in behaviour, mood or mental wellbeing.',
+    'end-of-life': 'Sensitive update regarding end of life care — wishes, comfort and family communication.',
+    'other': 'Any other clinical update relevant to this resident.'
   };
   info.textContent = messages[type] || messages['6-month review'];
 }
