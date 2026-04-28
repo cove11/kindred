@@ -402,7 +402,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- VISIT NOTES -->
     <div class="panel" id="tab-visits">
-      <div class="info-green info">Private to your family. Log what you notice between nurse reviews.</div>
+      <div style="margin-bottom:20px;"><div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Visit notes</div><div style="font-size:13px;color:#888;">Private to your family — not shared with the care home.</div></div>
       <button class="btn btn-green" onclick="document.getElementById('visit-compose').style.display='block'" style="margin-bottom:12px;">+ Log a visit note</button>
       <div id="visit-compose" style="display:none;margin-bottom:12px;" class="card">
         <div class="card-body">
@@ -492,8 +492,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- TIMELINE -->
     <div class="panel" id="tab-timeline">
       <div style="margin-bottom:14px;">
-        <div style="font-size:15px;font-weight:700;color:#1a1a18;margin-bottom:3px;">Shared timeline</div>
-        <div style="font-size:12px;color:#888;">Every care review, message and update — all in one place.</div>
+        <div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Shared timeline</div>
+        <div style="font-size:13px;color:#888;">Every care review, message and update — all in one place.</div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;" id="family-tl-filters">
         <button class="tl-filter active" data-type="all" onclick="filterFamilyTimeline('all')">All</button>
@@ -739,7 +739,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div id="draft-pending-notice" style="display:none;background:#f0fdf4;border:0.5px solid #5dcaa5;border-radius:8px;padding:9px 13px;font-size:13px;color:#085041;margin-bottom:10px;">
         <strong>Draft loaded.</strong> This review was saved by <span id="draft-nurse-name">a nurse</span> and is waiting for your approval.
       </div>
-      <div id="approve-manager-info" class="info-amber info"><strong>Your responsibility.</strong> Read before sending. Edit any section. Nothing reaches the family until you approve it.</div>
+      <div style="margin-bottom:20px;"><div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Review &amp; approve</div><div style="font-size:13px;color:#888;">Read and edit before sending. Nothing reaches the family until you approve it.</div></div>
       <div id="approve-nurse-info" class="info-green info" style="display:none;"><strong>Draft saved.</strong> Your draft is saved. You can edit it below or send it directly to the family.</div>
       <div class="card">
         <div class="card-head"><span class="card-title">Editable summary</span><button class="btn" style="font-size:11px;padding:2px 8px;" onclick="toggleEdit()">Edit</button></div>
@@ -862,8 +862,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
         <div style="margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div>
-              <div style="font-size:15px;font-weight:600;color:#1a1a18;">Family messages</div>
-              <div style="font-size:12px;color:#888;margin-top:2px;">All senior staff can see and reply to every thread.</div>
+              <div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Family messages</div>
+              <div style="font-size:13px;color:#888;">All senior staff can see and reply to every thread.</div>
             </div>
             <span id="inbox-unread-total" style="display:none;" class="tag tag-amber">Loading...</span>
           </div>
