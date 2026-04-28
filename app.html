@@ -1091,15 +1091,16 @@ function showTab(name) {
     p.classList.toggle('active', p.id === 'tab-' + name);
   });
   // Close all expanded items when switching tabs
-  document.querySelectorAll('#family-app .tl-item .tl-item-body, #family-app [id$="-body"]').forEach(function(el) {
+  document.querySelectorAll('#family-app .tl-body').forEach(function(el) {
+    el.classList.remove('open');
+    el.style.display = '';
+  });
+  document.querySelectorAll('#family-timeline-list .tl-item div:nth-child(2)').forEach(function(el) {
     el.style.display = 'none';
   });
   document.querySelectorAll('#family-app .tl-chevron').forEach(function(el) {
+    el.classList.remove('open');
     el.style.transform = '';
-  });
-  // Close any open timeline items in family timeline
-  document.querySelectorAll('#family-timeline-list .tl-item div:nth-child(2)').forEach(function(el) {
-    el.style.display = 'none';
   });
   // Scroll to top of content when switching tabs
   var mc = document.querySelector('#family-app .main-content');
@@ -1121,11 +1122,13 @@ function showNurseTab(name) {
   document.querySelectorAll('#nurse-app .panel').forEach(function(p) {
     p.classList.toggle('active', p.id === 'ntab-' + name);
   });
-  // Close all expanded items when switching tabs
-  document.querySelectorAll('#nurse-app .tl-item div:nth-child(2)').forEach(function(el) {
-    el.style.display = 'none';
+  // Close all expanded timeline items when switching tabs
+  document.querySelectorAll('#nurse-app .tl-body').forEach(function(el) {
+    el.classList.remove('open');
+    el.style.display = '';
   });
   document.querySelectorAll('#nurse-app .tl-chevron').forEach(function(el) {
+    el.classList.remove('open');
     el.style.transform = '';
   });
   // Close open inbox thread if switching away from inbox
