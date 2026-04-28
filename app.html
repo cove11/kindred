@@ -1013,6 +1013,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- Note field -->
     <input type="text" id="log-note" placeholder="Add a note (optional)..." style="width:100%;padding:11px 14px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:14px;font-family:inherit;background:#faf9f7;box-sizing:border-box;margin-bottom:10px;outline:none;"/>
     <!-- Cancel -->
+    <button id="log-confirm-btn" onclick="submitLog()" style="display:none;width:100%;padding:13px;background:#1a1a18;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">Log it</button>
     <button onclick="closeLogModal()" style="width:100%;padding:13px;background:#f5f0e8;color:#555;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
   </div>
 </div>
@@ -1987,24 +1988,45 @@ function showLogModal() {
   var m = document.getElementById('log-modal');
   if (m) { m.style.cssText = 'display:flex!important;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;align-items:flex-end;justify-content:center;'; }
 }
-function closeLogModal() { var m=document.getElementById('log-modal'); if(m){ m.style.cssText='display:none;'; } }
+function closeLogModal() {
+  var m = document.getElementById('log-modal');
+  if (m) { m.style.cssText = 'display:none;'; }
+  _selectedLogType = null;
+  _selectedLogDesc = null;
+  document.querySelectorAll('.log-card-btn').forEach(function(b) { b.classList.remove('selected'); });
+  var confirmBtn = document.getElementById('log-confirm-btn');
+  if (confirmBtn) confirmBtn.style.display = 'none';
+}
+
+// Selected log type
+var _selectedLogType = null;
+var _selectedLogDesc = null;
 
 function logActivity(btn, type, desc) {
-  var note = document.getElementById('log-note').value.trim() || desc;
-  var item = { type: type, note: note, date: dateStr(), ts: Date.now() };
-  btn.classList.add('logged');
-  btn.textContent = '✓ ' + btn.textContent;
-  setTimeout(function() {
-    closeLogModal();
-    document.getElementById('log-note').value = '';
-    supaPost('family_load_log', {
-      family_id: currentUser.family_id,
-      author_name: currentUser.name,
-      type: type,
-      note: note
-    }).then(function() { loadLog(); });
-    document.querySelectorAll('.log-btn').forEach(function(b) { b.classList.remove('logged'); b.textContent = b.textContent.replace('✓ ', ''); });
-  }, 600);
+  // Just select the card — don't submit yet
+  _selectedLogType = type;
+  _selectedLogDesc = desc;
+  // Highlight selected card
+  document.querySelectorAll('.log-card-btn').forEach(function(b) { b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  // Show the confirm button
+  var confirmBtn = document.getElementById('log-confirm-btn');
+  if (confirmBtn) { confirmBtn.style.display = 'block'; }
+}
+
+function submitLog() {
+  if (!_selectedLogType) return;
+  var note = document.getElementById('log-note').value.trim() || _selectedLogDesc;
+  supaPost('family_load_log', {
+    family_id: currentUser.family_id,
+    author_name: currentUser.name,
+    type: _selectedLogType,
+    note: note
+  }).then(function() { loadLog(); });
+  _selectedLogType = null;
+  _selectedLogDesc = null;
+  closeLogModal();
+  document.getElementById('log-note').value = '';
 }
 
 // ── REVIEWS ──
