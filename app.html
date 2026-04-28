@@ -1939,11 +1939,11 @@ function loadLog() {
 function showLogModal() {
   // Only show when family portal is active
   var nurseApp = document.getElementById('nurse-app');
-  if (nurseApp && nurseApp.style.display !== 'none') return; // staff portal active - don't show
+  if (nurseApp && nurseApp.style.display !== 'none') return;
   var m = document.getElementById('log-modal');
-  if (m) { m.style.display = ''; m.classList.add('open'); }
+  if (m) { m.style.cssText = 'display:flex!important;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;align-items:flex-end;justify-content:center;'; }
 }
-function closeLogModal() { var m=document.getElementById('log-modal'); if(m){m.classList.remove('open');m.style.display='';} }
+function closeLogModal() { var m=document.getElementById('log-modal'); if(m){ m.style.cssText='display:none;'; } }
 
 function logActivity(btn, type, desc) {
   var note = document.getElementById('log-note').value.trim() || desc;
