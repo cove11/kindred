@@ -1011,7 +1011,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       </button>
     </div>
     <!-- Note field -->
-    <input type="text" id="log-note" placeholder="Add a note (optional)..." style="width:100%;padding:11px 14px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:14px;font-family:inherit;background:#faf9f7;box-sizing:border-box;margin-bottom:10px;outline:none;"/>
+    <input type="text" id="log-note" placeholder="Add a note (optional)..." oninput="var b=document.getElementById('log-confirm-btn');if(b)b.style.display=this.value.trim()?'block':''" style="width:100%;padding:11px 14px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:14px;font-family:inherit;background:#faf9f7;box-sizing:border-box;margin-bottom:10px;outline:none;"/>
     <!-- Cancel -->
     <button id="log-confirm-btn" onclick="submitLog()" style="display:none;width:100%;padding:13px;background:#1a1a18;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">Log it</button>
     <button onclick="closeLogModal()" style="width:100%;padding:13px;background:#f5f0e8;color:#555;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
@@ -2015,13 +2015,15 @@ function logActivity(btn, type, desc) {
 }
 
 function submitLog() {
-  if (!_selectedLogType) return;
-  var note = document.getElementById('log-note').value.trim() || _selectedLogDesc;
+  var note = document.getElementById('log-note').value.trim();
+  var type = _selectedLogType || 'Other';
+  var desc = note || _selectedLogDesc || 'Logged';
+  if (!_selectedLogType && !note) return; // nothing selected or typed
   supaPost('family_load_log', {
     family_id: currentUser.family_id,
     author_name: currentUser.name,
-    type: _selectedLogType,
-    note: note
+    type: type,
+    note: desc
   }).then(function() { loadLog(); });
   _selectedLogType = null;
   _selectedLogDesc = null;
