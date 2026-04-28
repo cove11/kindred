@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .tl-date{font-size:11px;color:#aaa;flex-shrink:0;}
 .tl-chevron{font-size:11px;color:#aaa;flex-shrink:0;transition:transform 0.2s;}
 .tl-chevron.open{transform:rotate(90deg);}
-.tl-body{display:none;padding:0 14px 14px;border-top:0.5px solid rgba(0,0,0,0.06);}
+.tl-body{display:none!important;padding:0 14px 14px;border-top:0.5px solid rgba(0,0,0,0.06);}.tl-body.open{display:block!important;}
 .tl-body.open{display:block;}
 .tl-content{font-size:13px;color:#444;line-height:1.6;padding-top:10px;}
 .tl-close-btn{margin-top:10px;font-size:11px;font-weight:600;color:#888;cursor:pointer;border:none;background:none;font-family:inherit;padding:0;}
@@ -197,7 +197,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .tl-left{display:flex;flex-direction:column;align-items:center;width:26px;flex-shrink:0;}
 .tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .tl-line{width:1.5px;flex:1;min-height:10px;background:rgba(0,0,0,0.09);margin:3px 0;}
-.tl-body{flex:1;padding-bottom:13px;}
+.tl-body-vert{flex:1;padding-bottom:13px;}
 .tl-meta{font-size:11px;color:#aaa;margin-bottom:3px;}
 .tl-card{background:#fff;border:0.5px solid rgba(0,0,0,0.11);border-radius:9px;padding:10px 13px;}
 .tl-card p{font-size:13px;color:#555;line-height:1.6;margin-bottom:5px;}
@@ -2018,12 +2018,12 @@ function renderReviews(reviews) {
         var isLast = i === tlItems.length - 1;
         if (item.type === 'review') {
           var tlClean = stripMarkdown(item.content || '');
-          div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (!isLast ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(item.dateStr) + ' · ' + esc(fmtReviewType(item.review_type)) + '</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
+          div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (!isLast ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body-vert"><div class="tl-meta">' + esc(item.dateStr) + ' · ' + esc(fmtReviewType(item.review_type)) + '</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
         } else {
           var statusColour = item.responded ? '#166534' : '#b91c1c';
           var statusBg = item.responded ? '#dcfce7' : '#fee2e2';
           var statusLabel = item.responded ? 'Manager responded' : 'Escalated to manager';
-          div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:' + statusBg + ';"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="' + statusColour + '" stroke-width="1.2"/></svg></div>' + (!isLast ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta" style="color:' + statusColour + ';">' + esc(item.dateStr) + ' · Concern — ' + esc(item.concern_type) + '</div><div class="tl-card" style="border-color:' + statusColour + ';"><p>' + esc((item.content||'').substring(0, 120)) + '...</p>' + (item.manager_response ? '<p style="font-size:11px;color:#085041;margin-top:4px;"><strong>Manager response recorded</strong></p>' : '') + '</div></div>';
+          div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:' + statusBg + ';"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="' + statusColour + '" stroke-width="1.2"/></svg></div>' + (!isLast ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body-vert"><div class="tl-meta" style="color:' + statusColour + ';">' + esc(item.dateStr) + ' · Concern — ' + esc(item.concern_type) + '</div><div class="tl-card" style="border-color:' + statusColour + ';"><p>' + esc((item.content||'').substring(0, 120)) + '...</p>' + (item.manager_response ? '<p style="font-size:11px;color:#085041;margin-top:4px;"><strong>Manager response recorded</strong></p>' : '') + '</div></div>';
         }
         tl.appendChild(div);
       });
@@ -2034,7 +2034,7 @@ function renderReviews(reviews) {
       var div = document.createElement('div');
       div.className = 'tl-item';
       var tlClean = stripMarkdown(r.content || '');
-      div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body"><div class="tl-meta">' + esc(r.date) + ' · Care review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
+      div.innerHTML = '<div class="tl-left"><div class="tl-dot" style="background:#e1f5ee;"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1.5" width="9" height="8" rx="1.5" stroke="#085041" stroke-width="1.2"/></svg></div>' + (i < reviews.length - 1 ? '<div class="tl-line"></div>' : '') + '</div><div class="tl-body-vert"><div class="tl-meta">' + esc(r.date) + ' · Care review</div><div class="tl-card"><p>' + esc(tlClean.substring(0, 120)) + '...</p></div></div>';
       tl.appendChild(div);
     });
   }
