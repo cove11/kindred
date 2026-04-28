@@ -27,6 +27,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .panel{display:none;}
 .panel.active{display:block;}
 
+/* PAGE TITLE SYSTEM */
+.page-title{font-size:20px;font-weight:700;color:#1a1a18;letter-spacing:-0.3px;margin-bottom:3px;}
+.page-sub{font-size:13px;color:#999;margin-bottom:20px;line-height:1.5;}
+
 /* WELLBEING CHECK BUTTONS */
 .wb-btn{font-size:14px;padding:9px 18px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.12);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;line-height:1;}
 .wb-btn:hover{border-color:rgba(0,0,0,0.25);background:#f7f5f0;}
@@ -192,6 +196,10 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .pill:hover{border-color:rgba(0,0,0,0.3);}
 .pill.on{background:#e6f1fb;border-color:#378add;color:#0c447c;font-weight:500;}
 
+/* PAGE TITLE SYSTEM */
+.page-title{font-size:20px;font-weight:700;color:#1a1a18;letter-spacing:-0.3px;margin-bottom:3px;}
+.page-sub{font-size:13px;color:#999;margin-bottom:20px;line-height:1.5;}
+
 /* WELLBEING CHECK BUTTONS */
 .wb-btn{font-size:14px;padding:9px 18px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.12);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;line-height:1;}
 .wb-btn:hover{border-color:rgba(0,0,0,0.25);background:#f7f5f0;}
@@ -351,6 +359,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- HOME -->
     <div class="panel active" id="tab-home">
+      <div class="page-title" id="home-page-title">Welcome back</div>
+      <div class="page-sub" id="home-page-sub">Here's the latest from the care home.</div>
       <div class="sh">How are you doing this week?</div>
       <div class="card" style="margin-bottom:12px;">
         <div class="card-body">
@@ -470,7 +480,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- NURSE REVIEWS -->
     <div class="panel" id="tab-reviews">
-      <div class="info-green info">Sent by your care home senior staff. Your family conversations are never visible to staff.</div>
+      <div class="page-title">Care reviews</div>
+      <div class="page-sub">Sent by your care home senior staff. Your family conversations are never visible to staff.</div>
       <div id="reviews-list"><div class="empty">No nurse reviews received yet.<br>Your nurse will send one after your next appointment.</div></div>
       <div id="ai-advisor-section" style="margin-top:18px;display:none;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid rgba(0,0,0,0.08);">
@@ -502,7 +513,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- TIMELINE -->
     <div class="panel" id="tab-timeline">
       <div style="margin-bottom:14px;">
-        <div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Shared timeline</div>
+        <div class="page-title">Shared timeline</div>
         <div style="font-size:13px;color:#888;">Every care review, message and update — all in one place.</div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;" id="family-tl-filters">
@@ -619,6 +630,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- OVERVIEW -->
     <div class="panel active" id="ntab-overview">
+      <div class="page-title">Overview</div>
+      <div class="page-sub" id="overview-sub">Sunrise Care Home</div>
       <div class="sh">Ward at a glance</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div class="card" style="margin-bottom:0;text-align:center;padding:12px;"><div style="font-size:22px;font-weight:700;" id="stat-residents">—</div><div style="font-size:11px;color:#aaa;">Residents</div></div>
@@ -655,8 +668,10 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     </div>
 
     <!-- RESIDENTS -->
-    <div class="panel" id="ntab-residents">
-      <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+    <div class="p      <div id="ntab-residents" class="panel">
+        <div class="page-title">Residents</div>
+        <div class="page-sub">All residents at your care home.</div>
+        0px;display:flex;gap:8px;align-items:center;">
         <input type="text" id="resident-search" placeholder="Search residents..." oninput="filterResidents()" style="flex:1;padding:7px 11px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;"/>
         <select id="resident-filter-status" onchange="filterResidents()" style="padding:7px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#fff;">
           <option value="">All residents</option>
@@ -670,6 +685,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- REVIEW FORM -->
     <div class="panel" id="ntab-review">
+      <div class="page-title">Enter review</div>
+      <div class="page-sub">Complete your clinical notes — translated into plain English for the family.</div>
       <div style="margin-bottom:12px;">
         <label style="font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;">Select resident</label>
         <select id="resident-selector" style="width:100%;padding:9px 13px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:14px;background:#faf9f7;margin-top:4px;" onchange="onResidentSelect(this.value)">
@@ -729,6 +746,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- APPROVE -->
     <div class="panel" id="ntab-approve">
+      <div class="page-title">Review &amp; approve</div>
+      <div class="page-sub">Read and edit before sending. Nothing reaches the family until you approve it.</div>
       <!-- Resident banner -->
       <div id="approve-resident-banner" style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between;">
         <div>
@@ -769,6 +788,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- SENT -->
     <div class="panel" id="ntab-sent">
+      <div class="page-title">Sent reviews</div>
+      <div class="page-sub">Approved reviews delivered to families.</div>
       <div id="sent-list"><div class="empty">No reviews sent yet.</div></div>
     </div>
 
@@ -909,8 +930,8 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
     <!-- TIMELINE PANEL -->
     <div class="panel" id="ntab-timeline">
       <div style="margin-bottom:14px;">
-        <div style="font-size:15px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Resident timeline</div>
-        <div style="font-size:12px;color:#888;">Complete history of reviews and messages for each resident.</div>
+        <div class="page-title">Resident timeline</div>
+        <div class="page-sub" style="margin-bottom:0;">Full history of reviews and messages per resident.</div>
       </div>
       <div style="margin-bottom:12px;">
         <label style="font-size:10px;font-weight:800;color:#8a7060;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:6px;">Select resident</label>
