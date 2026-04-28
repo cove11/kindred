@@ -1936,11 +1936,12 @@ function loadLog() {
   });
 }
 
-function showLogModal() { 
-  // Only show for family users
-  if (currentUser && currentUser.is_manager !== undefined && currentUser.is_manager !== null) return; // staff - don't show
-  if (document.getElementById('nurse-app').style.display !== 'none') return; // nurse portal active
-  document.getElementById('log-modal').classList.add('open'); 
+function showLogModal() {
+  // Only show when family portal is active
+  var nurseApp = document.getElementById('nurse-app');
+  if (nurseApp && nurseApp.style.display !== 'none') return; // staff portal active - don't show
+  var m = document.getElementById('log-modal');
+  if (m) { m.style.display = ''; m.classList.add('open'); }
 }
 function closeLogModal() { var m=document.getElementById('log-modal'); if(m){m.classList.remove('open');m.style.display='';} }
 
