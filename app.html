@@ -27,6 +27,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .panel{display:none;}
 .panel.active{display:block;}
 
+/* WELLBEING CHECK BUTTONS */
+.wb-btn{font-size:14px;padding:9px 18px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.12);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;line-height:1;}
+.wb-btn:hover{border-color:rgba(0,0,0,0.25);background:#f7f5f0;}
+.wb-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18;font-weight:600;}
+
 /* INBOX FILTER TABS */
 .inbox-filter-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;}
 .inbox-filter-btn:hover{border-color:rgba(0,0,0,0.3);background:#f7f5f0;}
@@ -167,7 +172,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .invite-link{background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;padding:10px 12px;font-size:11px;color:#085041;font-family:monospace;word-break:break-all;margin:10px 0;}
 
 /* MODAL */
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:flex-end;justify-content:center;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:flex-end;justify-content:center;}.modal.open{display:flex!important;}
 .modal.open{display:flex;}
 .modal-box{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:720px;padding-bottom:30px;}
 .modal-title{font-size:14px;font-weight:600;margin-bottom:4px;}
@@ -187,6 +192,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 .pill:hover{border-color:rgba(0,0,0,0.3);}
 .pill.on{background:#e6f1fb;border-color:#378add;color:#0c447c;font-weight:500;}
 
+/* WELLBEING CHECK BUTTONS */
+.wb-btn{font-size:14px;padding:9px 18px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.12);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;line-height:1;}
+.wb-btn:hover{border-color:rgba(0,0,0,0.25);background:#f7f5f0;}
+.wb-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18;font-weight:600;}
+
 /* INBOX FILTER TABS */
 .inbox-filter-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.15);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;}
 .inbox-filter-btn:hover{border-color:rgba(0,0,0,0.3);background:#f7f5f0;}
@@ -205,7 +215,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
 /* CHECKIN */
 .checkin-opts{display:flex;gap:6px;flex-wrap:wrap;}
-.checkin-opt{font-size:12px;padding:6px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.15);cursor:pointer;background:#fff;font-family:inherit;}
+/* checkin-opt replaced by wb-btn */
 .checkin-opt:hover{border-color:rgba(0,0,0,0.3);}
 .checkin-opt.selected{background:#e1f5ee;border-color:#5dcaa5;color:#085041;}
 
@@ -345,11 +355,11 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
       <div class="card" style="margin-bottom:12px;">
         <div class="card-body">
           <p id="checkin-greeting" style="font-size:13px;color:#555;margin-bottom:10px;"></p>
-          <div class="checkin-opts">
-            <button class="checkin-opt" onclick="doCheckin(this,'Managing well')">Managing well</button>
-            <button class="checkin-opt" onclick="doCheckin(this,'Bit tired')">Bit tired</button>
-            <button class="checkin-opt" onclick="doCheckin(this,'Finding it hard')">Finding it hard</button>
-            <button class="checkin-opt" onclick="doCheckin(this,'Need support')">Need support</button>
+          <div class="checkin-opts" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="wb-btn" onclick="doCheckin(this,'Managing well')">Managing well</button>
+            <button class="wb-btn" onclick="doCheckin(this,'Bit tired')">Bit tired</button>
+            <button class="wb-btn" onclick="doCheckin(this,'Finding it hard')">Finding it hard</button>
+            <button class="wb-btn" onclick="doCheckin(this,'Need support')">Need support</button>
           </div>
           <div id="checkin-response" style="display:none;margin-top:10px;padding:9px 11px;background:#faf9f7;border-radius:8px;font-size:13px;color:#555;line-height:1.6;"></div>
         </div>
@@ -506,7 +516,7 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 
     <!-- LOAD SHARING -->
     <div class="panel" id="tab-load">
-      <div class="info">A shared log of care contributions — visits, calls, appointments, admin. Everything that happens for <span id="load-resident-name">your family member</span> in one place, visible to everyone on this portal.</div>
+      <div style="margin-bottom:20px;"><div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Load sharing</div><div style="font-size:13px;color:#888;">Track who is helping with care. Visible to all family members on this portal.</div></div>
       <div class="sh">This month</div>
       <div class="card" style="margin-bottom:12px;">
         <div class="card-body" style="padding:9px 14px;" id="load-members"></div>
@@ -1553,8 +1563,8 @@ function getPill(id) {
 
 // ── CHECKIN ──
 function doCheckin(btn, choice) {
-  document.querySelectorAll('.checkin-opt').forEach(function(b) { b.classList.remove('selected'); });
-  btn.classList.add('selected');
+  document.querySelectorAll('.wb-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
   var responses = {
     'Managing well': 'That\'s great to hear. Keep checking in. You\'re doing a good job.',
     'Bit tired': 'That makes sense. Looking after someone takes a lot. Make sure you get time for yourself too.',
@@ -1911,7 +1921,7 @@ function showLogModal() {
   if (document.getElementById('nurse-app').style.display !== 'none') return; // nurse portal active
   document.getElementById('log-modal').classList.add('open'); 
 }
-function closeLogModal() { document.getElementById('log-modal').style.display = 'none'; }
+function closeLogModal() { var m=document.getElementById('log-modal'); if(m){m.classList.remove('open');m.style.display='';} }
 
 function logActivity(btn, type, desc) {
   var note = document.getElementById('log-note').value.trim() || desc;
