@@ -4300,6 +4300,8 @@ function updateMobileUI() {
   
   // Header subtitle and date
   var sub = document.getElementById('header-subtitle');
+  var homeSub = document.getElementById('home-welcome-sub');
+  if (homeSub && currentUser && currentUser.resident_name) homeSub.textContent = 'Here\'s ' + currentUser.resident_name.split(' ')[0] + '\'s latest from the care home.';
   var hd = document.getElementById('header-date');
   if (sub) sub.style.display = isMobile ? 'none' : '';
   if (hd) hd.style.display = isMobile ? 'none' : '';
