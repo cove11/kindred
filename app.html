@@ -31,6 +31,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0ede8;
 .page-title{font-size:20px;font-weight:700;color:#1a1a18;letter-spacing:-0.3px;margin-bottom:3px;}
 .page-sub{font-size:13px;color:#999;margin-bottom:20px;line-height:1.5;}
 
+/* LOG ACTIVITY CARDS */
+.log-card-btn{background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;font-family:inherit;transition:all 0.15s;width:100%;}
+.log-card-btn:hover{background:#f0ede8;border-color:rgba(0,0,0,0.2);transform:scale(1.02);}
+.log-card-btn:active{background:#e8e3db;transform:scale(0.98);}
+.log-card-btn.selected{background:#1a1a18;border-color:#1a1a18;}
+.log-card-btn.selected span{color:#fff!important;}
+
 /* WELLBEING CHECK BUTTONS */
 .wb-btn{font-size:14px;padding:9px 18px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.12);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;line-height:1;}
 .wb-btn:hover{border-color:rgba(0,0,0,0.25);background:#f7f5f0;}
@@ -199,6 +206,13 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 /* PAGE TITLE SYSTEM */
 .page-title{font-size:20px;font-weight:700;color:#1a1a18;letter-spacing:-0.3px;margin-bottom:3px;}
 .page-sub{font-size:13px;color:#999;margin-bottom:20px;line-height:1.5;}
+
+/* LOG ACTIVITY CARDS */
+.log-card-btn{background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;font-family:inherit;transition:all 0.15s;width:100%;}
+.log-card-btn:hover{background:#f0ede8;border-color:rgba(0,0,0,0.2);transform:scale(1.02);}
+.log-card-btn:active{background:#e8e3db;transform:scale(0.98);}
+.log-card-btn.selected{background:#1a1a18;border-color:#1a1a18;}
+.log-card-btn.selected span{color:#fff!important;}
 
 /* WELLBEING CHECK BUTTONS */
 .wb-btn{font-size:14px;padding:9px 18px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.12);background:#fff;cursor:pointer;font-family:inherit;color:#555;font-weight:500;transition:all 0.15s;line-height:1;}
@@ -956,20 +970,50 @@ textarea:focus,input:focus{border-color:rgba(0,0,0,0.4);}
 <!-- NURSE APP -->
 
 <!-- LOG MODAL -->
-<div class="modal" id="log-modal" style="display:none;">
-  <div class="modal-box">
-    <div class="modal-title">What did you do?</div>
-    <div class="modal-sub">Tap to log — saves to the load sharing tracker</div>
-    <div class="log-grid">
-      <button class="log-btn" onclick="logActivity(this,'Visit','In person visit')">🏠 Visit</button>
-      <button class="log-btn" onclick="logActivity(this,'Phone call','Called')">📞 Phone call</button>
-      <button class="log-btn" onclick="logActivity(this,'GP / medical','Medical')">🏥 GP / medical</button>
-      <button class="log-btn" onclick="logActivity(this,'Admin','Admin or paperwork')">📋 Admin</button>
-      <button class="log-btn" onclick="logActivity(this,'Financial','Financial task')">💷 Financial</button>
-      <button class="log-btn" onclick="logActivity(this,'Emotional support','Support')">💛 Emotional support</button>
+<div class="modal" id="log-modal" style="display:none;" onclick="if(event.target===this)closeLogModal()">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:520px;box-shadow:0 -4px 32px rgba(0,0,0,0.12);">
+    <!-- Handle -->
+    <div style="width:36px;height:4px;background:#e5e0d8;border-radius:2px;margin:0 auto 22px;"></div>
+    <!-- Title -->
+    <div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">What did you do?</div>
+    <div style="font-size:13px;color:#999;margin-bottom:20px;">Tap to log — saves to the load sharing tracker</div>
+    <!-- Category grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <button class="log-card-btn" onclick="logActivity(this,'Visit','In person visit')">
+        <span style="font-size:26px;display:block;margin-bottom:6px;">🏠</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a18;">Visit</span>
+        <span style="font-size:11px;color:#999;display:block;margin-top:2px;">In person</span>
+      </button>
+      <button class="log-card-btn" onclick="logActivity(this,'Phone call','Called')">
+        <span style="font-size:26px;display:block;margin-bottom:6px;">📞</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a18;">Phone call</span>
+        <span style="font-size:11px;color:#999;display:block;margin-top:2px;">Called to check in</span>
+      </button>
+      <button class="log-card-btn" onclick="logActivity(this,'GP / medical','Medical appointment')">
+        <span style="font-size:26px;display:block;margin-bottom:6px;">🏥</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a18;">GP / medical</span>
+        <span style="font-size:11px;color:#999;display:block;margin-top:2px;">Medical appointment</span>
+      </button>
+      <button class="log-card-btn" onclick="logActivity(this,'Admin','Admin or paperwork')">
+        <span style="font-size:26px;display:block;margin-bottom:6px;">📋</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a18;">Admin</span>
+        <span style="font-size:11px;color:#999;display:block;margin-top:2px;">Paperwork or planning</span>
+      </button>
+      <button class="log-card-btn" onclick="logActivity(this,'Financial','Financial task')">
+        <span style="font-size:26px;display:block;margin-bottom:6px;">💷</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a18;">Financial</span>
+        <span style="font-size:11px;color:#999;display:block;margin-top:2px;">Bills or finances</span>
+      </button>
+      <button class="log-card-btn" onclick="logActivity(this,'Emotional support','Emotional support')">
+        <span style="font-size:26px;display:block;margin-bottom:6px;">💛</span>
+        <span style="font-size:14px;font-weight:600;color:#1a1a18;">Support</span>
+        <span style="font-size:11px;color:#999;display:block;margin-top:2px;">Emotional support</span>
+      </button>
     </div>
-    <input type="text" id="log-note" placeholder="Optional note..." style="margin-bottom:10px;font-size:13px;"/>
-    <button class="btn" onclick="closeLogModal()" style="width:100%;">Cancel</button>
+    <!-- Note field -->
+    <input type="text" id="log-note" placeholder="Add a note (optional)..." style="width:100%;padding:11px 14px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:14px;font-family:inherit;background:#faf9f7;box-sizing:border-box;margin-bottom:10px;outline:none;"/>
+    <!-- Cancel -->
+    <button onclick="closeLogModal()" style="width:100%;padding:13px;background:#f5f0e8;color:#555;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
   </div>
 </div>
 
