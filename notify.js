@@ -53,7 +53,7 @@ exports.handler = async function(event, context) {
   `;
 
   const emailBody = JSON.stringify({
-    from: 'Kindred <notifications@kindredcare.app>',
+    from: 'Kindred <onboarding@resend.dev>',
     to: Array.isArray(to) ? to : [to],
     subject,
     html
