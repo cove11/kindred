@@ -342,10 +342,7 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
         Contact care home
       </button>
       <div class="sidebar-spacer"></div>
-      <button class="sidebar-item" onclick="showTab('card')" style="border-top:0.5px solid rgba(0,0,0,0.07);margin-top:4px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        Emergency card
-      </button>
+      
     </div>
     <div class="main-content">
 
@@ -488,7 +485,7 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
           <div style="font-size:26px;margin-bottom:8px;">🔒</div>
           <div style="font-size:14px;font-weight:600;color:#1a1a18;margin-bottom:6px;">Unlock the AI Care Advisor</div>
           <div style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.6;">Get plain-English answers about your loved one's care — any time of day or night.<br><strong style="color:#1a1a18;">First 3 questions completely free.</strong></div>
-          <button onclick="unlockAdvisor()" style="background:#1a1a18;color:#fff;border:none;border-radius:9px;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Try free — 3 questions</button>
+          <button onclick="window.location.href='mailto:hello@kindredcare.app?subject=Kindred%20AI%20Advisor%20Upgrade&body=Hi%2C%20I%27d%20like%20to%20upgrade%20to%20the%20AI%20Care%20Advisor%20for%20Kindred.'" style="background:#1a1a18;color:#fff;border:none;border-radius:9px;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Try free — 3 questions</button>
           <div style="font-size:12px;color:#aaa;margin-top:10px;">Then £5.99/month · Cancel any time</div>
         </div>
         <div id="advisor-unlocked" style="display:none;">
@@ -498,6 +495,7 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
             <textarea id="advisor-input" placeholder="e.g. What does the medication change mean for Mum's daily routine?" rows="2" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:none;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdvisorQuestion();}"></textarea>
             <button onclick="sendAdvisorQuestion()" id="advisor-send-btn" style="background:#1a1a18;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">Ask</button>
           </div>
+      <div style="font-size:11px;color:#bbb;text-align:center;padding:8px 0;line-height:1.5;">AI Care Advisor provides general information only — not clinical advice. Always consult the care team for medical decisions.</div>
         </div>
       </div>
     </div>
@@ -1005,6 +1003,33 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
   document.head.appendChild(s);
 })();
 
+// ── SESSION HEALTH CHECK (every 10 minutes) ──
+setInterval(function() {
+  if (!currentUser) return;
+  var token = getSupaToken();
+  if (!token) return;
+  // Decode JWT to check expiry
+  try {
+    var parts = token.split('.');
+    if (parts.length === 3) {
+      var payload = JSON.parse(atob(parts[1]));
+      var expiresAt = payload.exp * 1000;
+      var now = Date.now();
+      var minsLeft = Math.floor((expiresAt - now) / 60000);
+      if (minsLeft < 5 && minsLeft > 0) {
+        // Refresh proactively
+        if (window.sb) sb.auth.refreshSession().then(function(r) {
+          if (r && r.data && r.data.session) {
+            localStorage.setItem('supa_token', r.data.session.access_token);
+          }
+        });
+      } else if (minsLeft <= 0) {
+        _handleSessionExpiry();
+      }
+    }
+  } catch(e) {}
+}, 10 * 60 * 1000);
+
 // ── CONFIRMATION MODAL ──
 function kindredConfirm(message, onYes, title) {
   var modal = document.getElementById('confirm-modal');
@@ -1125,6 +1150,23 @@ function initFamilyApp() {
 }
 
 // ── SIGN OUT ──
+function requestDataDeletion() {
+  if (!confirm('Request account deletion?\n\nThis will send a deletion request to the Kindred team. Your data will be anonymised within 30 days as required by UK GDPR.\n\nNote: Care review records may be retained for up to 7 years as required by care home regulations.')) return;
+  // Send email request
+  fetch('/api/notify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      to: ['privacy@kindredcare.app'],
+      residentName: currentUser ? (currentUser.resident_name || 'Unknown') : 'Unknown',
+      careHomeName: 'DATA DELETION REQUEST',
+      reviewType: 'Account deletion request from: ' + (currentUser ? currentUser.email : 'unknown'),
+      senderName: currentUser ? currentUser.name : 'Unknown user'
+    })
+  }).catch(function(){});
+  alert('Your deletion request has been submitted. We will process it within 30 days and confirm by email.');
+}
+
 function signOut() {
   stopAutoRefresh();
   localStorage.removeItem('kindred_user');
@@ -1607,6 +1649,8 @@ function getPill(id) {
 
 // ── CHECKIN ──
 function doCheckin(btn, choice) {
+  // Persist the selection
+  try { localStorage.setItem('k_wellbeing_' + (currentUser ? currentUser.family_id : ''), JSON.stringify({choice: choice, ts: Date.now()})); } catch(e) {}
   document.querySelectorAll('.wb-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
   var responses = {
@@ -2370,6 +2414,30 @@ function _doSendReview(btn) {
     window._currentDraftId = null;
     document.getElementById('send-confirm').style.display = 'block';
     btn.textContent = 'Sent ✓';
+
+    // Send email notification to family members
+    try {
+      supaFetch('families?id=eq.' + selectedResident.id + '&select=*').then(function(fams) {
+        if (!fams || !fams.length) return;
+        var fam = fams[0];
+        // Get family user emails
+        supaFetch('family_users?family_id=eq.' + selectedResident.id + '&select=email,name').then(function(users) {
+          var emails = (users || []).map(function(u){ return u.email; }).filter(Boolean);
+          if (!emails.length) return;
+          fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: emails,
+              residentName: selectedResident.name,
+              careHomeName: currentUser.care_home || 'the care home',
+              reviewType: getReviewType(),
+              senderName: currentUser.name
+            })
+          }).catch(function(e){ console.log('Email notify failed silently:', e); });
+        });
+      });
+    } catch(e) { console.log('Email notify error:', e); }
     var notice = document.getElementById('draft-pending-notice');
     if (notice) notice.style.display = 'none';
     // Refresh Overview so approved review disappears from pending sections
@@ -2653,7 +2721,7 @@ function supaPost(endpoint, data, method) {
       }
       return data;
     });
-  }).catch(function() { return null; });
+  }).catch(function(e) { console.warn('supaFetch error:', e); return null; });
 }
 
 // ── NURSE PORTAL DATA ──
@@ -3241,7 +3309,18 @@ function supaFetch(endpoint, method, body) {
       });
     }
     return r.json();
-  }).catch(function() { return null; });
+  }).catch(function(e) { console.warn('supaFetch error:', e); return null; });
+}
+
+function showAppError(msg) {
+  var existing = document.getElementById('app-error-banner');
+  if (existing) existing.remove();
+  var b = document.createElement('div');
+  b.id = 'app-error-banner';
+  b.style.cssText = 'position:fixed;top:52px;left:0;right:0;background:#fef2f2;border-bottom:0.5px solid #fca5a5;color:#b91c1c;text-align:center;padding:10px 16px;font-size:13px;font-weight:500;z-index:9997;display:flex;align-items:center;justify-content:center;gap:10px;';
+  b.innerHTML = msg + ' <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#b91c1c;cursor:pointer;font-size:16px;line-height:1;">×</button>';
+  document.body.appendChild(b);
+  setTimeout(function(){ if(b.parentElement) b.remove(); }, 6000);
 }
 
 function _handleSessionExpiry() {
@@ -3308,7 +3387,31 @@ function dateStr() { return new Date().toLocaleDateString('en-GB', {day:'numeric
 </script>
 
 <!-- CONFIRMATION MODAL -->
-<div id="confirm-modal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;padding:20px;">
+<!-- ONBOARDING MODAL -->
+<div id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="font-size:32px;margin-bottom:12px;">👋</div>
+    <div style="font-size:20px;font-weight:700;color:#1a1a18;margin-bottom:6px;">Welcome to Kindred</div>
+    <div style="font-size:14px;color:#666;margin-bottom:24px;line-height:1.7;">Here's how it works in 3 simple steps:</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px;">
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="width:32px;height:32px;background:#e8f4f0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#4a7c6f;flex-shrink:0;">1</div>
+        <div><div style="font-size:14px;font-weight:600;color:#1a1a18;">Enter a review</div><div style="font-size:13px;color:#888;margin-top:2px;">Fill in clinical notes for any resident using the Enter review tab.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="width:32px;height:32px;background:#e8f4f0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#4a7c6f;flex-shrink:0;">2</div>
+        <div><div style="font-size:14px;font-weight:600;color:#1a1a18;">AI translates the notes</div><div style="font-size:13px;color:#888;margin-top:2px;">Kindred converts your clinical language into plain English for the family.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="width:32px;height:32px;background:#e8f4f0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#4a7c6f;flex-shrink:0;">3</div>
+        <div><div style="font-size:14px;font-weight:600;color:#1a1a18;">A manager approves and sends</div><div style="font-size:13px;color:#888;margin-top:2px;">Nothing reaches the family until a manager reads and approves it.</div></div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('onboarding-modal').style.display='none'" style="width:100%;padding:13px;background:#4a7c6f;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Got it — let's go</button>
+  </div>
+</div>
+
+<div id="confirm-modal"  style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:14px;padding:24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
     <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:8px;" id="confirm-title">Are you sure?</div>
     <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:20px;" id="confirm-message"></div>
