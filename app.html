@@ -258,6 +258,20 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
 #wellbeing-summary-card{background:#fff;border:0.5px solid var(--border);border-radius:14px;overflow:hidden;}
 #wellbeing-summary-card .card-body p{font-size:13px;line-height:1.7;color:#555;}
 
+/* INBOX MESSAGE THREAD */
+.msg-date-divider{text-align:center;margin:14px 0 10px;font-size:11px;color:#bbb;position:relative;}
+.msg-date-divider::before,.msg-date-divider::after{content:'';position:absolute;top:50%;width:30%;height:0.5px;background:rgba(0,0,0,0.08);}
+.msg-date-divider::before{left:0;}.msg-date-divider::after{right:0;}
+.msg-row{display:flex;flex-direction:column;margin-bottom:12px;}
+.msg-row.from-me{align-items:flex-end;}
+.msg-row.from-them{align-items:flex-start;}
+.msg-meta{font-size:10px;color:#bbb;margin-bottom:3px;}
+.msg-bubble{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.6;max-width:75%;word-break:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.06);}
+.msg-row.from-me .msg-bubble{background:var(--sage);color:#fff;border-radius:18px 18px 4px 18px;}
+.msg-row.from-them .msg-bubble{background:#f5f0e8;color:var(--ink);border-radius:18px 18px 18px 4px;border:0.5px solid rgba(0,0,0,0.07);}
+.msg-status{font-size:10px;color:#ccc;margin-top:3px;}
+.msg-typing{color:#bbb;font-size:13px;text-align:center;padding:20px 0;}
+
 /* ADVISOR */
 #advisor-thread{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0;}
 
@@ -3926,6 +3940,8 @@ function openInboxThread(familyId, resName) {
     var lastDate = '';
     var isThreadResolved = msgs.length > 0 && msgs[msgs.length-1].sender_role === 'resolved';
     msgs.forEach(function(m) {
+      // Skip system messages
+      if (m.message === '__reopened__') return;
       // Show resolved banner instead of system message
       if (m.sender_role === 'resolved' && m.message === '__resolved__') {
         var resolvedDiv = document.createElement('div');
@@ -3943,7 +3959,7 @@ function openInboxThread(familyId, resName) {
       if (dateStr !== lastDate) {
         var dd = document.createElement('div');
         dd.className = 'msg-date-divider';
-        dd.textContent = dateStr;
+        dd.innerHTML = '<span>' + dateStr + '</span>';
         thread.appendChild(dd);
         lastDate = dateStr;
       }
