@@ -1960,37 +1960,90 @@ function loadConcerns() {
 }
 
 function buildConcernEl(c) {
-  var sevColors = {'Serious':'tag-amber','Moderate':'tag-amber','Minor':'tag-gray'};
   var isEscalated = c.status === 'escalated' || c.status === 'responded';
-  var div = document.createElement('div');
-  div.className = 'card';
-  div.style.cssText = 'margin-bottom:8px;' + (isEscalated ? 'border-left:3px solid #ef4444;' : '');
-  var statusTag = c.status === 'responded'
-    ? '<span class="tag" style="background:#dcfce7;color:#166534;font-size:11px;">Manager responded</span>'
-    : isEscalated
-    ? '<span class="tag" style="background:#fee2e2;color:#b91c1c;font-size:11px;">Escalated to manager</span>'
-    : '<span class="tag tag-gray" style="font-size:11px;">Private</span>';
+  var isPrivate = !isEscalated;
   var date = c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : (c.date || '');
+
+  // Status badge
+  var statusBadge = c.status === 'responded'
+    ? '<span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:#dcfce7;color:#166534;border:0.5px solid #86efac;">Manager responded</span>'
+    : isEscalated
+    ? '<span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:#fee2e2;color:#b91c1c;border:0.5px solid #fca5a5;">Escalated</span>'
+    : '<span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:#f5f5f4;color:#888;border:0.5px solid rgba(0,0,0,0.1);">Private</span>';
+
+  // Severity colour
+  var sevColor = c.severity === 'Serious' ? '#b91c1c' : c.severity === 'Moderate' ? '#854f0b' : '#666';
+  var sevBg = c.severity === 'Serious' ? '#fef2f2' : c.severity === 'Moderate' ? '#fef9ec' : '#f5f5f4';
+
+  var div = document.createElement('div');
+  div.style.cssText = 'background:#fff;border:0.5px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;' + (isEscalated ? 'border-left:3px solid #ef4444;' : '');
+
   div.innerHTML =
-    '<div class="card-head"><span class="card-title" style="font-size:13px;">' + esc(c.type || c.type) + ' — ' + esc(c.severity || c.sev || '') + '</span>' + statusTag + '</div>' +
-    '<div class="card-body"><p style="margin-bottom:8px;">' + esc(c.content || c.text) + '</p>' +
-    '<div style="font-size:11px;color:#aaa;">Logged by ' + esc(c.author_name || c.author) + ' · ' + date + '</div>' +
-    (c.manager_response ? '<div style="margin-top:10px;padding:8px 10px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#085041;"><strong>Manager response:</strong> ' + esc(c.manager_response) + '</div>' : '') +
+    // Header
+    '<div style="padding:16px 18px;border-bottom:0.5px solid var(--border-light);">' +
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;">' +
+    '<div>' +
+    '<div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px;">' + esc(c.type || '') + '</div>' +
+    '<span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:' + sevBg + ';color:' + sevColor + ';">' + esc(c.severity || '') + '</span>' +
+    '</div>' +
+    statusBadge +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--mocha);">Logged by ' + esc(c.author_name || c.author || '') + ' · ' + date + '</div>' +
+    '</div>' +
+    // Body
+    '<div style="padding:16px 18px;">' +
+    '<p style="font-size:14px;color:#444;line-height:1.7;margin-bottom:0;">' + esc(c.content || c.text || '') + '</p>' +
+    (c.manager_response
+      ? '<div style="margin-top:14px;padding:12px 14px;background:var(--sage-light);border-radius:10px;border:0.5px solid var(--sage-mid);">' +
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage-dark);margin-bottom:4px;">Manager response</div>' +
+        '<p style="font-size:13px;color:var(--sage-dark);line-height:1.7;margin:0;">' + esc(c.manager_response) + '</p>' +
+        '</div>'
+      : '') +
+    '</div>' +
+    // Footer actions
+    '<div style="padding:12px 18px;border-top:0.5px solid var(--border-light);display:flex;gap:8px;align-items:center;" id="concern-foot-' + (c.id||'') + '">' +
     '</div>';
-  // Show escalate button only if not already escalated and has a Supabase id
-  if (!isEscalated && c.status !== 'responded' && c.id) {
-    var foot = document.createElement('div');
-    foot.className = 'card-foot';
+
+  var foot = div.querySelector('#concern-foot-' + (c.id||''));
+
+  // Escalate button — only if private
+  if (isPrivate && c.id) {
     var escalateBtn = document.createElement('button');
-    escalateBtn.className = 'btn';
-    escalateBtn.style.cssText = 'font-size:13px;padding:8px 16px;color:#b91c1c;border-color:#fca5a5;background:#fff5f5;border-radius:8px;font-weight:600;';
+    escalateBtn.style.cssText = 'font-size:13px;padding:8px 16px;color:#b91c1c;border:0.5px solid #fca5a5;background:#fff5f5;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit;';
     escalateBtn.textContent = '↑ Escalate to manager';
     escalateBtn.addEventListener('click', (function(id, d) {
       return function() { showEscalateConfirm(id, d); };
     })(c.id, div));
     foot.appendChild(escalateBtn);
-    div.appendChild(foot);
   }
+
+  // Delete button — only if private (not escalated)
+  if (isPrivate && c.id) {
+    var deleteBtn = document.createElement('button');
+    deleteBtn.style.cssText = 'font-size:13px;padding:8px 14px;color:var(--mocha);border:0.5px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;margin-left:auto;';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', (function(id, el) {
+      return function() {
+        if (!confirm('Delete this concern? This cannot be undone.')) return;
+        supaFetch('family_concerns?id=eq.' + id, 'DELETE').then(function() {
+          el.style.opacity = '0';
+          el.style.transform = 'scale(0.97)';
+          el.style.transition = 'all 0.2s';
+          setTimeout(function(){ el.remove(); }, 200);
+        }).catch(function(){ alert('Could not delete. Please try again.'); });
+      };
+    })(c.id, div));
+    foot.appendChild(deleteBtn);
+  }
+
+  // If escalated with no response yet — show waiting message
+  if (isEscalated && !c.manager_response) {
+    var waiting = document.createElement('div');
+    waiting.style.cssText = 'font-size:12px;color:var(--mocha);font-style:italic;';
+    waiting.textContent = 'Awaiting manager response…';
+    foot.appendChild(waiting);
+  }
+
   return div;
 }
 
