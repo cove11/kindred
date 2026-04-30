@@ -494,15 +494,15 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid rgba(0,0,0,0.08);">
           <div style="background:#1a1a18;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;">🤖</div>
           <div style="flex:1;">
-            <div style="font-size:13px;font-weight:700;color:#1a1a18;">AI Care Advisor</div>
-            <div style="font-size:11px;color:#888;margin-top:1px;">Ask questions about reviews any time — in plain English</div>
+            <div style="font-size:13px;font-weight:700;color:#1a1a18;">Ask Kindred</div>
+            <div style="font-size:11px;color:#888;margin-top:1px;">Plain-English explanations about care — not medical advice</div>
           </div>
           <span style="background:#f0e8dc;color:#c05830;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.04em;flex-shrink:0;">PREMIUM</span>
         </div>
         <div id="advisor-locked" style="background:#faf7f3;border:1px dashed #d4c8b8;border-radius:12px;padding:22px;text-align:center;">
           <div style="font-size:26px;margin-bottom:8px;">🔒</div>
-          <div style="font-size:14px;font-weight:600;color:#1a1a18;margin-bottom:6px;">Unlock the AI Care Advisor</div>
-          <div style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.6;">Get plain-English answers about your loved one's care — any time of day or night.<br><strong style="color:#1a1a18;">First 3 questions completely free.</strong></div>
+          <div style="font-size:14px;font-weight:600;color:#1a1a18;margin-bottom:6px;">Unlock the Ask Kindred</div>
+          <div style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.6;">Ask questions about what care notes mean, what to ask at your next visit, and more. Not a substitute for medical advice.<br><strong style="color:#1a1a18;">First 3 questions completely free.</strong></div>
           <button onclick="window.location.href='mailto:hello@kindredcare.app?subject=Kindred%20AI%20Advisor%20Upgrade&body=Hi%2C%20I%27d%20like%20to%20upgrade%20to%20the%20AI%20Care%20Advisor%20for%20Kindred.'" style="background:#1a1a18;color:#fff;border:none;border-radius:9px;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Try free — 3 questions</button>
           <div style="font-size:12px;color:#aaa;margin-top:10px;">Then £5.99/month · Cancel any time</div>
         </div>
@@ -513,7 +513,7 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
             <textarea id="advisor-input" placeholder="e.g. What does the medication change mean for Mum's daily routine?" rows="2" style="flex:1;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;font-size:13px;font-family:inherit;resize:none;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdvisorQuestion();}"></textarea>
             <button onclick="sendAdvisorQuestion()" id="advisor-send-btn" style="background:#1a1a18;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">Ask</button>
           </div>
-      <div style="font-size:11px;color:#bbb;text-align:center;padding:8px 0;line-height:1.5;">AI Care Advisor provides general information only — not clinical advice. Always consult the care team for medical decisions.</div>
+      <div style="font-size:11px;color:#bbb;text-align:center;padding:8px 0;line-height:1.5;">Ask Kindred provides general information only — For information only — not medical or clinical advice. Always consult the care team for medical decisions.</div>
         </div>
       </div>
     </div>
@@ -2220,18 +2220,33 @@ function renderReviews(reviews) {
   list.innerHTML = '';
   reviews.forEach(function(r) {
     var div = document.createElement('div');
-    div.className = 'card';
-    div.style.marginBottom = '8px';
     var cleanContent = stripMarkdown(r.content || '');
     var isDraft = r.status === 'draft';
-    var statusBadge = isDraft
-      ? '<span class="tag tag-amber" style="font-size:11px;">⏳ Pending approval</span>'
-      : '<span style="font-size:12px;color:#5dcaa5;">Tap to read ›</span>';
-    var bodyContent = isDraft
-      ? '<p style="font-size:12px;color:#888;">This review has been written and is awaiting approval before it reaches you.</p>'
-      : cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="margin-bottom:8px;">' + esc(p) + '</p>';}).join('');
-    var headClick = isDraft ? '' : ' style="cursor:pointer;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'span:last-child\').textContent=b.style.display===\'none\'?\'Tap to read ›\':\'Close\'"';
-    div.innerHTML = '<div class="card-head"' + headClick + '><span class="card-title">' + esc(fmtReviewType(r.review_type)) + ' — ' + esc(r.date) + '</span>' + statusBadge + '</div><div class="card-body" style="' + (isDraft ? '' : 'display:none;') + '"><p style="font-size:12px;color:#aaa;margin-bottom:8px;">Written by ' + esc(r.nurse || 'Nurse') + '</p>' + bodyContent + '</div>';
+    var preview = cleanContent.substring(0, 100).trim();
+    var cardId = 'review-card-' + (r.id || Math.random().toString(36).substr(2,6));
+    div.id = cardId;
+    div.style.cssText = 'background:#fff;border:0.5px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;cursor:' + (isDraft?'default':'pointer') + ';transition:box-shadow 0.15s;';
+    if (!isDraft) {
+      div.onmouseenter = function(){ this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'; };
+      div.onmouseleave = function(){ this.style.boxShadow=''; };
+    }
+    div.innerHTML =
+      '<div style="padding:16px 18px;" onclick="' + (isDraft ? '' : 'toggleReviewCard(\'' + cardId + '\')'  ) + '">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+      '<span style="font-size:14px;font-weight:700;color:var(--ink);">' + esc(fmtReviewType(r.review_type)) + '</span>' +
+      (isDraft
+        ? '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fef9ec;color:#854f0b;border:0.5px solid #fcd34d;">Awaiting approval</span>'
+        : '<svg class="review-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:#bbb;transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>') +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--mocha);margin-bottom:' + (isDraft?'0':'8px') + ';">' + esc(r.date) + ' · Written by ' + esc(r.nurse || 'Care team') + '</div>' +
+      (isDraft ? '' : '<div class="review-preview" style="font-size:13px;color:#888;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(preview) + '…</div>') +
+      '</div>' +
+      (isDraft
+        ? '<div style="padding:0 18px 14px;font-size:13px;color:#888;">This review has been written and is awaiting manager approval before it reaches you.</div>'
+        : '<div class="review-body" style="display:none;padding:0 18px 18px;border-top:0.5px solid var(--border-light);">' +
+          '<div style="padding-top:14px;">' +
+          cleanContent.split('\n').filter(function(l){return l.trim();}).map(function(p){return '<p style="font-size:14px;color:#444;line-height:1.8;margin-bottom:10px;">'+esc(p)+'</p>';}).join('') +
+          '</div></div>');
     list.appendChild(div);
   });
 
@@ -3359,6 +3374,27 @@ function recallReview(btn) {
       btn.textContent = 'Revise this review';
     });
   });
+}
+
+function toggleReviewCard(cardId) {
+  var card = document.getElementById(cardId);
+  if (!card) return;
+  var body = card.querySelector('.review-body');
+  var preview = card.querySelector('.review-preview');
+  var chevron = card.querySelector('.review-chevron');
+  if (!body) return;
+  var isOpen = card.dataset.open === '1';
+  if (isOpen) {
+    body.style.display = 'none';
+    card.dataset.open = '0';
+    if (chevron) chevron.style.transform = '';
+    if (preview) preview.style.display = '';
+  } else {
+    body.style.display = '';
+    card.dataset.open = '1';
+    if (chevron) chevron.style.transform = 'rotate(90deg)';
+    if (preview) preview.style.display = 'none';
+  }
 }
 
 function toggleSentCard(header) {
