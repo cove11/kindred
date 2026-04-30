@@ -410,8 +410,8 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
       </div>
 
       <div style="font-size:11px;color:#aaa;margin-top:10px;margin-bottom:4px;">Helps the people close to Margaret see who is doing what — visible to everyone on this portal.</div>
-      <button class="btn" onclick="showLogModal()" style="width:100%;padding:11px;font-size:13px;background:#faf9f7;border-style:dashed;display:flex;align-items:center;justify-content:center;gap:7px;">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#555" stroke-width="1.2"/><path d="M7 4v6M4 7h6" stroke="#555" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <button class="btn" onclick="showLogModal()" style="width:100%;padding:11px;font-size:13px;background:var(--sage-light);color:var(--sage-dark);border:0.5px solid var(--sage-mid);border-radius:12px;padding:14px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span id="log-btn-text">Log something you did</span>
       </button>
     </div>
@@ -453,7 +453,8 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
 
     <!-- CONCERNS -->
     <div class="panel" id="tab-concerns">
-      <div style="margin-bottom:20px;"><div style="font-size:18px;font-weight:700;color:#1a1a18;margin-bottom:4px;">Concerns</div><div style="font-size:13px;color:#888;">Private to your family. Escalate to the care home manager any time.</div></div>
+      <div class="page-title">Concerns</div>
+      <div class="page-sub">Private to your family. Escalate to the care home manager any time.</div>
       <button class="btn" id="log-concern-btn" onclick="document.getElementById('concern-compose').style.display='block';this.style.display='none'" style="margin-bottom:12px;width:100%;border-style:dashed;">+ Log a concern</button>
       <div id="concern-compose" style="display:none;margin-bottom:12px;" class="card">
         <div class="card-body">
@@ -1899,11 +1900,28 @@ function loadVisits() {
 }
 
 function buildVisitEl(n) {
-  var colors = {'Good spirits':'tag-green','Tired':'tag-amber','Confused':'tag-amber','Unwell':'tag-amber','Distressed':'tag-amber'};
+  var moodColors = {
+    'Good spirits': {bg:'#e8f4f0',color:'#2d6a58',border:'#a7d4c4'},
+    'Tired': {bg:'#fef9ec',color:'#7c5400',border:'#fcd34d'},
+    'Confused': {bg:'#fef9ec',color:'#7c5400',border:'#fcd34d'},
+    'Unwell': {bg:'#fef2f2',color:'#b91c1c',border:'#fca5a5'},
+    'Distressed': {bg:'#fef2f2',color:'#b91c1c',border:'#fca5a5'}
+  };
+  var mc = moodColors[n.mood] || {bg:'#f5f5f4',color:'#666',border:'rgba(0,0,0,0.1)'};
+  // Author initials
+  var initials = (n.author||'?').split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
   var div = document.createElement('div');
-  div.className = 'card';
-  div.style.marginBottom = '8px';
-  div.innerHTML = '<div class="card-head"><span class="card-title">' + esc(n.author) + ' · ' + esc(n.date) + '</span><span class="tag ' + (colors[n.mood]||'tag-gray') + '">' + esc(n.mood) + '</span></div><div class="card-body"><p>' + esc(n.text) + '</p></div>';
+  div.style.cssText = 'background:#fff;border:0.5px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;';
+  div.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+    '<div style="display:flex;align-items:center;gap:10px;">' +
+    '<div style="width:34px;height:34px;border-radius:50%;background:var(--sage-light);color:var(--sage-dark);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + initials + '</div>' +
+    '<div><div style="font-size:14px;font-weight:600;color:var(--ink);">' + esc(n.author) + '</div>' +
+    '<div style="font-size:12px;color:var(--mocha);">' + esc(n.date) + '</div></div>' +
+    '</div>' +
+    '<span style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;background:' + mc.bg + ';color:' + mc.color + ';border:0.5px solid ' + mc.border + ';">' + esc(n.mood) + '</span>' +
+    '</div>' +
+    '<p style="font-size:14px;color:#555;line-height:1.7;padding-top:12px;border-top:0.5px solid var(--border-light);">' + esc(n.text) + '</p>';
   return div;
 }
 
@@ -2130,7 +2148,19 @@ function renderReviews(reviews) {
   var section = document.getElementById('home-review-section');
   var latestClean = stripMarkdown(latest.content || '');
   var latestSnippet = latestClean.substring(0, 200);
-  section.innerHTML = '<div class="card"><div class="card-head"><span class="card-title">' + esc(fmtReviewType(latest.review_type)) + ' — ' + esc(latest.date) + '</span><span class="tag tag-green">New</span></div><div class="card-body"><p>' + esc(latestSnippet) + '...</p></div><div class="card-foot"><button class="btn btn-green" onclick="showTab(\'reviews\')" style="font-size:12px;padding:5px 11px;">Full review</button></div></div>';
+  section.innerHTML = '<div style="background:#fff;border:0.5px solid var(--border);border-radius:14px;overflow:hidden;">' +
+    '<div style="padding:16px 18px;border-bottom:0.5px solid var(--border-light);">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+    '<span style="font-size:13px;font-weight:700;color:var(--ink);">' + esc(fmtReviewType(latest.review_type)) + '</span>' +
+    '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--sage-light);color:var(--sage-dark);border:0.5px solid var(--sage-mid);">New</span>' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--mocha);">' + esc(latest.date) + '</div>' +
+    '</div>' +
+    '<div style="padding:16px 18px;">' +
+    '<p style="font-size:14px;color:#555;line-height:1.8;margin-bottom:14px;">' + esc(latestSnippet) + '…</p>' +
+    '<button class="btn btn-green" onclick="showTab('reviews')" style="font-size:13px;">Read full review →</button>' +
+    '</div>' +
+    '</div>';
   
   // Update reviews tab
   var list = document.getElementById('reviews-list');
