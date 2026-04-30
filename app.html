@@ -2386,7 +2386,7 @@ function markDraftSaved() {
   if (msg) { msg.textContent = '✓ Draft saved · entered by ' + (currentUser ? currentUser.name : 'you'); msg.style.color = 'var(--sage-dark)'; }
 }
 
-function generateSummary() {
+async function generateSummary() {
   var btn = document.getElementById('btn-gen');
   btn.disabled = true;
   btn.textContent = 'Generating...';
