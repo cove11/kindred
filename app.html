@@ -3282,8 +3282,9 @@ function recallReview(btn) {
 function toggleSentCard(header) {
   var body = header.nextElementSibling;
   var chevron = header.querySelector('.sent-chevron');
-  var isOpen = body && body.style.display !== 'none' && body.style.display !== '';
-  if (body) body.style.display = isOpen ? 'none' : '';
+  if (!body) return;
+  var isOpen = body.style.display === '' && body.offsetHeight > 0;
+  body.style.display = isOpen ? 'none' : '';
   if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
 
@@ -3308,30 +3309,76 @@ function loadSent() {
         return;
       }
       list.innerHTML = '';
-      // Group by resident
+      // Group by resident, sort residents by most recent review
       var byResident = {};
+      var resLatest = {};
       reviews.forEach(function(r) {
         var key = r.resident_name || residentMap[r.family_id] || 'Resident';
-        if (!byResident[key]) byResident[key] = [];
+        if (!byResident[key]) { byResident[key] = []; resLatest[key] = 0; }
         byResident[key].push(r);
+        var ts = new Date(r.created_at).getTime();
+        if (ts > resLatest[key]) resLatest[key] = ts;
       });
+      // Sort residents by most recent review
+      var sortedResidents = Object.keys(byResident).sort(function(a,b){ return resLatest[b] - resLatest[a]; });
 
       list.innerHTML = '';
-      Object.keys(byResident).forEach(function(resName) {
-        var resReviews = byResident[resName];
+
+      // ── Filter bar ──
+      var filterBar = document.createElement('div');
+      filterBar.style.cssText = 'display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;';
+      // Resident filter
+      var resSelect = document.createElement('select');
+      resSelect.style.cssText = 'padding:7px 12px;border:0.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);cursor:pointer;flex:1;min-width:160px;max-width:220px;';
+      resSelect.innerHTML = '<option value="">All residents</option>';
+      sortedResidents.forEach(function(n){ resSelect.innerHTML += '<option value="'+n+'">'+n+'</option>'; });
+      // Type filter
+      var typeSelect = document.createElement('select');
+      typeSelect.style.cssText = 'padding:7px 12px;border:0.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);cursor:pointer;flex:1;min-width:160px;max-width:220px;';
+      var allTypes = [...new Set(reviews.map(function(r){ return (r.review_type||'6-month-review').replace(/_/g,' ').replace(/(^|\s)\w/g,function(c){return c.toUpperCase();}); }))];
+      typeSelect.innerHTML = '<option value="">All types</option>';
+      allTypes.forEach(function(tp){ typeSelect.innerHTML += '<option value="'+tp+'">'+tp+'</option>'; });
+      // Filter logic
+      function applyFilters() {
+        var selRes = resSelect.value;
+        var selType = typeSelect.value;
+        document.querySelectorAll('.sent-res-group').forEach(function(g) {
+          var show = !selRes || g.dataset.res === selRes;
+          g.style.display = show ? '' : 'none';
+        });
+        document.querySelectorAll('.sent-review-card').forEach(function(c) {
+          var typeMatch = !selType || c.dataset.type === selType;
+          var resMatch = !selRes || c.closest('.sent-res-group') && c.closest('.sent-res-group').dataset.res === selRes;
+          c.style.display = (typeMatch && resMatch) ? '' : 'none';
+        });
+      }
+      resSelect.addEventListener('change', applyFilters);
+      typeSelect.addEventListener('change', applyFilters);
+      filterBar.appendChild(resSelect);
+      filterBar.appendChild(typeSelect);
+      list.appendChild(filterBar);
+
+      sortedResidents.forEach(function(resName) {
+        var resReviews = byResident[resName].sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); });
         // Resident header
         var initials = resName.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
         var headerDiv = document.createElement('div');
         headerDiv.style.cssText = 'display:flex;align-items:center;gap:10px;margin:16px 0 8px;';
         headerDiv.innerHTML = '<div style="width:36px;height:36px;border-radius:50%;background:var(--sage-light);color:var(--sage-dark);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + initials + '</div>' +
           '<div><div style="font-size:15px;font-weight:700;color:var(--ink);">' + esc(resName) + '</div><div style="font-size:12px;color:var(--mocha);">' + resReviews.length + ' review' + (resReviews.length===1?'':'s') + ' sent</div></div>';
-        list.appendChild(headerDiv);
+        var groupWrapper = document.createElement('div');
+        groupWrapper.className = 'sent-res-group';
+        groupWrapper.dataset.res = resName;
+        groupWrapper.appendChild(headerDiv);
+        list.appendChild(groupWrapper);
 
         resReviews.forEach(function(r) {
           var dateStr = new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
           var reviewType = (r.review_type || '6-month review').replace(/_/g,' ').replace(/(^|\s)\w/g,function(c){return c.toUpperCase();});
           var preview = (r.content||'').replace(/#{1,3}\s*/g,'').trim().substring(0,120);
           var card = document.createElement('div');
+          card.className = 'sent-review-card';
+          card.dataset.type = reviewType;
           card.style.cssText = 'background:#fff;border:0.5px solid var(--border);border-radius:14px;margin-bottom:8px;overflow:hidden;';
           card.setAttribute('id', 'sc-' + r.id);
           card.innerHTML =
@@ -3354,7 +3401,7 @@ function loadSent() {
             '<div style="font-size:12px;color:var(--mocha);">Approved by ' + esc(r.approved_by||r.nurse_name||'Care team') + '</div>' +
             '<button class="btn btn-secondary btn-sm" data-review-id="' + r.id + '" data-family-id="' + r.family_id + '" onclick="recallReview(this)">Revise</button>' +
             '</div></div>';
-          list.appendChild(card);
+          groupWrapper.appendChild(card);
         });
       });
     });
