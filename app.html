@@ -602,9 +602,10 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Enter review
       </button>
-      <button class="sidebar-item" onclick="showNurseTab('approve')">
+      <button class="sidebar-item" onclick="showNurseTab('approve')" id="approve-nav-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Review &amp; approve
+        <span id="approve-badge" class="sidebar-unread" style="display:none;margin-left:auto;"></span>
       </button>
       <button class="sidebar-item" onclick="showNurseTab('sent')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -763,14 +764,22 @@ label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.0
       <div class="ai-block" id="nurse-preview" style="display:none;">
         <div class="ai-head"><div><span class="gdot"></span><span style="font-size:12px;font-weight:500;color:#555;">Plain-English draft</span></div><span class="model-tag">claude-opus-4-6</span></div>
         <div class="ai-body" id="nurse-preview-out"></div>
-        <div class="ai-foot"><button class="btn btn-green" style="font-size:12px;padding:5px 11px;" onclick="saveDraftAndApprove()">Review &amp; approve ›</button><button class="btn" style="font-size:12px;padding:5px 11px;" onclick="generateSummary()">Regenerate</button><span id="draft-saved-msg" style="font-size:11px;color:#5dcaa5;margin-left:8px;display:none;">✓ Draft saved</span></div>
+        <div class="ai-foot"><button class="btn btn-green" style="font-size:12px;padding:5px 11px;" onclick="saveDraftAndApprove()">Save &amp; go to approve ›</button><button class="btn" style="font-size:12px;padding:5px 11px;" onclick="generateSummary()">Regenerate</button><span id="draft-saved-msg" style="font-size:11px;color:#5dcaa5;margin-left:8px;display:none;">✓ Draft saved</span></div>
       </div>
     </div>
 
     <!-- APPROVE -->
     <div class="panel" id="ntab-approve">
       <div class="page-title">Review &amp; approve</div>
-      <div class="page-sub">Read and edit before sending. Nothing reaches the family until you approve it.</div>
+      <div class="page-sub">Any senior staff can review and send. Nothing reaches the family until submitted.</div>
+
+      <!-- PENDING DRAFTS QUEUE -->
+      <div id="pending-drafts-queue" style="margin-bottom:18px;">
+        <div class="sh">Drafts waiting to be sent</div>
+        <div id="pending-drafts-list"><div class="empty" style="font-size:13px;">No drafts pending.</div></div>
+      </div>
+
+      <div style="height:0.5px;background:var(--border);margin-bottom:18px;" id="approve-divider" style="display:none;"></div>
       <!-- Resident banner -->
       <div id="approve-resident-banner" style="background:#faf9f7;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between;">
         <div>
@@ -1247,6 +1256,8 @@ function showTab(name) {
 
 function showNurseTab(name) {
   closeMobileSidebar('nurse');
+  // Refresh pending queue whenever approve tab is opened
+  if (name === 'approve') { setTimeout(loadManagerPendingCount, 300); }
   document.querySelectorAll('#nurse-app .sidebar-item').forEach(function(btn) {
     var oc = btn.getAttribute('onclick') || '';
     btn.classList.toggle('active', oc.includes("'" + name + "'") || oc.includes('"' + name + '"'));
@@ -1343,6 +1354,7 @@ function loadWardDrafts() {
       var section = document.getElementById('ward-drafts-section');
       var list = document.getElementById('ward-drafts-list');
       if (!section || !list) return;
+      updateApproveBadge(drafts ? drafts.length : 0);
       if (!drafts || drafts.length === 0) { section.style.display = 'none'; return; }
       section.style.display = 'block';
       list.innerHTML = '';
@@ -1507,39 +1519,86 @@ function loadEscalatedConcerns() {
   });
 }
 
+function updateApproveBadge(count) {
+  var badge = document.getElementById('approve-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function loadManagerPendingCount() {
   if (!currentUser || !currentUser.care_home_id) return;
-  // Get all family IDs for this care home
   supaFetch('families?care_home_id=eq.' + currentUser.care_home_id + '&status=neq.deleted&select=id,resident_name').then(function(families) {
-    if (!families || families.length === 0) return;
+    if (!families || families.length === 0) { updateApproveBadge(0); return; }
     var familyIds = families.map(function(f) { return f.id; }).join(',');
     var resMap = {};
     families.forEach(function(f) { resMap[f.id] = f.resident_name; });
-    supaFetch('reviews?family_id=in.(' + familyIds + ')&status=eq.draft&select=id,family_id,review_type,nurse_name,created_at&order=created_at.desc').then(function(drafts) {
+    supaFetch('reviews?family_id=in.(' + familyIds + ')&status=eq.draft&select=id,family_id,review_type,nurse_name,created_at,updated_at&order=created_at.desc').then(function(drafts) {
+      // Update sidebar badge — all staff see count
+      updateApproveBadge(drafts ? drafts.length : 0);
+
+      // Update Overview pending section
       var section = document.getElementById('manager-pending-section');
-      var list = document.getElementById('manager-pending-list');
-      if (!section || !list) return;
-      if (!drafts || drafts.length === 0) { section.style.display = 'none'; return; }
-      section.style.display = 'block';
-      list.innerHTML = '';
+      var ovList = document.getElementById('manager-pending-list');
+      if (section && ovList) {
+        if (!drafts || drafts.length === 0) { section.style.display = 'none'; }
+        else {
+          section.style.display = 'block';
+          ovList.innerHTML = '';
+          drafts.forEach(function(d) {
+            var resName = d.resident_name || resMap[d.family_id] || 'Resident';
+            var dateStr = new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
+            var item = document.createElement('div');
+            item.style.cssText = 'font-size:13px;padding:6px 0;border-bottom:0.5px solid var(--border-light);cursor:pointer;color:var(--ink);';
+            item.innerHTML = '<strong>' + esc(resName) + '</strong> · ' + esc(fmtReviewType(d.review_type)) + ' <span style="color:var(--mocha);">by ' + esc(d.nurse_name||'Staff') + '</span>';
+            item.onclick = function() { selectedResident = {id:d.family_id, name:resName}; showNurseTab('approve'); loadDraftForApprove(); };
+            ovList.appendChild(item);
+          });
+        }
+      }
+
+      // Update Review & approve pending queue
+      var queueList = document.getElementById('pending-drafts-list');
+      if (!queueList) return;
+      if (!drafts || drafts.length === 0) {
+        queueList.innerHTML = '<div class="empty" style="font-size:13px;">No drafts pending — all reviews have been sent.</div>';
+        return;
+      }
+      queueList.innerHTML = '';
       drafts.forEach(function(d) {
         var resName = d.resident_name || resMap[d.family_id] || 'Resident';
-        var dateStr = new Date(d.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
-        var div = document.createElement('div');
-        div.className = 'card';
-        div.style.cssText = 'margin-bottom:6px;cursor:pointer;border-left:3px solid #f59e0b;';
-        div.innerHTML = '<div class="card-body" style="padding:9px 14px;">' +
+        var initials = resName.split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();
+        var enteredDate = new Date(d.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+        var card = document.createElement('div');
+        card.style.cssText = 'background:#fff;border:0.5px solid var(--border);border-left:3px solid #f59e0b;border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow 0.15s;';
+        card.onmouseenter = function(){ this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; };
+        card.onmouseleave = function(){ this.style.boxShadow=''; };
+        card.innerHTML =
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:var(--sage-light);color:var(--sage-dark);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + initials + '</div>' +
+          '<div style="flex:1;">' +
+          '<div style="font-size:15px;font-weight:700;color:var(--ink);">' + esc(resName) + '</div>' +
+          '<div style="font-size:12px;color:var(--mocha);">' + esc(fmtReviewType(d.review_type)) + '</div>' +
+          '</div>' +
+          '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fef9ec;color:#854f0b;border:0.5px solid #fcd34d;">Awaiting send</span>' +
+          '</div>' +
           '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div><div style="font-size:13px;font-weight:500;">' + esc(resName) + '</div>' +
-          '<div style="font-size:11px;color:#aaa;">' + esc(fmtReviewType(d.review_type)) + ' · Written by ' + esc(d.nurse_name || 'Nurse') + ' · ' + dateStr + '</div></div>' +
-          '<span class="tag tag-amber" style="font-size:11px;">Review</span></div></div>';
-        div.addEventListener('click', (function(familyId, resName) {
+          '<div style="font-size:12px;color:var(--mocha);">Entered by <strong>' + esc(d.nurse_name||'Staff') + '</strong> · ' + enteredDate + '</div>' +
+          '<span style="font-size:13px;font-weight:600;color:var(--sage-dark);">Open to send →</span>' +
+          '</div>';
+        card.addEventListener('click', (function(familyId, rName) {
           return function() {
-            selectedResident = { id: familyId, name: resName };
-            showNurseTab('approve');
+            selectedResident = { id: familyId, name: rName };
+            loadDraftForApprove();
+            document.getElementById('approve-main-content').style.display = '';
+            document.getElementById('approve-empty-state').style.display = 'none';
           };
         })(d.family_id, resName));
-        list.appendChild(div);
+        queueList.appendChild(card);
       });
     });
   });
@@ -2317,7 +2376,17 @@ function stripMarkdown(text) {
     .trim();
 }
 
-async function generateSummary() {
+async function markDraftDirty() {
+  var msg = document.getElementById('draft-status-msg');
+  if (msg) { msg.textContent = 'Unsaved changes — generate summary to save draft'; msg.style.color = 'var(--mocha)'; }
+}
+
+function markDraftSaved() {
+  var msg = document.getElementById('draft-status-msg');
+  if (msg) { msg.textContent = '✓ Draft saved · entered by ' + (currentUser ? currentUser.name : 'you'); msg.style.color = 'var(--sage-dark)'; }
+}
+
+function generateSummary() {
   var btn = document.getElementById('btn-gen');
   btn.disabled = true;
   btn.textContent = 'Generating...';
@@ -2547,6 +2616,9 @@ function _doSendReview(btn) {
     window._currentDraftId = null;
     document.getElementById('send-confirm').style.display = 'block';
     btn.textContent = 'Sent ✓';
+    setTimeout(function() { loadManagerPendingCount(); }, 1000);
+    // Refresh badge count after sending
+    setTimeout(function() { loadManagerPendingCount(); loadNursePendingDrafts(); }, 1000);
 
     // Send email notification to family members
     try {
@@ -2870,7 +2942,7 @@ function loadNursePortal() {
     setTimeout(loadWardDrafts, 800); // show all in-progress drafts to all staff
     setTimeout(loadEscalatedConcerns, 1400); // show escalated family concerns to managers
     setTimeout(loadNursePendingDrafts, 1000); // show nurse's own pending drafts
-    setTimeout(loadManagerPendingCount, 1200); // show pending count for managers
+    setTimeout(loadManagerPendingCount, 1200); // show pending count for all staff
     var careHomeName = currentUser.care_home || 'Your care home';
     safeSetText('nurse-care-home-name', careHomeName);
     safeSetText('overview-role', currentUser.is_manager ? 'Care home manager' : 'Senior staff');
