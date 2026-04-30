@@ -3283,9 +3283,16 @@ function toggleSentCard(header) {
   var body = header.nextElementSibling;
   var chevron = header.querySelector('.sent-chevron');
   if (!body) return;
-  var isOpen = body.style.display === '' && body.offsetHeight > 0;
-  body.style.display = isOpen ? 'none' : '';
-  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+  var isOpen = header.dataset.open === '1';
+  if (isOpen) {
+    body.style.display = 'none';
+    header.dataset.open = '0';
+    if (chevron) chevron.style.transform = '';
+  } else {
+    body.style.display = '';
+    header.dataset.open = '1';
+    if (chevron) chevron.style.transform = 'rotate(90deg)';
+  }
 }
 
 function loadSent() {
