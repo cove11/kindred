@@ -1520,7 +1520,7 @@ function loadEscalatedConcerns() {
   });
 }
 
-function toggleQueueCard(cardId) {
+function toggleQueueCard(cardId, familyId, resName, reviewId) {
   var card = document.getElementById(cardId);
   if (!card) return;
   var body = card.querySelector('.q-card-body');
@@ -1535,13 +1535,12 @@ function toggleQueueCard(cardId) {
     card.dataset.open = '1';
     if (chevron) chevron.style.transform = 'rotate(90deg)';
     // Load preview if not yet loaded
-    var previewId = card.querySelector('[id^="q-preview-"]');
-    if (previewId && previewId.textContent === 'Loading preview...') {
-      var reviewId = previewId.id.replace('q-preview-','');
+    var previewEl = card.querySelector('.q-preview');
+    if (previewEl && previewEl.textContent.indexOf('Loading') === 0 && reviewId) {
       supaFetch('reviews?id=eq.' + reviewId + '&select=content').then(function(r) {
         if (r && r[0] && r[0].content) {
           var clean = r[0].content.replace(/#{1,3}\s*/g,'').trim().substring(0,300);
-          previewId.textContent = clean + '…';
+          previewEl.textContent = clean + '…';
         }
       });
     }
@@ -1618,11 +1617,14 @@ function loadManagerPendingCount() {
         card.style.cssText = 'background:#fff;border:0.5px solid var(--border);border-left:3px solid #f59e0b;border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow 0.15s;';
         card.onmouseenter = function(){ this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; };
         card.onmouseleave = function(){ this.style.boxShadow=''; };
-        var qCardId = 'qc-' + d.id;
+                var qCardId = 'qc-' + d.id;
         card.id = qCardId;
+        card.dataset.qid = qCardId;
+        card.dataset.fid = d.family_id;
+        card.dataset.rname = resName;
+        card.dataset.rid = d.id;
         card.innerHTML =
-          // Collapsed header — always visible
-          '<div class="q-card-header" style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="toggleQueueCard('' + qCardId + '')">' +
+          '<div class="q-card-header" style="display:flex;align-items:center;gap:10px;cursor:pointer;">' +
           '<div style="width:38px;height:38px;border-radius:50%;background:var(--sage-light);color:var(--sage-dark);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + initials + '</div>' +
           '<div style="flex:1;min-width:0;">' +
           '<div style="font-size:15px;font-weight:700;color:var(--ink);">' + esc(resName) + '</div>' +
@@ -1633,11 +1635,18 @@ function loadManagerPendingCount() {
           '<svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:#bbb;transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>' +
           '</div>' +
           '</div>' +
-          // Expanded body — hidden by default
           '<div class="q-card-body" style="display:none;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border-light);">' +
-          '<div style="font-size:14px;color:#555;line-height:1.7;max-height:180px;overflow-y:auto;margin-bottom:14px;" id="q-preview-' + d.id + '">Loading preview...</div>' +
-          '<button class="btn btn-green" style="font-size:13px;width:100%;padding:12px;" onclick="openDraftFromQueue('' + d.family_id + '','' + esc(resName) + '')">Open to review &amp; send →</button>' +
+          '<div style="font-size:14px;color:#555;line-height:1.7;max-height:180px;overflow-y:auto;margin-bottom:14px;white-space:pre-wrap;" class="q-preview">Loading preview…</div>' +
+          '<button class="btn btn-green q-open-btn" style="font-size:13px;width:100%;padding:12px;">Open to review &amp; send →</button>' +
           '</div>';
+        // Wire events via JS to avoid quote escaping issues
+        card.querySelector('.q-card-header').addEventListener('click', (function(cid, fid, rname, rid) {
+          return function() { toggleQueueCard(cid, fid, rname, rid); };
+        })(qCardId, d.family_id, resName, d.id));
+        card.querySelector('.q-open-btn').addEventListener('click', function(e) {
+          e.stopPropagation();
+          openDraftFromQueue(card.dataset.fid, card.dataset.rname);
+        });
         card.addEventListener('click', (function(familyId, rName) {
           return function() {
             selectedResident = { id: familyId, name: rName };
@@ -2434,7 +2443,7 @@ function markDraftSaved() {
   if (msg) { msg.textContent = '✓ Draft saved · entered by ' + (currentUser ? currentUser.name : 'you'); msg.style.color = 'var(--sage-dark)'; }
 }
 
-async function generateSummary() {
+async async function generateSummary() {
   var btn = document.getElementById('btn-gen');
   btn.disabled = true;
   btn.textContent = 'Generating...';
